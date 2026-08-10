@@ -37,11 +37,6 @@ CREATE POLICY "Everyone can view global week settings" ON global_week_settings
 CREATE POLICY "Admins can manage global week settings" ON global_week_settings
     FOR ALL USING (
         auth.jwt() ->> 'email' IN (
-            'macmoser@alumni.rice.edu',
-            'km108@rice.edu',
-            'cl202@rice.edu',
-            'jjz3@rice.edu',
-            'bi6@rice.edu',
-            'beyza.ispir@rice.edu'
+            'riceuniversityuniv@gmail.com'
         )
-    ); 
+    );

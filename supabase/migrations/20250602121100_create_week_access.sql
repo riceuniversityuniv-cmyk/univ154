@@ -32,12 +32,7 @@ CREATE POLICY "Users can view their own week access" ON week_access
 CREATE POLICY "Admins can manage week access" ON week_access
     FOR ALL USING (
         auth.jwt() ->> 'email' IN (
-            'macmoser@alumni.rice.edu',
-            'km108@rice.edu',
-            'cl202@rice.edu',
-            'jjz3@rice.edu',
-            'bi6@rice.edu',
-            'beyza.ispir@rice.edu'
+            'riceuniversityuniv@gmail.com'
         )
     );
 

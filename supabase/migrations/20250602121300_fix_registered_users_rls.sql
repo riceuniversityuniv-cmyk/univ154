@@ -15,13 +15,7 @@ CREATE POLICY "Users can insert their own registration" ON registered_users
 CREATE POLICY "Admins can manage all registrations" ON registered_users
     FOR ALL USING (
         auth.jwt() ->> 'email' IN (
-            'macmoser@alumni.rice.edu',
-            'km108@rice.edu',
-            'cl202@rice.edu',
-            'jjz3@rice.edu',
-            'bi6@rice.edu',
-            'beyza.ispir@rice.edu',
-            'mk258@rice.edu'
+            'riceuniversityuniv@gmail.com'
         )
     );
 
