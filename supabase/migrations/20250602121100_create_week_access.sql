@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS week_access (
 CREATE INDEX IF NOT EXISTS idx_week_access_user_email ON week_access(user_email);
 CREATE INDEX IF NOT EXISTS idx_week_access_week_id ON week_access(week_id);
 
--- Insert default data for week 1 access for all existing users
-INSERT INTO week_access (user_email, week_id, is_available, release_date)
-SELECT DISTINCT email, 'week-1', true, NOW()
-FROM user_profiles
-ON CONFLICT (user_email, week_id) DO NOTHING;
+-- NOTE: Original upstream migration backfilled week-1 access for existing
+-- users via `SELECT ... FROM user_profiles`, but no migration in this repo
+-- ever creates a `user_profiles` table (the real table is `registered_users`).
+-- Removed here since this is a fresh database with no existing users to
+-- backfill anyway. See docs/univ154-migration.md.
 
 -- Enable RLS (Row Level Security)
 ALTER TABLE week_access ENABLE ROW LEVEL SECURITY;
@@ -54,7 +54,12 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Create trigger for new user registrations
+-- NOTE: original upstream migration fired this off a nonexistent
+-- `user_profiles` table; real signups insert into Supabase's `auth.users`
+-- (see the on_auth_user_created trigger in the registered_users migration),
+-- so that's what this fires off instead.
+DROP TRIGGER IF EXISTS create_week_access_on_user_registration ON auth.users;
 CREATE TRIGGER create_week_access_on_user_registration
-    AFTER INSERT ON user_profiles
+    AFTER INSERT ON auth.users
     FOR EACH ROW
-    EXECUTE FUNCTION create_default_week_access(); 
+    EXECUTE FUNCTION create_default_week_access();
