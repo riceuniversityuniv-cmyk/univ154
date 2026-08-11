@@ -90,7 +90,7 @@ export const MinimalistSidebar = ({
       </div>
 
       {/* Navigation Sections */}
-      <nav className="flex-1 space-y-1 px-4">
+      <nav className="flex-1 space-y-1 pl-6 pr-4">
         {/* Admin Section */}
         {isAdmin && (
           <div 
