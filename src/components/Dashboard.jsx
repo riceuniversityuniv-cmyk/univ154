@@ -304,7 +304,33 @@ function DashboardContentInner({ isAdmin, user, signOut }) {
           onSidebarFixedChange={handleSidebarFixedChange}
         />
       </div>
- 
+
+      {/* Sidebar collapse/expand toggle button -- follows the sidebar's
+          right edge, flips icon direction, always clickable regardless of
+          hover-driven auto-show state. */}
+      <button
+        onClick={toggleSidebar}
+        aria-label={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
+        title={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
+        className="fixed z-40 flex items-center justify-center"
+        style={{
+          top: '28px',
+          left: showSidebar ? '280px' : '0px',
+          transform: 'translateX(-50%)',
+          width: '28px',
+          height: '28px',
+          borderRadius: '50%',
+          background: '#ffffff',
+          border: '1px solid rgba(13, 26, 75, 0.12)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+          color: '#0d1a4b',
+          cursor: 'pointer',
+          transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      >
+        {showSidebar ? <MdChevronLeft size={18} /> : <MdChevronRight size={18} />}
+      </button>
+
       {/* Main Content */}
       <div className="flex-1 h-full overflow-y-auto">
         {/* Top Bar - DISABLED */}
