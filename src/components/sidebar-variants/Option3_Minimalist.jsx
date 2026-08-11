@@ -96,7 +96,7 @@ export const MinimalistSidebar = ({
         >
           <label
             className="flex items-center justify-between gap-2 w-full cursor-pointer select-none"
-            style={{ fontSize: '12px', color: previewAsStudent ? '#0d1a4b' : '#64748b' }}
+            style={{ fontSize: '13px', color: previewAsStudent ? '#0d1a4b' : '#64748b' }}
           >
             <span style={{ fontWeight: previewAsStudent ? '600' : '500' }}>Preview as Student</span>
             <button
@@ -108,8 +108,8 @@ export const MinimalistSidebar = ({
               style={{
                 position: 'relative',
                 display: 'inline-block',
-                width: '34px',
-                height: '18px',
+                width: '46px',
+                height: '25px',
                 borderRadius: '999px',
                 background: previewAsStudent ? '#0d1a4b' : '#d1d5db',
                 border: 'none',
@@ -122,10 +122,10 @@ export const MinimalistSidebar = ({
               <span
                 style={{
                   position: 'absolute',
-                  top: '2px',
-                  left: previewAsStudent ? '18px' : '2px',
-                  width: '14px',
-                  height: '14px',
+                  top: '3px',
+                  left: previewAsStudent ? '24px' : '3px',
+                  width: '19px',
+                  height: '19px',
                   borderRadius: '50%',
                   background: '#ffffff',
                   boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
@@ -138,7 +138,7 @@ export const MinimalistSidebar = ({
       )}
 
       {/* Navigation Sections */}
-      <nav className="flex-1 space-y-1 pl-6 pr-4">
+      <nav className="flex-1 space-y-1 pl-10 pr-4">
         {/* Admin Section */}
         {isAdmin && (
           <div 

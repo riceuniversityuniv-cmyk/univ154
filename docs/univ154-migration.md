@@ -405,6 +405,43 @@ Per user request, three changes to `Option3_Minimalist.jsx`'s sidebar chrome:
 - `npm run build` clean. Not click-tested live (same no-admin-credentials
   constraint noted elsewhere in this doc).
 
+### 2026-08-11 — "Changes not showing" was browser cache, not a deploy failure; verified via bundle fingerprinting
+User reported not seeing the sidebar changes above on `riceuniv154.netlify.app` after
+they were pushed. No Netlify CLI/API access in this session, so verification was done
+indirectly:
+- `git log`/`branch -vv` confirmed local `main` matched `origin/main` exactly — the
+  push itself was never in question.
+- Fetched the live `index.html` + its referenced JS bundle via `curl` and diffed it
+  against a fresh local `npm run build`. The two builds' output filenames had
+  different content hashes (`index-Bo8vEz70.js` live vs `index-CRKhXW6M.js` local),
+  which looked suspicious at first, but grepping both bundles for strings unique to
+  the shipped changes (`"Hide sidebar"` → 0 in both, `"Preview as Student"` → 2 in
+  both, `"Rice University Logo"` → 4 in both) plus near-identical byte sizes (a
+  ~106-byte difference, consistent with cross-machine build non-determinism, not
+  different source) confirmed the live bundle *did* contain the current code.
+  `Cache-Status: fwd=miss` on the response also ruled out a stale Netlify Edge cache.
+- **Conclusion**: deploy pipeline is fine; the mismatch was the user's own browser
+  caching the old bundle. Told user to hard-refresh (Ctrl+Shift+R) or check they're
+  on `riceuniv154.netlify.app` and not the dead `univ154.netlify.app` lookalike.
+- **Takeaway for future "I don't see my changes" reports**: don't just re-check
+  `git log` — fingerprint the actually-served bundle's content against a fresh local
+  build before concluding the deploy is stale. A differing content-hash filename
+  alone is not proof of stale content.
+
+### 2026-08-11 — Preview-as-Student toggle sizing + more left padding on nav icons
+Follow-up polish request after the user confirmed they could see the relocated
+toggle (see above) but wanted it more consistent with the rest of the sidebar:
+- `Option3_Minimalist.jsx`'s "Preview as Student" label font size bumped from 12px
+  to 13px to match the module nav items' text size (was noticeably smaller before).
+- Toggle switch enlarged from 34×18px (14px knob) to 46×25px (19px knob), same
+  3px inset on all sides so the knob travel math still centers correctly.
+- Nav icon circles' left padding increased again — `<nav>`'s `pl-6` (24px) bumped
+  to `pl-10` (40px), stacking with `SidebarLink`'s own `px-4` (16px) for a 56px
+  total inset from the sidebar's left edge (up from 40px). This is the second
+  bump to this same spacing this session (see "left-align admin icon" commit
+  earlier in git history) — the user wanted more than that first pass gave.
+- `npm run build` clean.
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
