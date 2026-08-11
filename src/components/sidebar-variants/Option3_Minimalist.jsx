@@ -87,7 +87,7 @@ export const MinimalistSidebar = ({
         <div
           className="w-full"
           style={{
-            paddingLeft: '80px',
+            paddingLeft: '32px',
             paddingRight: '16px',
             marginBottom: '20px',
             opacity: sidebarCollapsed ? 0 : (isLoaded ? 1 : 0),
@@ -140,7 +140,7 @@ export const MinimalistSidebar = ({
       )}
 
       {/* Navigation Sections */}
-      <nav className="flex-1 space-y-1 pl-16 pr-4">
+      <nav className="flex-1 space-y-1 pl-4 pr-4">
         {/* Admin Section */}
         {isAdmin && (
           <div 

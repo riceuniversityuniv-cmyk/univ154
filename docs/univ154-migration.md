@@ -500,6 +500,29 @@ on the compiled CSS came back **0**.
   actually compiled to a CSS rule. Grep the compiled CSS for the literal selector
   (`.pl-16{`) when the change in question is a spacing/layout utility class.
 
+### 2026-08-11 — `pl-16` nav padding was way too large once the spacing-scale fix landed; cut back to `pl-4`
+- Once the `src/index.css` fix above made the spacing scale real, `pl-16` (64px) +
+  `SidebarLink`'s own `px-4` (16px) produced an 80px gutter between the sidebar's
+  left edge and the module icons — visibly excessive (user marked up a screenshot
+  showing the empty strip that needed to go). Every earlier round's padding numbers
+  in `Option3_Minimalist.jsx` (`pl-6` → `pl-10` → `pl-16`) were chosen while the
+  utility was a no-op, so none of them were ever validated against real rendered
+  output.
+- Reduced `<nav>` from `pl-16 pr-4` to `pl-4 pr-4` (16px left gutter). Updated the
+  Preview-as-Student row's inline `paddingLeft` from `80px` to `32px` (`16px` nav
+  gutter + `16px` `SidebarLink` `px-4`) to keep it left-aligned with the Admin row's
+  icon, per the existing alignment rule.
+- Verified via clean rebuild that `.pl-4{padding-left:calc(var(--spacing) * 4)}`
+  compiles and is applied; `.pl-16{...}` still appears in the CSS output but is
+  unused dead weight — Tailwind v4's automatic content scanner picked up the
+  literal string "pl-16" out of this doc file's own working-log prose (no
+  `@source`/`content` restriction is scoping the scan to `src/` only), not from any
+  component. Harmless, not worth chasing.
+- **Takeaway**: after any fix that makes previously-dead utility classes real, don't
+  assume prior "spacing" values chosen while the classes were dead are still
+  correct — they need to be re-eyeballed against actual rendered output, since they
+  were tuned blind.
+
 ## Status as of end of 2026-08-11 session
 - **⚠️ Important for next session**: `src/index.css` was fixed this session (`@tailwind`
   v3 directives → `@import "tailwindcss";`) because Tailwind's default spacing scale
