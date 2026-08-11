@@ -1,6 +1,6 @@
 // Force deploy - Netlify cache fix
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { AuthProvider } from './contexts/AuthContext'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 import Login from './components/Login'
 import SignUp from './components/SignUp'
 import SignUpSuccess from './components/SignUpSuccess'
@@ -97,27 +97,26 @@ const OverviewWrapper = () => (
   />
 );
 
-// Temporarily commented out for development
-// function ProtectedRoute({ children }) {
-//   const { user, loading } = useAuth()
-  
-//   if (loading) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-//         <div className="text-center">
-//           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0d1a4b] mx-auto"></div>
-//           <p className="mt-4 text-[#0d1a4b]">Loading...</p>
-//         </div>
-//       </div>
-//     )
-//   }
-  
-//   if (!user) {
-//     return <Navigate to="/" />
-//   }
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth()
 
-//   return children
-// }
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0d1a4b] mx-auto"></div>
+          <p className="mt-4 text-[#0d1a4b]">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!user) {
+    return <Navigate to="/" replace />
+  }
+
+  return children
+}
 
 function App() {
   return (
@@ -128,7 +127,7 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/signup-success" element={<SignUpSuccess />} />
           <Route path="/update-password" element={<UpdatePassword />} />
-          <Route path="/dashboard/*" element={<Dashboard />}>
+          <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
             <Route index element={<Navigate to="/dashboard/excel/week-1" replace />} />
             <Route path="excel/week-1" element={<Week1Budgeting />} />
             <Route path="excel/week-1/*" element={<Week1Budgeting />} />
