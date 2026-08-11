@@ -47,11 +47,9 @@ const Avatar = ({ url, name }) => {
 // Enhanced SidebarLink with better hover effects and animations
 const SidebarLink = ({ icon: Icon, text, href, subText, style, delay = 0, isAdminLink = false, className = '', disabled = false, onClick, variant }) => {
   const location = useLocation();
-  // Exact match, except the single combined "Admin" link: it should stay
-  // active across both its tabs (/dashboard/admin/week-access,
-  // /dashboard/admin/manage), so it gets a startsWith special case. Safe
-  // again now that there's only one admin nav link (previously removed
-  // when there were two, which would've both lit up simultaneously).
+  // Exact match, except the single "Admin" link: it gets a startsWith
+  // special case so old bookmarked sub-paths (redirected to /dashboard/admin)
+  // still light it up during the redirect.
   const isActive = location.pathname === href ||
                    (href === '/dashboard' && location.pathname === '/dashboard/') ||
                    (isAdminLink && location.pathname.startsWith('/dashboard/admin'));
@@ -114,7 +112,7 @@ const SidebarLink = ({ icon: Icon, text, href, subText, style, delay = 0, isAdmi
         }
       }}
     >
-      <span className="flex items-center flex-1 min-w-0">
+      <span className={`flex items-center flex-1 min-w-0 ${isAdminLink ? 'justify-center' : ''}`}>
         {Icon && (typeof Icon === 'function' ? (
           <Icon 
             className="w-[18px] h-[18px] mr-3 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" 
@@ -237,8 +235,6 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
       return false
     }
   })
-  const [sidebarHovered, setSidebarHovered] = useState(false)
-  
   // Use week access context
   const { isWeekAccessible } = useWeekAccess()
 
@@ -289,28 +285,14 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
     }
   }
 
-  // Show sidebar when hovering over left edge or sidebar itself
-  const showSidebar = !sidebarCollapsed || sidebarHovered
+  // Sidebar visibility is driven solely by the toggle button -- no hover-to-expand.
+  const showSidebar = !sidebarCollapsed
 
   return (
     <div className="h-screen w-screen flex bg-gray-50 overflow-hidden">
-      {/* Hover Zone - Left edge trigger (20px wide) */}
-      <div
-        className="fixed left-0 top-0 w-5 h-full z-30"
-        onMouseEnter={() => setSidebarHovered(true)}
-      />
-
-      {/* Sidebar - Minimalist Modern Design with Hover */}
-      <div
-        className="fixed left-0 top-0 h-full z-20"
-        onMouseEnter={() => setSidebarHovered(true)}
-        onMouseLeave={() => {
-          // Only hide if sidebar is collapsed
-          if (sidebarCollapsed) {
-            setSidebarHovered(false)
-          }
-        }}
-      >
+      {/* Sidebar - Minimalist Modern Design. Visibility is click-only (toggle
+          button below), no hover-to-expand. */}
+      <div className="fixed left-0 top-0 h-full z-20">
         <MinimalistSidebar
           sidebarCollapsed={!showSidebar}
           toggleSidebar={toggleSidebar}
@@ -336,9 +318,10 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         />
       </div>
 
-      {/* Sidebar collapse/expand toggle button -- follows the sidebar's
-          right edge, flips icon direction, always clickable regardless of
-          hover-driven auto-show state. */}
+      {/* Sidebar collapse/expand toggle button -- the only way to show/hide
+          the sidebar. Follows the sidebar's right edge when open; when
+          collapsed, sits fully on-screen at the left edge instead of being
+          half-clipped off it. */}
       <button
         onClick={toggleSidebar}
         aria-label={showSidebar ? 'Collapse sidebar' : 'Expand sidebar'}
@@ -346,7 +329,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         className="fixed z-40 flex items-center justify-center"
         style={{
           top: '28px',
-          left: showSidebar ? '280px' : '0px',
+          left: showSidebar ? '280px' : '14px',
           transform: 'translateX(-50%)',
           width: '28px',
           height: '28px',

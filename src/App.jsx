@@ -15,8 +15,6 @@ import Week6Retirement from './components/Week6Retirement'
 import Week7 from './components/Week7'
 import Week9 from './components/Week9'
 import Week12 from './components/Week12'
-import WeekAccessAdmin from './components/WeekAccessAdmin'
-import AdminSettingsPanel from './components/AdminSettingsPanel'
 import AdminPanel from './components/AdminPanel'
 import Overview from './components/pages/Overview'
 
@@ -175,11 +173,10 @@ function App() {
             <Route path="excel/week-9/*" element={<Week9 />} />
             <Route path="excel/week-12" element={<Week12 />} />
             <Route path="excel/week-12/*" element={<Week12 />} />
-            <Route path="admin" element={<AdminPanel />}>
-              <Route index element={<Navigate to="/dashboard/admin/week-access" replace />} />
-              <Route path="week-access" element={<WeekAccessAdmin />} />
-              <Route path="manage" element={<AdminSettingsPanel />} />
-            </Route>
+            <Route path="admin" element={<AdminPanel />} />
+            {/* Old two-tab URLs redirect to the single combined admin page */}
+            <Route path="admin/week-access" element={<Navigate to="/dashboard/admin" replace />} />
+            <Route path="admin/manage" element={<Navigate to="/dashboard/admin" replace />} />
             {/* Add routes for other weeks here as they are created */}
           </Route>
         </Routes>

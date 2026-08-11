@@ -107,21 +107,31 @@ export const MinimalistSidebar = ({
           >
             <div className="flex flex-col gap-1 items-center">
               <SidebarLink
-                href="/dashboard/admin/week-access"
+                href="/dashboard/admin"
                 delay={0}
-                icon={FaUserShield}
+                icon={
+                  <span
+                    className="flex items-center justify-center flex-shrink-0"
+                    style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '100px',
+                      background: 'linear-gradient(145deg, rgba(220, 38, 38, 0.15) 0%, rgba(13, 26, 75, 0.08) 100%)',
+                      boxShadow: '0 1px 4px rgba(220, 38, 38, 0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
+                      marginRight: '8px',
+                    }}
+                  >
+                    <FaUserShield style={{ color: '#0d1a4b' }} className="w-[14px] h-[14px]" />
+                  </span>
+                }
                 text="Admin"
                 style={{
                   fontSize: '13px',
                   fontWeight: '500',
                   color: '#0d1a4b',
                   textAlign: 'center',
-                  justifyContent: 'center',
-                  width: '100%'
                 }}
-                className="
-                  justify-center text-center w-full
-                "
+                className="justify-center text-center w-full"
                 isAdminLink={true}
               />
             </div>
@@ -304,7 +314,7 @@ export const MinimalistSidebar = ({
                       lineHeight: 1.4,
                     }}
                   >
-                    When enabled, the sidebar remains closed until opened via the arrow or left-edge hover.
+                    When enabled, the sidebar starts closed. Click the arrow to open it.
                     <div
                       style={{
                         position: 'absolute',
