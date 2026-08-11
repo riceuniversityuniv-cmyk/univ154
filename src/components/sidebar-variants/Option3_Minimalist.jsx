@@ -146,7 +146,7 @@ export const MinimalistSidebar = ({
           <div 
             style={{
               marginTop: '0px', // Preparing yazısından uzaklaştırmak için
-              marginBottom: '40px', // Module 1'den uzaklaştırmak için
+              marginBottom: '12px',
               paddingTop: '0px',
               paddingBottom: '0px',
               opacity: sidebarCollapsed ? 0 : (isLoaded ? 1 : 0),
