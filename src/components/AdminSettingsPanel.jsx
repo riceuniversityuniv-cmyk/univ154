@@ -240,11 +240,10 @@ export default function AdminSettingsPanel() {
   return (
     <div style={styles.container}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
           <MdSecurity style={{ fontSize: '32px', color: '#002060' }} />
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Manage Admins</h1>
         </div>
-        <p style={{ color: '#666', margin: 0 }}>Manage who has admin access to this tool</p>
       </div>
 
       {message && (
@@ -333,10 +332,7 @@ export default function AdminSettingsPanel() {
               <MdPersonAdd style={{ verticalAlign: 'middle', marginRight: '6px' }} />
               Add an Admin
             </div>
-            <p style={{ color: '#666', fontSize: '13px', marginBottom: '12px' }}>
-              Pick from registered users, or type an email directly.
-            </p>
-            <form onSubmit={handleAddAdmin} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <form onSubmit={handleAddAdmin} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
               <input
                 list="non-admin-users"
                 type="email"
@@ -364,11 +360,7 @@ export default function AdminSettingsPanel() {
                 <MdSwapHoriz style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                 Transfer Master Admin
               </div>
-              <p style={{ color: '#666', fontSize: '13px', marginBottom: '12px' }}>
-                Hand master admin status to any registered user. You will be demoted to a
-                regular admin immediately -- there can only be one master admin.
-              </p>
-              <form onSubmit={handleTransferMaster} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              <form onSubmit={handleTransferMaster} style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '12px' }}>
                 <input
                   list="transfer-candidates"
                   type="email"

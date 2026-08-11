@@ -182,13 +182,12 @@ export default function WeekAccessAdmin() {
     <div style={styles.container}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
           <MdSettings style={{ fontSize: '32px', color: '#002060' }} />
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Week Access Management</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Week Access</h1>
         </div>
-        <p style={{ color: '#666', margin: 0 }}>Manage week availability for all users</p>
       </div>
-      
+
       {/* Message Display */}
       {message && (
         <div style={{
@@ -210,13 +209,6 @@ export default function WeekAccessAdmin() {
 
       {/* Week Availability Management */}
       <div>
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#002060', marginBottom: '8px' }}>Classroom Week Availability</h2>
-          <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-            Control week availability for all users. Changes here affect the entire classroom.
-          </p>
-        </div>
-        
         {/* Bulk Actions */}
         <div style={{ 
           display: 'flex', 
@@ -336,10 +328,7 @@ export default function WeekAccessAdmin() {
                     />
                   </td>
                   <td style={{...styles.td, textAlign: 'left'}}>
-                    <div>
-                      <div style={{ fontWeight: '500', color: '#002060' }}>{label}</div>
-                      <div style={{ fontSize: '12px', color: '#666' }}>Week ID: {weekId}</div>
-                    </div>
+                    <div style={{ fontWeight: '500', color: '#002060' }}>{label}</div>
                   </td>
                   <td style={{...styles.td, textAlign: 'center'}}>
                     <span style={{
@@ -405,23 +394,6 @@ export default function WeekAccessAdmin() {
           </tbody>
         </table>
       </div>
-
-      {/* Instructions */}
-      <div style={{
-        marginTop: '32px',
-        padding: '16px',
-        backgroundColor: '#eff6ff',
-        border: '1px solid #bfdbfe',
-        borderRadius: '8px'
-      }}>
-        <h3 style={{ fontWeight: '600', color: '#1e40af', marginBottom: '8px', fontSize: '14px' }}>Instructions:</h3>
-        <ul style={{ color: '#1e40af', fontSize: '12px', margin: 0, paddingLeft: '16px' }}>
-          <li style={{ marginBottom: '4px' }}><strong>Classroom Management:</strong> Changes affect the entire classroom.</li>
-          <li style={{ marginBottom: '4px' }}><strong>Bulk Operations:</strong> Select multiple weeks and enable/disable them all at once.</li>
-          <li style={{ marginBottom: '4px' }}><strong>Week 1:</strong> Enabled by default for all new users.</li>
-          <li><strong>Admins:</strong> Always have access to all weeks regardless of settings.</li>
-        </ul>
-      </div>
     </div>
   );
-} 
+}

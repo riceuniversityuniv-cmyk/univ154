@@ -329,6 +329,41 @@ Branch: `feature/admin-consolidation-preview-mode`.
   the Preview as Student toggle (nav collapses, weeks lock, toggle stays
   clickable, navigates off an admin page when toggled on from one).
 
+### 2026-08-11 — Combined Admin tabs into one stacked page, removed fluff text, fixed sidebar issues
+Per user request: the "Week Access" / "Manage Admins" tabs (added earlier
+this session) became one page with Week Access on top and Manage Admins
+below, and four sidebar/UI bugs got fixed. Design:
+`docs/superpowers/specs/2026-08-11-admin-simplify-sidebar-fixes-design.md`.
+Branch: `feature/admin-simplify-sidebar-fixes`. Visually verified via a
+throwaway local auth bypass + Playwright screenshots (reverted before
+commit, not part of the diff) since this session has no real admin login
+credentials — same constraint noted elsewhere in this doc.
+- `AdminPanel.jsx`: dropped the tab header/`<Outlet/>` routing; now renders
+  `<WeekAccessAdmin/>` then `<AdminSettingsPanel/>` stacked under a single
+  route `/dashboard/admin`. `App.jsx`'s old `admin/week-access` and
+  `admin/manage` routes now redirect to `/dashboard/admin`.
+- Stripped explanatory copy from both panels: subtitle taglines, the
+  "Control week availability..." / "Pick from registered users..." /
+  "Hand master admin status..." helper paragraphs, the per-row "Week ID:
+  week-x" subtext, and the "Instructions:" box at the bottom of Week
+  Access. Headers, table content, buttons, and success/error messages were
+  kept — those are functional, not fluff.
+- Sidebar Admin nav link (`Option3_Minimalist.jsx`): wrapped its icon in
+  the same circular gradient badge the module links use (was a bare 18px
+  icon), and fixed `SidebarLink`'s (`Dashboard.jsx`) inner `flex-1` span
+  overriding the link's `justify-center` for admin-style links, which had
+  been left-shifting/clipping the icon+label instead of centering it.
+- Removed hover-driven sidebar expand/collapse (`Dashboard.jsx`): deleted
+  the 20px left-edge hover-trigger div, the sidebar's own
+  mouseenter/mouseleave handlers, and the `sidebarHovered` state.
+  Visibility is now driven solely by `sidebarCollapsed`, changed only by
+  the toggle button. Updated the stale "Hide sidebar" tooltip copy that
+  referenced hover.
+- Toggle button: when collapsed it sat at `left: 0` with `translateX(-50%)`,
+  clipping half of it off-screen. Changed to `left: 14px` (its own radius)
+  when collapsed so the full circle stays on-screen, flush with the edge.
+- `npm run build` clean.
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
