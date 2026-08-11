@@ -458,7 +458,58 @@ User said the prior `pl-10` bump (see above) still wasn't enough and asked for t
   prior pass — no change needed there.
 - `npm run build` clean.
 
+### 2026-08-11 — ROOT CAUSE FOUND: Tailwind's default spacing scale wasn't loading at all (`@tailwind` v3 directives under a v4 package)
+After the user pushed back a *third* time that spacing changes weren't visible, stopped
+trusting "the push succeeded" as sufficient and instead diffed the actual compiled CSS
+(local fresh build vs. live) for the literal utility class rules, not just marker
+strings. Finding: **`.pl-16{}`, `.pr-4{}`, `.px-6{}`, `.p-4{}` — none of them existed
+anywhere in the output CSS.** Neither did `mt-*`, `gap-*`, `w-4`-style scale classes,
+`space-y-*`, etc. Only arbitrary-bracket values (`pl-[100px]`, `px-[12px]`) and
+non-scale utilities (`opacity-25`, `text-[15px]`) were present. `grep -c "--spacing"`
+on the compiled CSS came back **0**.
+- **Cause**: `package.json` has `tailwindcss@^4.1.7` / `@tailwindcss/postcss@^4.1.7`
+  (Tailwind v4), but `src/index.css` still had the Tailwind v3 entry syntax —
+  `@tailwind base; @tailwind components; @tailwind utilities;` — instead of v4's
+  `@import "tailwindcss";`. Under v4's PostCSS plugin, the old three-directive form
+  generates *some* output (base reset, non-scale utilities) but never loads the
+  default theme's `--spacing` variable, so every utility class whose value is
+  computed from the spacing scale (`calc(var(--spacing) * N)`) silently resolves to
+  nothing and gets dropped. It fails silent — no build warning, no error, `npm run
+  build` exits 0 either way.
+- **Impact was app-wide, not just the sidebar**: this is why *every* previous
+  spacing/padding tweak this session (`pl-6` → `pl-10` → `pl-16`, `px-6` on the
+  Preview-as-Student row, etc.) had **zero visual effect** on the deployed site —
+  the classes were being pushed and deployed correctly the whole time, they just
+  never compiled into real CSS. The earlier "browser cache" diagnosis for the first
+  complaint was consistent with the evidence gathered at the time (content markers
+  matched) but was the wrong root cause for the padding-specific complaints — text
+  content changes (Preview toggle relocation, Hide-sidebar removal) don't depend on
+  the spacing scale so those *did* render; only the `pl-*`/`px-*`/`pr-*` spacing
+  changes were silently no-ops.
+- **Fix**: replaced `src/index.css`'s three `@tailwind` lines with
+  `@import "tailwindcss";`. Rebuilt — compiled CSS size jumped **21.5kB → 46.6kB**,
+  `--spacing` now appears 97 times, and `.pl-16{padding-left:calc(var(--spacing) *
+  16)}` etc. are present. This retroactively "activates" every spacing-scale
+  utility class already written throughout the whole app (not just this session's
+  edits) — components elsewhere may visibly shift padding/margin/gap for the first
+  time now that those classes actually apply. Smoke-tested `npm run dev` boots
+  clean (200 OK) post-fix.
+- **Takeaway for future "I don't see my changes" reports involving spacing/sizing**:
+  don't stop at grepping for content marker *strings* in the bundle — those only
+  prove text/JSX structure shipped, not that a given Tailwind utility class
+  actually compiled to a CSS rule. Grep the compiled CSS for the literal selector
+  (`.pl-16{`) when the change in question is a spacing/layout utility class.
+
 ## Status as of end of 2026-08-11 session
+- **⚠️ Important for next session**: `src/index.css` was fixed this session (`@tailwind`
+  v3 directives → `@import "tailwindcss";`) because Tailwind's default spacing scale
+  was silently not loading — see the "ROOT CAUSE FOUND" entry above. This makes
+  every `p*`/`m*`/`gap-*`/`w-<n>`/`space-y-*` class *app-wide* actually apply for
+  the first time. Watch for unexpected layout shifts in screens not touched this
+  session (Login, Excel Workshop, Admin panel, etc.) — they may have been relying
+  on those classes doing nothing, and now they'll visibly render. Not something to
+  "fix" preemptively — just be aware if the user reports new-looking spacing
+  elsewhere and check this change first before assuming a fresh bug.
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
   access, login-page flash/lag on OAuth redirect.
