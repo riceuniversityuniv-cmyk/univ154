@@ -149,7 +149,34 @@ Playwright checks) found the migration had actually already landed correctly (se
   working copy for this project; set up `.env.local` (gitignored) using the anon/publishable
   key pulled from the live bundle, so `npm run dev` works against the real backend without
   needing separate throwaway credentials.
-- **In progress**: re-enabling the Google provider in Supabase (via Management API using
-  a user-supplied Personal Access Token, to avoid needing an interactive/MFA browser
-  login), and creating/wiring a Google Cloud Console OAuth Client if one doesn't already
-  exist for this new Supabase project.
+- Re-enabled the Google provider via the Supabase Management API (user supplied a
+  Personal Access Token — avoids needing an interactive/MFA browser login for this).
+  Also found and fixed a **second** bug while in there: `site_url` /
+  `uri_allow_list` (Supabase's redirect allowlist) were still pointed at
+  `https://zesty-sundae-3cee34.netlify.app` (an old/auto-generated Netlify site name),
+  not `https://riceuniv154.netlify.app` — would have broken *any* redirect-based auth
+  flow (Google OAuth, email confirmation links, password reset), not just Google.
+- Created a fresh Google Cloud OAuth 2.0 Client (`riceuniversityuniv@gmail.com`'s Cloud
+  project) since none existed for this Supabase project; wired Client ID/Secret into
+  Supabase, redirect URI `https://zyznmhbtpniluhkyowbb.supabase.co/auth/v1/callback`
+  into the Google Cloud OAuth client. Confirmed live: clicking "Continue with Google" now
+  reaches Google's real consent screen with no `redirect_uri_mismatch`/provider errors.
+- **Found and fixed a second, more fundamental bug via user's console/URL evidence**:
+  every *new* user creation (Google OR email/password — same code path) was failing
+  with GoTrue error `Database error saving new user`. Root cause: `auth.users` has two
+  AFTER INSERT triggers, `on_auth_user_created` (→ `handle_new_user()`, feeds
+  `registered_users`) and `create_week_access_on_user_registration`
+  (→ `create_default_week_access()`, feeds `week_access`). The first has
+  `SECURITY DEFINER` (runs as table owner `postgres`, bypasses RLS) and has exception
+  handling; the second had **neither** — its plain `INSERT` ran as the restricted
+  Supabase-internal auth role, which `week_access`'s RLS policies don't grant INSERT to
+  at all (only an admin-only policy and a users-can-view-their-own policy exist), so RLS
+  blocked it, threw unhandled, and rolled back the *entire* `auth.users` insert.
+  Confirmed via `pg_proc`/`pg_policy` inspection (Management API SQL access), not
+  guessed. Fixed by adding `SECURITY DEFINER` + the same `ON CONFLICT`/exception-handling
+  pattern as `handle_new_user()`, applied live and captured as
+  `supabase/migrations/20260811000000_fix_week_access_trigger_security_definer.sql`
+  (the *previous* fix to this same trigger, on 2026-08-10, was applied ad hoc and never
+  made it into a tracked migration file — gap now closed).
+- **Open**: awaiting the user re-testing a real Google sign-in to confirm this fully
+  resolves it end-to-end.
