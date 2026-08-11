@@ -267,10 +267,41 @@ management without needing code changes or SQL migrations going forward.
   `km108@rice.edu` and confirm the Admin Settings page's add/remove/transfer flows
   live.
 
+### 2026-08-11 — Multi-admin roles feature was never deployed; merged to `main` and pushed
+Root cause of "logged out/in, don't see Admin Settings": the entire multi-admin-roles
+feature above was committed to a local-only branch (`feature/multi-admin-roles`) and
+never merged to `main` or pushed. `origin/main` — what Netlify actually builds and
+deploys — had none of it. The Supabase side (migration, RLS, RPC) was already live
+from earlier in the session; only the frontend was stuck undeployed. Confirmed via
+`git log origin/main` lacking the feature commit before fixing.
+- Merged `feature/multi-admin-roles` into `main` (`--no-ff`) and pushed
+  (`932b9df..e3b9e5c`) — this triggers the Netlify production deploy. `npm run build`
+  verified clean pre-push; local branch deleted post-merge.
+- Also added a real clickable sidebar collapse/expand toggle button
+  (`src/components/Dashboard.jsx`), per user request. `MdChevronLeft`/`MdChevronRight`
+  and a `toggleSidebar` handler were already threaded through as props to
+  `MinimalistSidebar` (`src/components/sidebar-variants/Option3_Minimalist.jsx`) but no
+  button was ever rendered — the only existing control was a small "Hide sidebar"
+  checkbox at the bottom of the sidebar. Added a round button pinned to the sidebar's
+  right edge that flips `MdChevronLeft`/`MdChevronRight` and slides with the sidebar.
+- **Takeaway**: this repo's default deploy trigger is a push to `main` (Netlify), but
+  the standing instruction is "commit only when asked; branch first off `main`" for
+  safety. When a user asks for a feature to be live/working, branching+committing
+  alone isn't enough — merging and pushing to `main` is a separate, explicit step that
+  needs to actually happen (or be explicitly deferred and said out loud), not silently
+  left on a feature branch.
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
   access, login-page flash/lag on OAuth redirect.
+- **Pushed to `main` this session, not yet click-tested live**: multi-admin roles
+  (DB-backed `admins` table + `/dashboard/admin/settings` UI, `km108@rice.edu` as
+  master admin) and the sidebar collapse/expand toggle button — both merged and pushed
+  (`e3b9e5c`), `npm run build` clean, but not yet exercised in a real browser session
+  against production (no login credentials for the admin accounts in this session).
+  Follow-up: sign in as `km108@rice.edu` and confirm Admin Settings' add/remove/transfer
+  flows and the sidebar toggle both work as expected post-deploy.
 - **Not yet done — pick up next session**: a broader authenticated-screen smoke test was
   planned but not executed — clicking through Dashboard, each wired Week module (1, 2, 3,
   4, 5, 6/Retirement, 7, 9, 12 — Week10/11 exist as files but aren't wired into `App.jsx`
