@@ -95,21 +95,11 @@ export function AuthProvider({ children }) {
           console.log('Retrying admin check after delay for:', user?.email);
           checkAdminStatus(user?.email);
         }, 3000);  // Increased from 2000 to 3000ms
-        
-        // Add a small delay to ensure the session is fully established
-        setTimeout(() => {
-          console.log('OAuth session establishment delay completed');
-          // Re-check admin status after delay to ensure it's properly set
-          if (user?.email) {
-            checkAdminStatus(user.email)
-          }
-          
-          // Redirect to dashboard after successful OAuth
-          if (window.location.pathname === '/') {
-            console.log('Redirecting to dashboard after successful OAuth');
-            window.location.href = '/dashboard';
-          }
-        }, 1000);
+
+        // No manual redirect here: App.jsx's PublicOnlyRoute (wrapping "/" and
+        // "/signup") reactively navigates to /dashboard the instant `user` is
+        // set below, client-side via React Router -- no flash of the Login
+        // page and no full-page reload like the old window.location.href did.
         
       } else if (event === 'SIGNED_OUT') {
         console.log('User signed out');

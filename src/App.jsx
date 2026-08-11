@@ -118,13 +118,40 @@ function ProtectedRoute({ children }) {
   return children
 }
 
+// Inverse of ProtectedRoute: keeps an already-signed-in user off the
+// Login/SignUp screens. Without this, landing back on "/" after a Google
+// OAuth redirect briefly renders the Login form (while AuthContext is still
+// resolving the session), then hard-navigates to /dashboard -- a visible
+// flash plus a full page reload. This redirects declaratively, client-side,
+// the instant `user` is known, and shows a spinner (not the Login form)
+// while that's still being figured out.
+function PublicOnlyRoute({ children }) {
+  const { user, loading } = useAuth()
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0d1a4b] mx-auto"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />
+  }
+
+  return children
+}
+
 function App() {
   return (
     <Router>
       <AuthProvider>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/signup" element={<SignUp />} />
+          <Route path="/" element={<PublicOnlyRoute><Login /></PublicOnlyRoute>} />
+          <Route path="/signup" element={<PublicOnlyRoute><SignUp /></PublicOnlyRoute>} />
           <Route path="/signup-success" element={<SignUpSuccess />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
