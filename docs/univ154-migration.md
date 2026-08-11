@@ -291,6 +291,44 @@ from earlier in the session; only the frontend was stuck undeployed. Confirmed v
   needs to actually happen (or be explicitly deferred and said out loud), not silently
   left on a feature branch.
 
+### 2026-08-11 — Combined Admin Panel/Settings into one tabbed section, added "Preview as Student"
+Per user request: the two separate admin sidebar links/pages became one, and
+admins got a way to see the app as a regular viewer without losing admin
+rights. Design: `docs/superpowers/specs/2026-08-11-admin-consolidation-and-preview-mode-design.md`.
+Branch: `feature/admin-consolidation-preview-mode`.
+- New `src/components/AdminPanel.jsx`: tab shell ("Week Access" / "Manage
+  Admins") + `<Outlet/>`, nested under `/dashboard/admin`. Route
+  `admin/settings` renamed to `admin/manage` to match the tab label (no
+  external links referenced the old URL). `WeekAccessAdmin.jsx` and
+  `AdminSettingsPanel.jsx` kept their internals as-is.
+- Sidebar: the two admin `SidebarLink`s collapsed into one "Admin" link.
+  `SidebarLink`'s active-match regained a `startsWith('/dashboard/admin')`
+  special case (safe now with only one admin link — this same special case
+  was removed on 2026-08-11 earlier this session specifically because there
+  were two).
+- **New client-side-only admin/effective-admin split**: `Dashboard.jsx` now
+  computes `effectiveIsAdmin = isAdmin && !previewAsStudent` and feeds *that*
+  into `WeekAccessProvider` and sidebar rendering, while the *real* `isAdmin`
+  from `useAuth()` is threaded through separately so the "Preview as Student"
+  toggle itself stays visible/clickable regardless of current preview state.
+  `AdminPanel.jsx` and `AdminSettingsPanel.jsx`'s access gates both read the
+  effective value (via `useWeekAccess().isAdmin`) so admin pages correctly
+  lock out during preview too. This does not touch RLS/permissions at all —
+  purely a rendering-layer toggle; real admin writes still go through
+  Supabase's actual role check regardless of what this flag shows client-side.
+- Preview state is deliberately **not persisted** (plain `useState`, no
+  `localStorage`) — a reload always starts back in normal Admin view, so a
+  mid-preview refresh can't be mistaken for having lost admin access.
+  Toggling preview on while sitting on an admin route navigates to the
+  student landing page instead of showing that page's own Access Denied.
+- `npm run build` clean. **Not click-tested live** — same constraint as the
+  earlier multi-admin-roles work this session: no login credentials for the
+  real admin accounts in this session. Follow-up: sign in as `km108@rice.edu`,
+  confirm both Admin tabs render their existing content at
+  `/dashboard/admin/week-access` and `/dashboard/admin/manage`, and exercise
+  the Preview as Student toggle (nav collapses, weeks lock, toggle stays
+  clickable, navigates off an admin page when toggled on from one).
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
