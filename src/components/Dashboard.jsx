@@ -15,7 +15,7 @@ import { WeekAccessProvider, useWeekAccess } from '../contexts/WeekAccessContext
 // Import icons
 import { MdDashboard, MdSchool, MdInsertChart, MdChat, MdNotifications, MdUpload, MdDownload, MdBook, MdCheckCircle, MdBarChart, MdAccountBalance, MdTimeline, MdCalendarToday, MdAssignment, MdTrendingUp, MdChevronLeft, MdChevronRight, MdFolderOpen } from 'react-icons/md'
 import { BsCalendar3 } from 'react-icons/bs'
-import { FaChalkboardTeacher, FaUserShield } from 'react-icons/fa'
+import { FaUserShield } from 'react-icons/fa'
 import { FaFileExcel } from 'react-icons/fa'
 import { MinimalistSidebar } from './sidebar-variants/Option3_Minimalist'
 
@@ -47,11 +47,14 @@ const Avatar = ({ url, name }) => {
 // Enhanced SidebarLink with better hover effects and animations
 const SidebarLink = ({ icon: Icon, text, href, subText, style, delay = 0, isAdminLink = false, className = '', disabled = false, onClick, variant }) => {
   const location = useLocation();
-  // Exact match only -- previously had a startsWith('/dashboard/admin/')
-  // special case for the (only) admin route, which would make every admin
-  // nav link light up as active simultaneously now that there are two.
+  // Exact match, except the single combined "Admin" link: it should stay
+  // active across both its tabs (/dashboard/admin/week-access,
+  // /dashboard/admin/manage), so it gets a startsWith special case. Safe
+  // again now that there's only one admin nav link (previously removed
+  // when there were two, which would've both lit up simultaneously).
   const isActive = location.pathname === href ||
-                   (href === '/dashboard' && location.pathname === '/dashboard/');
+                   (href === '/dashboard' && location.pathname === '/dashboard/') ||
+                   (isAdminLink && location.pathname.startsWith('/dashboard/admin'));
 
   const handleClick = (e) => {
     if (disabled || href === '#') {
@@ -175,10 +178,16 @@ function DashboardContent() {
   const { user, signOut, isAdmin } = useAuth()
   const navigate = useNavigate()
   const [isLoaded, setIsLoaded] = useState(false)
-  
-  // Use the centralized admin check from AuthContext
-  // const isAdmin = isUserAdmin(user?.email)  // Remove this line
-  
+
+  // "Preview as Student" -- lets a real admin see the app as a regular
+  // viewer would (admin nav hidden, week locks enforced) without actually
+  // losing admin rights. Plain component state, not persisted to
+  // localStorage: a page reload always starts back in normal Admin view,
+  // so refreshing mid-preview can't be mistaken for losing admin access.
+  // See docs/superpowers/specs/2026-08-11-admin-consolidation-and-preview-mode-design.md.
+  const [previewAsStudent, setPreviewAsStudent] = useState(false)
+  const effectiveIsAdmin = isAdmin && !previewAsStudent
+
   // Clear OAuth progress flag when dashboard loads
   useEffect(() => {
     if (user) {
@@ -186,7 +195,7 @@ function DashboardContent() {
       console.log('Dashboard loaded, cleared OAuth progress flag');
     }
   }, [user]);
-  
+
   console.log('=== DashboardContent Debug ===');
   console.log('User object:', user);
   console.log('User email:', user?.email);
@@ -195,16 +204,24 @@ function DashboardContent() {
   console.log('Is admin?', isAdmin);
   console.log('Admin check from AuthContext:', isAdmin);
   console.log('=============================');
-  
+
   return (
-    <WeekAccessProvider user={user} isAdmin={isAdmin}>
-      <DashboardContentInner isAdmin={isAdmin} user={user} signOut={signOut} />
+    <WeekAccessProvider user={user} isAdmin={effectiveIsAdmin}>
+      <DashboardContentInner
+        isAdmin={effectiveIsAdmin}
+        isRealAdmin={isAdmin}
+        previewAsStudent={previewAsStudent}
+        onPreviewAsStudentChange={setPreviewAsStudent}
+        user={user}
+        signOut={signOut}
+      />
     </WeekAccessProvider>
   )
 }
 
-function DashboardContentInner({ isAdmin, user, signOut }) {
+function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPreviewAsStudentChange, user, signOut }) {
   const navigate = useNavigate()
+  const location = useLocation()
   const [isLoaded, setIsLoaded] = useState(false)
   const [sidebarFixed, setSidebarFixed] = useState(() => {
     try {
@@ -260,6 +277,18 @@ function DashboardContentInner({ isAdmin, user, signOut }) {
     setSidebarCollapsed(!sidebarCollapsed)
   }
 
+  // Turning preview on while sitting on an admin page would otherwise land
+  // on that page's own "Access Denied" state -- send the admin to the
+  // normal student landing route instead, since they clearly meant to look
+  // around as a student, not to hit a wall. Turning it off doesn't force
+  // navigation; admin nav and content just reappear in place.
+  const handlePreviewAsStudentChange = (next) => {
+    onPreviewAsStudentChange(next)
+    if (next && location.pathname.startsWith('/dashboard/admin')) {
+      navigate('/dashboard/excel/week-1')
+    }
+  }
+
   // Show sidebar when hovering over left edge or sidebar itself
   const showSidebar = !sidebarCollapsed || sidebarHovered
 
@@ -295,13 +324,15 @@ function DashboardContentInner({ isAdmin, user, signOut }) {
           isWeekAccessible={isWeekAccessible}
           MdChevronLeft={MdChevronLeft}
           MdChevronRight={MdChevronRight}
-          FaChalkboardTeacher={FaChalkboardTeacher}
           FaUserShield={FaUserShield}
           MdBarChart={MdBarChart}
           FaFileExcel={FaFileExcel}
           MdMenuBook={MdFolderOpen}
           sidebarFixed={sidebarFixed}
           onSidebarFixedChange={handleSidebarFixedChange}
+          isRealAdmin={isRealAdmin}
+          previewAsStudent={previewAsStudent}
+          onPreviewAsStudentChange={handlePreviewAsStudentChange}
         />
       </div>
 

@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
   }
 
   // Re-runs the admin check for the currently signed-in user. Used by the
-  // Admin Settings page after a self-affecting change (stepping down,
+  // Admin panel's "Manage Admins" tab after a self-affecting change (stepping down,
   // transferring master admin away from yourself) so this session reflects
   // it immediately instead of waiting for the next TOKEN_REFRESHED.
   const refreshAdminStatus = () => checkAdminStatus(user?.email)

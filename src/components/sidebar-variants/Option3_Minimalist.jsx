@@ -16,13 +16,15 @@ export const MinimalistSidebar = ({
   isWeekAccessible,
   MdChevronLeft,
   MdChevronRight,
-  FaChalkboardTeacher,
   FaUserShield,
   MdBarChart,
   FaFileExcel,
   MdMenuBook,
   sidebarFixed = true,
   onSidebarFixedChange,
+  isRealAdmin = false,
+  previewAsStudent = false,
+  onPreviewAsStudentChange,
 }) => {
   const [showHideSidebarTooltip, setShowHideSidebarTooltip] = useState(false);
 
@@ -107,26 +109,8 @@ export const MinimalistSidebar = ({
               <SidebarLink
                 href="/dashboard/admin/week-access"
                 delay={0}
-                icon={FaChalkboardTeacher}
-                text="Admin Panel"
-                style={{
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#0d1a4b',
-                  textAlign: 'center',
-                  justifyContent: 'center',
-                  width: '100%'
-                }}
-                className="
-                  justify-center text-center w-full
-                "
-                isAdminLink={true}
-              />
-              <SidebarLink
-                href="/dashboard/admin/settings"
-                delay={0}
                 icon={FaUserShield}
-                text="Admin Settings"
+                text="Admin"
                 style={{
                   fontSize: '13px',
                   fontWeight: '500',
@@ -337,8 +321,52 @@ export const MinimalistSidebar = ({
                 )}
               </div>
             )}
-            <img 
-              src={riceLogo} 
+            {isRealAdmin && onPreviewAsStudentChange && (
+              <div className="w-full mb-4">
+                <label
+                  className="flex items-center justify-between gap-2 w-full cursor-pointer select-none"
+                  style={{ fontSize: '12px', color: previewAsStudent ? '#0d1a4b' : '#64748b' }}
+                >
+                  <span style={{ fontWeight: previewAsStudent ? '600' : '500' }}>Preview as Student</span>
+                  <button
+                    type="button"
+                    onClick={() => onPreviewAsStudentChange(!previewAsStudent)}
+                    role="switch"
+                    aria-checked={previewAsStudent}
+                    aria-label="Preview as Student"
+                    style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      width: '34px',
+                      height: '18px',
+                      borderRadius: '999px',
+                      background: previewAsStudent ? '#0d1a4b' : '#d1d5db',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      transition: 'background 0.2s ease-in-out',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '2px',
+                        left: previewAsStudent ? '18px' : '2px',
+                        width: '14px',
+                        height: '14px',
+                        borderRadius: '50%',
+                        background: '#ffffff',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                        transition: 'left 0.2s ease-in-out',
+                      }}
+                    />
+                  </button>
+                </label>
+              </div>
+            )}
+            <img
+              src={riceLogo}
               alt="Rice University Logo" 
               style={{ 
                 height: '70px', 
