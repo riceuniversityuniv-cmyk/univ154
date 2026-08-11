@@ -15,7 +15,7 @@ import { WeekAccessProvider, useWeekAccess } from '../contexts/WeekAccessContext
 // Import icons
 import { MdDashboard, MdSchool, MdInsertChart, MdChat, MdNotifications, MdUpload, MdDownload, MdBook, MdCheckCircle, MdBarChart, MdAccountBalance, MdTimeline, MdCalendarToday, MdAssignment, MdTrendingUp, MdChevronLeft, MdChevronRight, MdFolderOpen } from 'react-icons/md'
 import { BsCalendar3 } from 'react-icons/bs'
-import { FaChalkboardTeacher } from 'react-icons/fa'
+import { FaChalkboardTeacher, FaUserShield } from 'react-icons/fa'
 import { FaFileExcel } from 'react-icons/fa'
 import { MinimalistSidebar } from './sidebar-variants/Option3_Minimalist'
 
@@ -47,9 +47,11 @@ const Avatar = ({ url, name }) => {
 // Enhanced SidebarLink with better hover effects and animations
 const SidebarLink = ({ icon: Icon, text, href, subText, style, delay = 0, isAdminLink = false, className = '', disabled = false, onClick, variant }) => {
   const location = useLocation();
-  const isActive = location.pathname === href || 
-                   (href === '/dashboard' && location.pathname === '/dashboard/') ||
-                   (href === '/dashboard/admin/week-access' && location.pathname.startsWith('/dashboard/admin/'));
+  // Exact match only -- previously had a startsWith('/dashboard/admin/')
+  // special case for the (only) admin route, which would make every admin
+  // nav link light up as active simultaneously now that there are two.
+  const isActive = location.pathname === href ||
+                   (href === '/dashboard' && location.pathname === '/dashboard/');
 
   const handleClick = (e) => {
     if (disabled || href === '#') {
@@ -294,6 +296,7 @@ function DashboardContentInner({ isAdmin, user, signOut }) {
           MdChevronLeft={MdChevronLeft}
           MdChevronRight={MdChevronRight}
           FaChalkboardTeacher={FaChalkboardTeacher}
+          FaUserShield={FaUserShield}
           MdBarChart={MdBarChart}
           FaFileExcel={FaFileExcel}
           MdMenuBook={MdFolderOpen}

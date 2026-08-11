@@ -32,6 +32,8 @@ src/
     Login.jsx, SignUp.jsx, SignUpSuccess.jsx, UpdatePassword.jsx   Auth screens
     Dashboard.jsx             Authenticated shell / nav
     WeekAccessAdmin.jsx       Admin UI for per-week access control
+    AdminSettingsPanel.jsx    Admin UI for managing admins themselves (add/remove
+                               admins, transfer master admin) -- see gating rules below
     Week1Budgeting.jsx, Week1FederalTax.jsx, Week1StateTax.jsx,
     Week1Summary.jsx, Week2Savings.jsx, Week3CreditCard.jsx,
     Week3CreditCardWrapper.jsx, Week4.jsx, Week5.jsx,
@@ -54,7 +56,8 @@ src/
                                Harmless duplication, not worth merging unless touching
                                this area anyway.
   utils/
-    adminEmails.js             Client-side admin allowlist (see gating rules below)
+    adminApi.js                 Supabase calls for the `admins` roles table (see
+                                 gating rules below) -- replaced adminEmails.js
     taxCalculator.js
   data/
     taxData.js, stateTaxData.js
@@ -71,12 +74,21 @@ email-templates/                Supabase auth email HTML (confirmation, magic-li
 - `registered_users` — every signed-up user; populated via an `on_auth_user_created`
   trigger on `auth.users` (see `20250602121000_create_registered_users.sql` and the
   `handle_new_user()` function)
-- `week_access` — per-user, per-week access override (`is_available`, `release_date`)
+- `week_access` — per-user, per-week access override (`is_available`, `release_date`).
+  **Currently vestigial**: seeded by a trigger on every signup (week-1 row) but no UI
+  reads from it — `WeekAccessContext` only ever queries `global_week_settings`. Looks
+  like a per-student-override feature that was scaffolded but never wired up.
 - `global_week_settings` — global per-week availability switch (`is_globally_available`,
-  `release_date`)
-- RLS is enabled on all four tables. Admin-only policies check
-  `auth.jwt() ->> 'email' IN (...)` against a **hardcoded list of admin emails baked
-  into the SQL policy itself** (see gating rules below).
+  `release_date`) — this is the table `WeekAccessAdmin.jsx` actually reads/writes
+- `admins` — admin roles table (`email` PK, `role` ∈ `admin`/`master_admin`,
+  `granted_by`, `created_at`). Added 2026-08-11, replaces the old hardcoded-email-array
+  pattern (see gating rules below). A partial unique index on `role` where
+  `role = 'master_admin'` enforces exactly one master admin at the DB level.
+- RLS is enabled on all five tables. Admin-only policies on `week_access`,
+  `global_week_settings`, and `registered_users` call `is_admin(auth.jwt() ->> 'email')`
+  — a `SECURITY DEFINER` helper function that checks the `admins` table (see gating
+  rules below). `admins` itself has its own SELECT/INSERT/DELETE policies (no UPDATE
+  policy — role changes only happen via the `transfer_master_admin()` RPC).
 
 ## Non-obvious gating rules
 
@@ -89,14 +101,37 @@ email-templates/                Supabase auth email HTML (confirmation, magic-li
   at all to reach `/dashboard`; (2) `week_access` / `global_week_settings` — per-week
   🔒 unlock state shown even to signed-in users, managed via `WeekAccessAdmin.jsx` /
   `WeekAccessContext.jsx`. Don't confuse the two when debugging "I can't get into Week X."
-- **Admin status is checked in two separate places that must be kept in sync**:
-  1. Client-side: `src/utils/adminEmails.js` (`adminEmails` array) — controls UI (e.g.
-     `isAdmin` in `AuthContext`, shows/hides admin nav).
-  2. Database-side: RLS policies in `supabase/migrations/20260810000000_update_admin_emails.sql`
-     — controls actual write access to `week_access` / `global_week_settings` /
-     `registered_users`. **Adding an admin means updating both** — the JS array alone
-     doesn't grant DB write access, and vice versa.
-  - Current admin: `riceuniversityuniv@gmail.com` (replaced Beyza-era admin list on 2026-08-10).
+- **Admin status is DB-backed via an `admins` roles table** (as of 2026-08-11,
+  replacing the old hardcoded-array + copy-pasted-RLS-literal pattern from 2026-08-10):
+  - Table: `admins (email PK, role IN ('admin','master_admin'), granted_by, created_at)`.
+  - Two roles: any number of `admin`, exactly **one** `master_admin` (DB-enforced via
+    a partial unique index on `role`).
+  - Enforcement is RLS, via two `SECURITY DEFINER` helper functions —
+    `is_admin(email)` / `is_master_admin(email)` — referenced both by `admins`'s own
+    policies and by the pre-existing admin-only policies on `week_access` /
+    `global_week_settings` / `registered_users`.
+  - **Permissions**: any admin can add a new admin (INSERT, always as plain `admin` —
+    no INSERT path to `master_admin`, closing off privilege escalation) and can remove
+    *themselves*. Only the master admin can remove someone *else's* admin access
+    (DELETE). Master status moves via `transfer_master_admin(new_email)`, a
+    `SECURITY DEFINER` RPC — the only path that can ever set `role = 'master_admin'` —
+    which demotes the caller to `admin` in the same transaction, and can target *any*
+    registered user (not just existing admins).
+  - **In-app UI**: `src/components/AdminSettingsPanel.jsx` at
+    `/dashboard/admin/settings` — add/remove admins, transfer master admin. No more
+    hand-editing code or shipping a SQL migration to change who's an admin.
+  - `AuthContext.jsx`'s `checkAdminStatus` is now `async` (queries `admins` instead of
+    a sync array lookup) and exposes both `isAdmin` and `isMasterAdmin`, plus
+    `refreshAdminStatus()` for the Admin Settings page to call after a self-affecting
+    change (step down / transfer master away from self) so *your own* session updates
+    immediately rather than waiting for the next token refresh. Revocation of *someone
+    else's* admin access is eventual-consistency (reflected next `TOKEN_REFRESHED` /
+    next login, up to ~1hr) by deliberate choice — RLS always rejects the actual DB
+    write immediately regardless of what the revoked user's stale client-side `isAdmin`
+    state still shows, so this is a UI-lag tradeoff, not a security gap.
+  - Current roles: `km108@rice.edu` = master admin, `riceuniversityuniv@gmail.com` =
+    admin (demoted from master when km108 was made master — the prior sole admin
+    was kept on as a regular admin rather than dropped).
 - **Email allowlist for signup/login**: `@rice.edu`, `@alumni.rice.edu`, `@gmail.com`,
   `@yahoo.com` only (`isValidEmail` in `AuthContext.jsx`); anything else is signed out
   immediately after a successful Supabase auth.
@@ -194,6 +229,43 @@ Playwright checks) found the migration had actually already landed correctly (se
   into the tool, no login-page flash, no lag. This closes out the original "Google login
   broken" report end-to-end (provider config → redirect allowlist → OAuth client →
   new-user DB trigger → post-redirect UX, all five layers were broken and are now fixed).
+
+### 2026-08-11 — Multi-admin roles: DB-backed `admins` table + in-app Admin Settings
+Replaced the hardcoded-single-admin-email pattern (JS array + copy-pasted RLS policy
+literal, kept in sync by hand) with a real `admins` roles table and an in-app UI, per
+user request to add `km108@rice.edu` as an admin and set up self-service admin
+management without needing code changes or SQL migrations going forward.
+- New table `admins` (email PK, role admin/master_admin, granted_by, created_at) with
+  a DB-enforced single-master-admin invariant (partial unique index). New
+  `SECURITY DEFINER` helpers `is_admin()`/`is_master_admin()` and RPC
+  `transfer_master_admin()`. Existing admin-only RLS policies on `week_access`,
+  `global_week_settings`, `registered_users` repointed from the hardcoded email list
+  to `is_admin()`. Migration:
+  `supabase/migrations/20260811000001_create_admin_roles.sql`, applied live via the
+  Management API (same approach as the 2026-08-11 `week_access` trigger fix) and
+  verified via `pg_policies`/`pg_proc`/`pg_indexes` introspection.
+- Seeded `km108@rice.edu` as master admin and kept `riceuniversityuniv@gmail.com` on
+  as a regular admin (demoted from its prior master status, not removed) — see
+  gating rules above for the full permission model (who can add/remove/transfer).
+- New `src/components/AdminSettingsPanel.jsx` at `/dashboard/admin/settings` (roster,
+  add admin, remove admin, transfer master admin), new `src/utils/adminApi.js`
+  (Supabase calls), deleted `src/utils/adminEmails.js` (only consumer was
+  `AuthContext.jsx`, now DB-backed).
+- While touching `AuthContext.jsx`'s admin-check logic, fixed a latent bug in the
+  `TOKEN_REFRESHED` handler: it was passing the whole `session.user` object into
+  `checkAdminStatus` instead of `session.user.email` like every other call site —
+  harmless before (silently returned `false` against the old sync array lookup), but
+  needed fixing now that the same function does a real DB query.
+- Also fixed `Dashboard.jsx`'s `SidebarLink` active-state matcher: it had a
+  `startsWith('/dashboard/admin/')` special case for the (previously only) admin
+  route, which would've made both admin nav links highlight as active simultaneously
+  now that there are two (`admin/week-access` and `admin/settings`). Now exact-match
+  only.
+- Not yet click-tested end-to-end in the browser (no login credentials for the real
+  admin accounts in this session) — DB state and RLS policies verified directly via
+  SQL introspection; `npm run build` passes clean. Follow-up: sign in as
+  `km108@rice.edu` and confirm the Admin Settings page's add/remove/transfer flows
+  live.
 
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and

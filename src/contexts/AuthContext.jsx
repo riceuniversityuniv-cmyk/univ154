@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { supabase } from '../lib/supabaseClient'
-import { isUserAdmin } from '../utils/adminEmails'
+import { fetchMyAdminRole } from '../utils/adminApi'
 
 const AuthContext = createContext({})
 
@@ -17,19 +17,29 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isMasterAdmin, setIsMasterAdmin] = useState(false)
 
-  // Simple function to check admin status
-  const checkAdminStatus = (userEmail) => {
+  // Looks up the caller's role in the `admins` table (DB-backed, replaces
+  // the old hardcoded-array check). Async because it's a Supabase query.
+  const checkAdminStatus = async (userEmail) => {
     if (!userEmail) {
       setIsAdmin(false)
-      return false
+      setIsMasterAdmin(false)
+      return { isAdmin: false, isMasterAdmin: false }
     }
-    
-    const adminStatus = isUserAdmin(userEmail)
+
+    const { isAdmin: adminStatus, isMasterAdmin: masterStatus } = await fetchMyAdminRole(userEmail)
     setIsAdmin(adminStatus)
-    console.log('Admin status checked for:', userEmail, 'Result:', adminStatus)
-    return adminStatus
+    setIsMasterAdmin(masterStatus)
+    console.log('Admin status checked for:', userEmail, 'isAdmin:', adminStatus, 'isMasterAdmin:', masterStatus)
+    return { isAdmin: adminStatus, isMasterAdmin: masterStatus }
   }
+
+  // Re-runs the admin check for the currently signed-in user. Used by the
+  // Admin Settings page after a self-affecting change (stepping down,
+  // transferring master admin away from yourself) so this session reflects
+  // it immediately instead of waiting for the next TOKEN_REFRESHED.
+  const refreshAdminStatus = () => checkAdminStatus(user?.email)
 
   useEffect(() => {
     // Check active sessions and sets the user
@@ -37,7 +47,7 @@ export function AuthProvider({ children }) {
       const { data: { session }, error } = await supabase.auth.getSession()
       if (!error && session?.user) {
         setUser(session.user)
-        checkAdminStatus(session.user.email)
+        await checkAdminStatus(session.user.email)
       }
       setLoading(false)
     }
@@ -78,18 +88,19 @@ export function AuthProvider({ children }) {
           // Don't throw error here as it might cause issues with the auth flow
           setUser(null)
           setIsAdmin(false)
+          setIsMasterAdmin(false)
           return
         }
 
         console.log('Setting user in AuthContext:', user);
         setUser(user)
-        
+
         // Check admin status immediately
-        checkAdminStatus(user?.email)
-        
+        await checkAdminStatus(user?.email)
+
         // Clear the OAuth in progress flag
         localStorage.removeItem('oauthInProgress');
-        
+
         // Simple retry after delay to ensure admin status is detected
         setTimeout(() => {
           console.log('Retrying admin check after delay for:', user?.email);
@@ -105,6 +116,7 @@ export function AuthProvider({ children }) {
         console.log('User signed out');
         setUser(null)
         setIsAdmin(false)
+        setIsMasterAdmin(false)
         // Clear OAuth progress flag on sign out
         localStorage.removeItem('oauthInProgress');
         // Don't clear remember me data on sign out
@@ -115,7 +127,9 @@ export function AuthProvider({ children }) {
         if (session?.user) {
           console.log('Token refreshed, updating user:', session.user);
           setUser(session.user)
-          checkAdminStatus(session.user)
+          // Bug fix: this used to pass the whole session.user object instead
+          // of session.user.email like every other call site.
+          await checkAdminStatus(session.user.email)
         }
       } else if (event === 'TOKEN_REFRESHED_FAILED') {
         // If token refresh fails, clear remember me data
@@ -123,6 +137,7 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('savedEmail')
         setUser(null)
         setIsAdmin(false)
+        setIsMasterAdmin(false)
         localStorage.removeItem('oauthInProgress');
       }
       setLoading(false)
@@ -303,6 +318,8 @@ export function AuthProvider({ children }) {
     resetPassword,
     signOut,
     isAdmin,
+    isMasterAdmin,
+    refreshAdminStatus,
   }
 
   return (
