@@ -364,6 +364,27 @@ credentials — same constraint noted elsewhere in this doc.
   when collapsed so the full circle stays on-screen, flush with the edge.
 - `npm run build` clean.
 
+### 2026-08-11 — Follow-up: Admin icon still centered, not left-aligned; toggle button too small
+The prior entry's "centering" fix for the Admin sidebar icon overcorrected —
+it made the icon+label group centered as a unit instead of left-aligning it
+flush with the module icons below, which is what was actually wanted.
+Corrected, and enlarged the sidebar toggle button per follow-up feedback:
+- `Option3_Minimalist.jsx`: Admin nav link now uses `variant="module"` and
+  embeds its icon in the `text` prop the same way module rows build their
+  `twoToneLabel` (icon + text in one flex span), instead of using the
+  separate `icon` prop. This makes it go through the exact same padding/
+  layout path as module links, so the icon lines up at the same x-position.
+- `Dashboard.jsx` (`SidebarLink`): removed the `isAdminLink`-only
+  `justify-center` branch on the inner content span — admin and module
+  links now share one plain left-aligned `flex items-center flex-1
+  min-w-0`, no special-casing.
+- Toggle button grown from 28px to 36px (icon 18px to 22px); collapsed-state
+  `left` offset bumped from 14px to 18px (its new radius) so it still sits
+  fully on-screen, flush with the edge, at the larger size.
+- Verified visually via the same temporary `ProtectedRoute`/`isAdmin`
+  bypass technique as the prior entry (reverted before commit — no auth
+  logic shipped changed). `npm run build` clean.
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
