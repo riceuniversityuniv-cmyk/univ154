@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useWeekAccess } from '../contexts/WeekAccessContext';
-import { MdSettings, MdPublic, MdCheckCircle, MdCancel, MdWarning } from 'react-icons/md';
+import { MdPublic, MdCheckCircle, MdCancel, MdWarning } from 'react-icons/md';
 
 // Import the same styles from Week1Budgeting
 const styles = {
@@ -183,7 +183,6 @@ export default function WeekAccessAdmin() {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <MdSettings style={{ fontSize: '32px', color: '#002060' }} />
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Week Access</h1>
         </div>
       </div>

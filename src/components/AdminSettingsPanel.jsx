@@ -8,7 +8,7 @@ import {
   removeAdmin,
   transferMasterAdmin,
 } from '../utils/adminApi';
-import { MdSecurity, MdCheckCircle, MdCancel, MdWarning, MdDelete, MdPersonAdd, MdSwapHoriz, MdStar } from 'react-icons/md';
+import { MdCheckCircle, MdCancel, MdWarning, MdDelete, MdPersonAdd, MdSwapHoriz, MdStar } from 'react-icons/md';
 
 // Same styling pattern as WeekAccessAdmin.jsx, for visual consistency
 // between the two admin pages.
@@ -241,7 +241,6 @@ export default function AdminSettingsPanel() {
     <div style={styles.container}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <MdSecurity style={{ fontSize: '32px', color: '#002060' }} />
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Manage Admins</h1>
         </div>
       </div>
