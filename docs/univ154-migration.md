@@ -178,5 +178,15 @@ Playwright checks) found the migration had actually already landed correctly (se
   `supabase/migrations/20260811000000_fix_week_access_trigger_security_definer.sql`
   (the *previous* fix to this same trigger, on 2026-08-10, was applied ad hoc and never
   made it into a tracked migration file — gap now closed).
-- **Open**: awaiting the user re-testing a real Google sign-in to confirm this fully
-  resolves it end-to-end.
+- User confirmed real Google sign-in now works end-to-end (lands on the dashboard).
+  Follow-up complaint: the redirect back to "/" briefly flashed the Login form before
+  hard-navigating to `/dashboard` via `window.location.href` (full page reload — felt
+  laggy). Root cause: `AuthContext`'s `SIGNED_IN` handler delayed navigation by 1s via
+  `setTimeout` and used a hard reload instead of client-side routing, and `Login`/`SignUp`
+  had no awareness of an already-established session so they rendered unconditionally
+  while the redirect was pending. Fixed by adding `PublicOnlyRoute` (`App.jsx`, mirrors
+  the existing `ProtectedRoute`) wrapping `/` and `/signup`: shows a spinner while
+  `AuthContext`'s initial session check (`loading`) is unresolved, then declaratively
+  redirects to `/dashboard` via React Router the instant `user` is set — no flash, no
+  full reload. Removed the now-redundant `window.location.href` call from
+  `AuthContext.jsx`. Commit `d8d7702`.
