@@ -105,33 +105,31 @@ export const MinimalistSidebar = ({
               pointerEvents: sidebarCollapsed ? 'none' : 'auto',
             }}
           >
-            <div className="flex flex-col gap-1 items-center">
+            <div className="flex flex-col gap-1">
               <SidebarLink
                 href="/dashboard/admin"
                 delay={0}
-                icon={
-                  <span
-                    className="flex items-center justify-center flex-shrink-0"
-                    style={{
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '100px',
-                      background: 'linear-gradient(145deg, rgba(220, 38, 38, 0.15) 0%, rgba(13, 26, 75, 0.08) 100%)',
-                      boxShadow: '0 1px 4px rgba(220, 38, 38, 0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
-                      marginRight: '8px',
-                    }}
-                  >
-                    <FaUserShield style={{ color: '#0d1a4b' }} className="w-[14px] h-[14px]" />
+                variant="module"
+                text={
+                  <span className="flex items-center min-w-0 flex-1">
+                    <span
+                      className="flex items-center justify-center flex-shrink-0"
+                      style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '100px',
+                        background: 'linear-gradient(145deg, rgba(220, 38, 38, 0.15) 0%, rgba(13, 26, 75, 0.08) 100%)',
+                        boxShadow: '0 1px 4px rgba(220, 38, 38, 0.1), inset 0 1px 0 rgba(255,255,255,0.5)',
+                      }}
+                    >
+                      <FaUserShield style={{ color: '#0d1a4b' }} className="w-[14px] h-[14px]" />
+                    </span>
+                    <span style={{ fontSize: '13px', fontWeight: '500', color: '#0d1a4b', marginLeft: '5px' }}>
+                      Admin
+                    </span>
                   </span>
                 }
-                text="Admin"
-                style={{
-                  fontSize: '13px',
-                  fontWeight: '500',
-                  color: '#0d1a4b',
-                  textAlign: 'center',
-                }}
-                className="justify-center text-center w-full"
+                className="rounded-2xl"
                 isAdminLink={true}
               />
             </div>
