@@ -112,7 +112,7 @@ const SidebarLink = ({ icon: Icon, text, href, subText, style, delay = 0, isAdmi
         }
       }}
     >
-      <span className={`flex items-center flex-1 min-w-0 ${isAdminLink ? 'justify-center' : ''}`}>
+      <span className="flex items-center flex-1 min-w-0">
         {Icon && (typeof Icon === 'function' ? (
           <Icon 
             className="w-[18px] h-[18px] mr-3 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3" 
@@ -329,10 +329,10 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         className="fixed z-40 flex items-center justify-center"
         style={{
           top: '28px',
-          left: showSidebar ? '280px' : '14px',
+          left: showSidebar ? '280px' : '18px',
           transform: 'translateX(-50%)',
-          width: '28px',
-          height: '28px',
+          width: '36px',
+          height: '36px',
           borderRadius: '50%',
           background: '#ffffff',
           border: '1px solid rgba(13, 26, 75, 0.12)',
@@ -342,7 +342,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
           transition: 'left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
-        {showSidebar ? <MdChevronLeft size={18} /> : <MdChevronRight size={18} />}
+        {showSidebar ? <MdChevronLeft size={22} /> : <MdChevronRight size={22} />}
       </button>
 
       {/* Main Content */}
