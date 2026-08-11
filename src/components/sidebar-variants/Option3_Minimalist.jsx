@@ -85,8 +85,10 @@ export const MinimalistSidebar = ({
       {/* Preview as Student toggle - top of sidebar, real admins only */}
       {isRealAdmin && onPreviewAsStudentChange && (
         <div
-          className="w-full px-6"
+          className="w-full"
           style={{
+            paddingLeft: '80px',
+            paddingRight: '16px',
             marginBottom: '20px',
             opacity: sidebarCollapsed ? 0 : (isLoaded ? 1 : 0),
             transform: sidebarCollapsed ? 'translateY(4px)' : (isLoaded ? 'translateY(0)' : 'translateY(4px)'),
@@ -138,7 +140,7 @@ export const MinimalistSidebar = ({
       )}
 
       {/* Navigation Sections */}
-      <nav className="flex-1 space-y-1 pl-10 pr-4">
+      <nav className="flex-1 space-y-1 pl-16 pr-4">
         {/* Admin Section */}
         {isAdmin && (
           <div 

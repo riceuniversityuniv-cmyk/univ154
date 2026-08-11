@@ -442,6 +442,22 @@ toggle (see above) but wanted it more consistent with the rest of the sidebar:
   earlier in git history) — the user wanted more than that first pass gave.
 - `npm run build` clean.
 
+### 2026-08-11 — Nav icon spacing pushed further; Preview-as-Student left-aligned with Admin row
+User said the prior `pl-10` bump (see above) still wasn't enough and asked for the
+"Preview as Student" row to line up with "Admin" specifically:
+- `<nav>`'s left padding bumped again, `pl-10` (40px) → `pl-16` (64px) — combined
+  with `SidebarLink`'s own `px-4` (16px), the module/Admin icon circles now start
+  80px from the sidebar's left edge (was 56px, was 40px before that).
+- The "Preview as Student" row lives outside `<nav>` (it's rendered above it, not
+  as a `SidebarLink`), so it had its own independent padding (`px-6` = 24px) that
+  didn't track the nav's — that's why it looked left-shifted relative to "Admin"
+  even after both had been bumped once. Replaced its `px-6` class with explicit
+  `paddingLeft: '80px'` / `paddingRight: '16px'` so it's pinned to exactly the
+  same left inset as the Admin icon, not just independently increased.
+- Confirmed its font size (13px) already matched Admin's label (13px) from the
+  prior pass — no change needed there.
+- `npm run build` clean.
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
