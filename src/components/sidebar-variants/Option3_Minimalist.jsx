@@ -17,6 +17,7 @@ export const MinimalistSidebar = ({
   MdChevronLeft,
   MdChevronRight,
   FaChalkboardTeacher,
+  FaUserShield,
   MdBarChart,
   FaFileExcel,
   MdMenuBook,
@@ -102,12 +103,30 @@ export const MinimalistSidebar = ({
               pointerEvents: sidebarCollapsed ? 'none' : 'auto',
             }}
           >
-            <div className="flex justify-center">
+            <div className="flex flex-col gap-1 items-center">
               <SidebarLink
                 href="/dashboard/admin/week-access"
                 delay={0}
                 icon={FaChalkboardTeacher}
                 text="Admin Panel"
+                style={{
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#0d1a4b',
+                  textAlign: 'center',
+                  justifyContent: 'center',
+                  width: '100%'
+                }}
+                className="
+                  justify-center text-center w-full
+                "
+                isAdminLink={true}
+              />
+              <SidebarLink
+                href="/dashboard/admin/settings"
+                delay={0}
+                icon={FaUserShield}
+                text="Admin Settings"
                 style={{
                   fontSize: '13px',
                   fontWeight: '500',
