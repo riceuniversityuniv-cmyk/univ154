@@ -385,6 +385,26 @@ Corrected, and enlarged the sidebar toggle button per follow-up feedback:
   bypass technique as the prior entry (reverted before commit — no auth
   logic shipped changed). `npm run build` clean.
 
+### 2026-08-11 — Sidebar cleanup: Preview toggle moved to top, dropped Hide-sidebar checkbox and Rice logo
+Per user request, three changes to `Option3_Minimalist.jsx`'s sidebar chrome:
+- "Preview as Student" toggle (real-admin-only) moved from the bottom user-profile
+  block to a new section directly under the logo, before the nav — same markup/
+  behavior, just relocated so it's visible without scrolling to the bottom.
+- Removed the "Hide sidebar" checkbox + its hover tooltip entirely (along with the
+  now-unused `showHideSidebarTooltip` state and the `useState` import it was the
+  only consumer of). This was the only UI control for the `sidebarFixed` /
+  `onSidebarFixedChange` props `Dashboard.jsx` still passes down — left those
+  props as harmless dead weight in `Dashboard.jsx` (React ignores unused props)
+  rather than touching that state/localStorage logic, since removing the *button*
+  was the ask, not the underlying collapsed-start behavior. Sidebar visibility is
+  still fully controlled by the toggle-button/`toggleSidebar` path documented in
+  the 2026-08-11 "Combined Admin tabs" entry above.
+- Removed the Rice University logo image above Logout — that section is now just
+  the Logout button. `riceLogo` dropped from this component's props (still
+  imported and passed by `Dashboard.jsx`, just unused now).
+- `npm run build` clean. Not click-tested live (same no-admin-credentials
+  constraint noted elsewhere in this doc).
+
 ## Status as of end of 2026-08-11 session
 - **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
   email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`

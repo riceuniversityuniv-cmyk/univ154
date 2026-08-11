@@ -1,17 +1,14 @@
 // OPTION 3: MINIMALIST MODERN SIDEBAR
 // Clean, minimal tasarım ile perfect spacing
 
-import { useState } from 'react';
-
-export const MinimalistSidebar = ({ 
-  sidebarCollapsed, 
-  toggleSidebar, 
-  isLoaded, 
-  isAdmin, 
-  user, 
+export const MinimalistSidebar = ({
+  sidebarCollapsed,
+  toggleSidebar,
+  isLoaded,
+  isAdmin,
+  user,
   handleLogout,
   logo,
-  riceLogo,
   SidebarLink,
   isWeekAccessible,
   MdChevronLeft,
@@ -20,14 +17,10 @@ export const MinimalistSidebar = ({
   MdBarChart,
   FaFileExcel,
   MdMenuBook,
-  sidebarFixed = true,
-  onSidebarFixedChange,
   isRealAdmin = false,
   previewAsStudent = false,
   onPreviewAsStudentChange,
 }) => {
-  const [showHideSidebarTooltip, setShowHideSidebarTooltip] = useState(false);
-
   return (
     <div 
       className="sidebar-modern"
@@ -88,6 +81,61 @@ export const MinimalistSidebar = ({
           </div>
         </div>
       </div>
+
+      {/* Preview as Student toggle - top of sidebar, real admins only */}
+      {isRealAdmin && onPreviewAsStudentChange && (
+        <div
+          className="w-full px-6"
+          style={{
+            marginBottom: '20px',
+            opacity: sidebarCollapsed ? 0 : (isLoaded ? 1 : 0),
+            transform: sidebarCollapsed ? 'translateY(4px)' : (isLoaded ? 'translateY(0)' : 'translateY(4px)'),
+            transition: 'opacity 0.3s ease-in-out, transform 0.3s ease-in-out',
+            pointerEvents: sidebarCollapsed ? 'none' : 'auto',
+          }}
+        >
+          <label
+            className="flex items-center justify-between gap-2 w-full cursor-pointer select-none"
+            style={{ fontSize: '12px', color: previewAsStudent ? '#0d1a4b' : '#64748b' }}
+          >
+            <span style={{ fontWeight: previewAsStudent ? '600' : '500' }}>Preview as Student</span>
+            <button
+              type="button"
+              onClick={() => onPreviewAsStudentChange(!previewAsStudent)}
+              role="switch"
+              aria-checked={previewAsStudent}
+              aria-label="Preview as Student"
+              style={{
+                position: 'relative',
+                display: 'inline-block',
+                width: '34px',
+                height: '18px',
+                borderRadius: '999px',
+                background: previewAsStudent ? '#0d1a4b' : '#d1d5db',
+                border: 'none',
+                padding: 0,
+                cursor: 'pointer',
+                transition: 'background 0.2s ease-in-out',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '2px',
+                  left: previewAsStudent ? '18px' : '2px',
+                  width: '14px',
+                  height: '14px',
+                  borderRadius: '50%',
+                  background: '#ffffff',
+                  boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                  transition: 'left 0.2s ease-in-out',
+                }}
+              />
+            </button>
+          </label>
+        </div>
+      )}
 
       {/* Navigation Sections */}
       <nav className="flex-1 space-y-1 pl-6 pr-4">
@@ -273,117 +321,6 @@ export const MinimalistSidebar = ({
         }}
       >
         <div className="flex flex-col items-center w-full px-6">
-            {onSidebarFixedChange && (
-              <div
-                className="relative w-full mb-4"
-                onMouseEnter={() => setShowHideSidebarTooltip(true)}
-                onMouseLeave={() => setShowHideSidebarTooltip(false)}
-              >
-                <label
-                  className="flex items-center gap-2 w-full cursor-pointer select-none"
-                  style={{ fontSize: '12px', color: '#64748b' }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={!sidebarFixed}
-                    onChange={(e) => onSidebarFixedChange(!e.target.checked)}
-                    className="rounded border-slate-300 text-[#0d1a4b] focus:ring-[#0d1a4b]"
-                  />
-                  <span>Hide sidebar</span>
-                </label>
-                {showHideSidebarTooltip && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      bottom: '100%',
-                      left: '0',
-                      marginBottom: '8px',
-                      zIndex: 10000,
-                      background: '#0d1a4b',
-                      color: 'white',
-                      padding: '10px 14px',
-                      borderRadius: '8px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      maxWidth: '260px',
-                      boxShadow: '0 4px 12px rgba(13, 26, 75, 0.3)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      pointerEvents: 'none',
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    When enabled, the sidebar starts closed. Click the arrow to open it.
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: '20px',
-                        width: 0,
-                        height: 0,
-                        borderLeft: '6px solid transparent',
-                        borderRight: '6px solid transparent',
-                        borderTop: '6px solid #0d1a4b',
-                      }}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-            {isRealAdmin && onPreviewAsStudentChange && (
-              <div className="w-full mb-4">
-                <label
-                  className="flex items-center justify-between gap-2 w-full cursor-pointer select-none"
-                  style={{ fontSize: '12px', color: previewAsStudent ? '#0d1a4b' : '#64748b' }}
-                >
-                  <span style={{ fontWeight: previewAsStudent ? '600' : '500' }}>Preview as Student</span>
-                  <button
-                    type="button"
-                    onClick={() => onPreviewAsStudentChange(!previewAsStudent)}
-                    role="switch"
-                    aria-checked={previewAsStudent}
-                    aria-label="Preview as Student"
-                    style={{
-                      position: 'relative',
-                      display: 'inline-block',
-                      width: '34px',
-                      height: '18px',
-                      borderRadius: '999px',
-                      background: previewAsStudent ? '#0d1a4b' : '#d1d5db',
-                      border: 'none',
-                      padding: 0,
-                      cursor: 'pointer',
-                      transition: 'background 0.2s ease-in-out',
-                      flexShrink: 0,
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '2px',
-                        left: previewAsStudent ? '18px' : '2px',
-                        width: '14px',
-                        height: '14px',
-                        borderRadius: '50%',
-                        background: '#ffffff',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
-                        transition: 'left 0.2s ease-in-out',
-                      }}
-                    />
-                  </button>
-                </label>
-              </div>
-            )}
-            <img
-              src={riceLogo}
-              alt="Rice University Logo" 
-              style={{ 
-                height: '70px', 
-                width: 'auto', 
-                marginBottom: '20px',
-                filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.05))',
-              }}
-              className="object-contain"
-            />
             <button
               onClick={handleLogout}
               style={{
