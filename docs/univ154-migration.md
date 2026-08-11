@@ -190,3 +190,26 @@ Playwright checks) found the migration had actually already landed correctly (se
   redirects to `/dashboard` via React Router the instant `user` is set — no flash, no
   full reload. Removed the now-redundant `window.location.href` call from
   `AuthContext.jsx`. Commit `d8d7702`.
+- **User confirmed live on `riceuniv154.netlify.app`**: Google sign-in now goes straight
+  into the tool, no login-page flash, no lag. This closes out the original "Google login
+  broken" report end-to-end (provider config → redirect allowlist → OAuth client →
+  new-user DB trigger → post-redirect UX, all five layers were broken and are now fixed).
+
+## Status as of end of 2026-08-11 session
+- **Fixed and confirmed live**: Google OAuth end-to-end, new-user signup (Google and
+  email/password, was previously broken for *everyone*), unauthenticated `/dashboard/*`
+  access, login-page flash/lag on OAuth redirect.
+- **Not yet done — pick up next session**: a broader authenticated-screen smoke test was
+  planned but not executed — clicking through Dashboard, each wired Week module (1, 2, 3,
+  4, 5, 6/Retirement, 7, 9, 12 — Week10/11 exist as files but aren't wired into `App.jsx`
+  routes), Excel Workshop, and the Admin panel (`WeekAccessAdmin`, as the admin account
+  `riceuniversityuniv@gmail.com`), watching the browser console for errors; also the
+  email/password signup flow and "forgot password" flow haven't been click-tested since
+  the DB trigger fix (should work now, just not yet verified). Nothing currently indicates
+  these are broken — this is verification, not a known bug.
+- **Flagged, not acted on (leave as-is unless user asks)**: dead legacy site
+  `univ154.netlify.app` (deleted Supabase backend, presumably still under Beyza's Netlify
+  account); `riceuniversityuniv-cmyk/univ154`'s cosmetic GitHub "forked from" label.
+- **Declined as infeasible**: renaming the Supabase project ref prefix
+  (`zyznmhbtpniluhkyowbb`) while keeping the `supabase.co` suffix — project refs are
+  permanent; only alternative is a paid custom domain. User chose to leave it as-is.
