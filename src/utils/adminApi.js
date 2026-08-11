@@ -34,7 +34,7 @@ export const fetchMyAdminRole = async (email) => {
   return { isAdmin: true, isMasterAdmin: data.role === 'master_admin' };
 };
 
-// Full admin roster, for the Admin Settings page. RLS only lets admins see
+// Full admin roster, for the Admin panel's "Manage Admins" tab. RLS only lets admins see
 // this at all.
 export const fetchAllAdmins = async () => {
   const { data, error } = await supabase

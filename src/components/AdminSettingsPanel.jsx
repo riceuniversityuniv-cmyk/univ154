@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useWeekAccess } from '../contexts/WeekAccessContext';
 import {
   fetchAllAdmins,
   fetchAllRegisteredUsers,
@@ -104,7 +105,11 @@ const roleBadge = (role) => (
 );
 
 export default function AdminSettingsPanel() {
-  const { user, isAdmin, isMasterAdmin, refreshAdminStatus } = useAuth();
+  const { user, isMasterAdmin, refreshAdminStatus } = useAuth();
+  // Effective admin flag (respects "Preview as Student"), not the raw
+  // useAuth().isAdmin -- also already gated one level up by AdminPanel.jsx,
+  // this is defense in depth. See WeekAccessContext / AdminPanel.jsx.
+  const { isAdmin } = useWeekAccess();
 
   const [admins, setAdmins] = useState([]);
   const [registeredUsers, setRegisteredUsers] = useState([]);
@@ -237,7 +242,7 @@ export default function AdminSettingsPanel() {
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '8px' }}>
           <MdSecurity style={{ fontSize: '32px', color: '#002060' }} />
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Admin Settings</h1>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Manage Admins</h1>
         </div>
         <p style={{ color: '#666', margin: 0 }}>Manage who has admin access to this tool</p>
       </div>

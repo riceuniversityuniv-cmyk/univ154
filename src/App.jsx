@@ -17,6 +17,7 @@ import Week9 from './components/Week9'
 import Week12 from './components/Week12'
 import WeekAccessAdmin from './components/WeekAccessAdmin'
 import AdminSettingsPanel from './components/AdminSettingsPanel'
+import AdminPanel from './components/AdminPanel'
 import Overview from './components/pages/Overview'
 
 // Sample data for Overview component
@@ -174,8 +175,11 @@ function App() {
             <Route path="excel/week-9/*" element={<Week9 />} />
             <Route path="excel/week-12" element={<Week12 />} />
             <Route path="excel/week-12/*" element={<Week12 />} />
-            <Route path="admin/week-access" element={<WeekAccessAdmin />} />
-            <Route path="admin/settings" element={<AdminSettingsPanel />} />
+            <Route path="admin" element={<AdminPanel />}>
+              <Route index element={<Navigate to="/dashboard/admin/week-access" replace />} />
+              <Route path="week-access" element={<WeekAccessAdmin />} />
+              <Route path="manage" element={<AdminSettingsPanel />} />
+            </Route>
             {/* Add routes for other weeks here as they are created */}
           </Route>
         </Routes>
