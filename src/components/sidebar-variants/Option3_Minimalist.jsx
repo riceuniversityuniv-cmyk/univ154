@@ -279,12 +279,7 @@ export const MinimalistSidebar = ({
                       fontWeight: '500',
                     }}
                     className="rounded-2xl"
-                    text={
-                      <span className="flex items-center w-full gap-3">
-                        {twoToneLabel}
-                        <span className="ml-auto text-xs" style={{ color: '#9ca3af' }}>🔒</span>
-                      </span>
-                    }
+                    text={twoToneLabel}
                   />
                 );
               }
