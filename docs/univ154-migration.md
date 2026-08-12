@@ -523,6 +523,296 @@ on the compiled CSS came back **0**.
   correct — they need to be re-eyeballed against actual rendered output, since they
   were tuned blind.
 
+### 2026-08-11 — Comprehensive financial-formula audit; four independent tax engines found, several confirmed dollar-value bugs
+Per user request, audited every financial calculation in the app (tax/FICA,
+budgeting, savings, credit card, mortgage, retirement, HDHP insurance, portfolio
+withdrawal) for correctness — read-only, no code changes. Full report:
+`docs/financial-audit-2026-08-11.md`.
+- **Headline structural finding**: federal/state/FICA tax is computed by **four
+  independent, hand-duplicated implementations** (`src/utils/taxCalculator.js`,
+  `Week1FederalTax.jsx`, `Week1StateTax.jsx`, `BudgetContext.jsx`'s
+  `summaryCalculations`), each with its own copy of the bracket tables. They've
+  already drifted apart (different FICA base, different state-bracket data, NYC
+  rate rounding) — the Federal Tax tab, State Tax tab, and Summary tab can
+  disagree about the same user's tax bill today.
+- **Confirmed critical bugs** (personally verified, not just agent-reported):
+  `BudgetContext.jsx:253,637` caps Social Security tax's *dollar amount* against
+  the wage-base *dollar figure* instead of capping income first — SS tax is
+  effectively uncapped below ~$2.84M income on the Summary tab, vs. correctly
+  capped on the Federal Tax tab. `Week3CreditCard.jsx:69-70,257-326`'s "Minimum
+  Payment" is interest-only on the frozen original balance reused every month —
+  traced the math and confirmed principal payment is always ~0, so that
+  amortization track can never pay off any debt (always hits the 600-month cap).
+- Five more Critical-severity bugs (unverified by me directly, but numerically
+  reproduced by the exploration agents against the repo's own data): negative
+  state tax for DE/ID/MS/MO/ND/OH below their threshold in one engine, $0.00
+  state tax for ~20 flat-rate states in a second engine, an HDHP out-of-pocket
+  calculator that always adds the full deductible even when medical expenses are
+  below it (`Week7.jsx`), a Roth 401(k) chart with an extra `(1+r)` factor that
+  diverges from its own data table (`Week6Retirement.jsx`), and a "value in
+  today's dollars" figure that discounts by a fixed 80-year horizon regardless of
+  when the peak balance actually occurs (`Week9.jsx`, understates by ~7x under
+  default inputs).
+- ~20 more High/Medium/Low findings cataloged in the report: stale 2025 SS wage
+  base (2026's real figure is $184,500), taxable-income formula that diverges
+  between the Summary tab and Federal/State tabs whenever pre-tax expenses are
+  nonzero, drifted state-bracket data for HI/CA/WI between the two independent
+  50-state datasets, Week 12's employer match uncoupled from actual employee
+  contribution, an RMD table that silently stops past age 90, several dead-code
+  paths (`CalculationDetails.jsx`, `configs/week1Config.js`/`week2Config.js`, an
+  unused `savingsCalculations` block, an unused `financialCalculations` engine),
+  and a handful of defensible-but-worth-knowing pedagogical simplifications.
+- **User decision**: report only this session, no fixes applied. If/when fixing
+  happens, user's stated preference is to consolidate the four tax engines into
+  one shared module rather than patch each of the four copies separately — noted
+  as the top recommendation in the report.
+- Also confirmed correct and not touched: the core marginal/progressive tax
+  bracket-stacking algorithm (appears multiple places, always correct), 2026
+  federal bracket thresholds and standard deduction, `SavingsForm.jsx`'s NPER/
+  sinking-fund formulas, General Loans and mortgage amortization (both correctly
+  recompute interest against the live shrinking balance), and percentage-as-
+  decimal handling throughout (no "5% treated as 5" bugs found anywhere).
+
+### 2026-08-12 — Traced the 7 Critical audit bugs against the master Excel workbook: 3 inherited, 4 introduced during the port
+User asked whether the financial-formula audit's findings (above) already exist
+in the source spreadsheet (`...\UNIV 154\Spring 2026\Tool\Final Master Copy -
+Web Based Application.xlsx`) or were introduced while porting to React.
+Extracted every formula directly from the workbook's XML (`xl/worksheets/
+sheetN.xml`, via openpyxl on a local copy — the OneDrive original is
+lock-protected while open) rather than re-typing by eye. Full comparison
+appended as §7 of `docs/financial-audit-2026-08-11.md` and mirrored in the
+published artifact.
+- **Key context discovered**: the Excel workbook's own "Week N" sheet-group
+  labels do **not** correspond to the web app's "Week N" component names — e.g.
+  Excel's "Week 9 - Insurance" is the source for the web app's `Week7.jsx`, and
+  Excel's "Week 7 - The Goal" (+ "Tax Engine"/"Projection Engine"/etc. sub-sheets)
+  is the source for `Week12.jsx`. Had to match by calculation content, not by
+  label, to compare correctly.
+- **3 of 7 Critical bugs are faithfully inherited from Excel** — the web app
+  reproduced the spreadsheet's own bugs correctly: the SS-tax-cap formula
+  (`=MIN(income*6.2%,176100)`, same wrong shape as `BudgetContext.jsx`), the
+  negative-state-tax-below-threshold bug (hand-traced: Excel itself returns
+  −$22.00 for DE at $1,000 taxable income), and the HDHP always-charges-full-
+  deductible bug (Excel's `Week 9 - Insurance!D25` is the exact same formula
+  `Week7.jsx`'s own code comment already quotes).
+- **4 of 7 are introduced during the React port**, with no Excel counterpart:
+  - Credit-card minimum payment (`Week3CreditCard.jsx`'s worst bug): Excel's
+    real formula is the standard "interest + 1% of balance, $25 floor,"
+    recalculated every month against the live balance, and it amortizes
+    correctly (hand-traced 12 months, principal payment stays positive
+    throughout). The web port replaced this with an interest-only figure frozen
+    at the original balance — a different, broken formula with no source in
+    Excel at all.
+  - Both of `Week1StateTax.jsx`'s state-tax bugs ($0 for flat-rate states,
+    over-taxing threshold states below their floor) are novel reimplementation
+    errors — Excel's tracker-3 branch correctly multiplies by taxable income
+    (verified: GA at $80,000 → correct $4,312.00 in Excel), and Excel's
+    differently-structured nested-IF can only ever produce the negative-tax bug
+    above, never an over-tax.
+  - The Roth 401(k) chart divergence and the Week 9 "value in today's dollars"
+    bug both trace to logic the web app *added* that doesn't exist in Excel at
+    all: Excel's chart just plots the same accumulation column the table reads
+    from (can never disagree with itself), and Excel discounts the literal last
+    row of the projection by that same row's own age (self-consistent by
+    construction) rather than searching for a peak balance elsewhere in the
+    sweep the way `Week9.jsx` does.
+- **Practical implication flagged in the report**: the 3 inherited bugs are a
+  content decision (match what's taught in class, bugs and all, or take the
+  port as a chance to correct them) — the 4 introduced bugs are unambiguous
+  port-fidelity fixes, since Excel already has the correct formula to copy from.
+- Only the 7 Critical findings were checked against Excel this session (manual
+  effort per formula); the other 22 High/Medium/Low findings from the original
+  audit have not yet been traced. Accidentally created a `scratchpad_dump/`
+  folder inside the actual repo working tree while extracting formulas —
+  caught and deleted before anything was committed.
+
+### 2026-08-12 — Built a fully-fixed Excel workbook with a front-loaded legislative-constants tab
+Produced `Final Master Copy - Web Based Application (Fixed).xlsx` in
+`Spring 2026\Tool\` (original left untouched) — **not** a web app change, this is
+the source spreadsheet the web app was ported from. Built entirely via openpyxl
+against the real XML (no hand-retyping), verified with a real Excel COM
+recalculation pass (`win32com.client`, `CalculateFullRebuild`) plus targeted
+numeric spot-checks against hand-computed bracket math.
+- **New first sheet, `0 - Legislative Assumptions`**: every statutory constant
+  (FICA rate/wage base, Medicare + Additional Medicare rate/threshold, federal
+  ordinary + LTCG brackets, standard deduction, 401(k)/IRA limits, RMD start age,
+  penalty-free withdrawal age, full RMD divisor table ages 72–120, and the full
+  50-state + NYC bracket table) now lives in exactly one place with named ranges
+  (`SS_Rate`, `SS_WageBase`, `FedOrdinaryBrackets`, `StateBracketsReference`,
+  etc.). A `Change Log` sheet (2nd tab) documents every change made.
+- **Discovery**: the "four independent tax engines" problem already existed
+  *inside Excel*, not just the web port — `Week 1 B - Federal Tax` hand-typed its
+  own copy of the federal brackets, separate from `Week 7 B - Fed Ordinary 2026`'s
+  clean copy. Reconciled the state-bracket data across all duplicate copies
+  first (`Week 7 B - State Tax Brackets` vs `Week 1 B - State Tax`'s embedded
+  161-row table) and confirmed they were byte-identical (no drift) before
+  repointing — including catching that a naive key-based diff falsely flagged a
+  "mismatch" on NY because the sheet reuses the label `'NY'` for both the real
+  NY state brackets (rows 107–115) *and* a separate NYC city-tax block (rows
+  173–176); re-scoping the diff to the correct row ranges resolved it cleanly.
+- **Fixed 3 confirmed bugs** (all previously traced to Excel in the 2026-08-11
+  addendum): the SS-tax-cap shape (`Week 1 B - Federal Tax!G18/M18/T18`, capped
+  tax dollars instead of income before the cap), the HDHP out-of-pocket formula
+  (`Week 9 - Insurance!D25/F25`, always added the full deductible), and the
+  state-tax bracket-walk's missing "income below this bracket's own floor → $0"
+  check. That last one turned out to be copy-exploded across **four sheets**,
+  not just `Week 1 B - State Tax` (495 cells) — the same buggy pattern also
+  drives every age/year column of the retirement withdrawal projections in
+  `Week 5 B - State Tax Tr 401(k)` (49,995 cells) and `Week 5 B - State Tax Tr
+  IRA` (49,994 cells). Fixed via a regex-based formula-shape transform (not a
+  per-cell rewrite) applied uniformly across all ~100,500 matching cells.
+- **Self-caught bug in my own fix**: the first build pass repointed each sheet's
+  "Lower Bound" column to the wrong master-tab column (state abbreviation
+  instead of the numeric lower bound), which silently zeroed out every state's
+  computed tax. Caught by numeric spot-checking (not formula-text review alone)
+  — DE at $100k taxable income returned $0 instead of the expected ~$4,400.
+  Patched (487 cells) and re-verified with a fresh COM recalculation before
+  shipping the file.
+- **Also identified, not changed**: `Week 5 B- Roth 401(k) State Tax` is a
+  correctly-shaped but entirely orphaned duplicate engine (zero references
+  anywhere in the workbook) — flagged in the Change Log as safe to delete in a
+  future cleanup, not touched this pass. `Week 7 B`'s retirement-projection
+  state-tax model uses a single flat rate per state (no bracket walk), which
+  understates tax for graduated states at higher incomes — a design limitation
+  of that module, not new drift, also flagged rather than restructured (out of
+  scope: would require rebuilding that module's lookup mechanism).
+- Per user decision, only the 7 Critical findings' Excel-side bugs were in scope
+  for this fix; the other 22 High/Medium/Low findings from the audit were not
+  addressed here.
+
+### 2026-08-12 (follow-up) — Deeper sweep found one more real bug; re-verified and re-shipped
+User asked to double-check the Assumptions tab was exhaustive and the whole
+workbook flows correctly. Built a full literal-value inventory (every distinct
+numeric literal embedded in any formula, across all 60 sheets, ~200k formula
+cells) instead of relying on the original curated candidate list — that list had
+already missed one real bug, which is exactly why the broader sweep mattered.
+- **Found**: `Week 1 - Budgeting!C32/C34` hand-typed a third, separate copy of the
+  401(k)/IRA limits (`=ROUNDDOWN(24500/12,2)` etc.), not linked to the
+  Assumptions tab. Worse — `G46`/`G48` (the Roth 401(k)/Roth IRA recommended-
+  contribution caps) used *different, stale* hardcoded ceilings (`1958.33` ≈
+  $23,500/yr, `583.33` ≈ $7,000/yr — old IRS limits) that didn't even match
+  `C32`/`C34`'s own $24,500/$7,500 in the same sheet. The displayed "Max Monthly
+  Contribution" and the actual enforced recommendation cap silently disagreed.
+  Fixed all four to reference `Limit401k`/`LimitIRA` (via `C32`/`C34`), logged as
+  Change Log row 11.
+- Investigated every other flagged candidate from the full sweep and confirmed
+  they were false positives or out of scope: month/row counters in amortization
+  tables (the bulk of ~600 distinct literals found), pedagogical budget-category
+  caps (not legislative), a sheet-name substring match, and a 20%-down-payment
+  PMI threshold hardcoded 360 times down one mortgage amortization column (real
+  but a lending convention, not tax law, and not actually duplicated across
+  multiple engines — decided not to centralize it, flagged as considered).
+- Re-ran the full Excel COM recalculation + error scan after the fix (clean,
+  zero real errors) and a targeted numeric check confirming the Roth 401(k) cap
+  now engages at exactly $2,041.66/mo and Roth IRA at $625.00/mo for a
+  high-income test case. Re-copied the corrected file over the delivered
+  `Final Master Copy - Web Based Application (Fixed).xlsx`.
+
+### 2026-08-12 (final pass) — Requested "one last comprehensive check"; found and fixed a Change Log formula-injection bug
+Ran a structural + value-level audit rather than more spot checks:
+- **Structural integrity vs. the original workbook**: compared data validations
+  (75 = 75), conditional-formatting rule groups (43 = 43), and merged-cell
+  ranges (97 → 99, the +2 accounted for exactly by the two new sheets, verified
+  no pre-existing sheet's merge count changed) after 5+ openpyxl load/save
+  round-trips. No silent corruption from repeated resaving.
+- **Found**: 6 cells in the `Change Log` sheet's "old/new formula" documentation
+  columns were text like `=IF(E7=0,0,...)` — starting with `=`, so Excel
+  silently evaluated them as *live formulas* referencing blank cells on that
+  sheet instead of displaying them as descriptive text (they happened to
+  resolve to `0` rather than an error, so the earlier error-cell scan didn't
+  catch it). Fixed by prefixing each with `Old:`/`New:` so they store as text.
+- **Zero remaining occurrences** of the old buggy tracker-formula shape
+  anywhere in the workbook (regex-verified across all 60 sheets).
+- **Value-level consistency sweep**: 1,125 automated checks comparing every
+  repointed cell's post-recalc cached value against its source value on the
+  Assumptions tab (all federal/LTCG brackets, FICA scalars, RMD table, and the
+  full 50-state + NYC bracket table across all 3 consuming sheets) — 1,124/1,125
+  matched exactly; the one apparent mismatch was the verification script's own
+  Python `round()` vs. Excel's `ROUNDDOWN()` truncation semantics, not a
+  workbook defect.
+- Re-delivered the corrected file to the same path after this pass.
+
+### 2026-08-12 (color-coding pass) — Applied the workbook's own blue/green input-vs-link convention to every repointed cell
+User asked to fix color coding: cells that were blue hardcodes should be green
+now that they're links. Investigated the workbook's own existing convention
+first rather than assuming one: `FF0000FF` (blue) = hardcoded input,
+`FF388600` (green) = cross-sheet link, default/theme color = same-sheet
+calculated formula — confirmed by sampling cells of each known kind before
+touching anything.
+- Discovered the *original* workbook applied this convention inconsistently —
+  e.g. `Week 1 B - Federal Tax`'s hand-typed bracket table was blue, but
+  `Week 7 B - Assumptions`/`Fed Ordinary 2026`/`Fed LTCG 2026`/`Lists` (RMD
+  table) and `Week 1 - Budgeting!C32/C34` held equally-hardcoded numbers with
+  no color override at all (default black). Decided to recolor **all** cells
+  that now link to `0 - Legislative Assumptions` green, not only the ones that
+  happened to be blue before — the alternative (leaving some links green and
+  others default-colored) would just be a different inconsistency.
+- Recolored 1,135 cells green (every cell across `Week 1 B - Federal Tax`,
+  `Week 1 B - Summary`, `Week 1 B - State Tax`, both `Week 5 B - State Tax Tr
+  *` sheets, `Week 7 B - Assumptions`/`Fed Ordinary 2026`/`Fed LTCG 2026`/
+  `Lists`, and `Week 1 - Budgeting!C32/C34` that now point at the Assumptions
+  tab) and 800 cells blue on `0 - Legislative Assumptions` itself (the actual
+  hardcoded data now lives there, so it gets the input color).
+- Deliberately left bug-fix cells alone (`Week 1 B - Federal Tax!G18/M18/T18`,
+  `Week 9 - Insurance!D25/F25`, `Week 1 - Budgeting!G46/G48`, the ~100k
+  state-tax tracker cells) — these were already formulas before the fix
+  (never hardcoded), just buggy, so their existing default/black coloring was
+  already correct and untouched.
+- Verified via COM recalculation (clean) and by re-reading a sample of green,
+  blue, and deliberately-untouched cells to confirm the right ones changed and
+  the right ones didn't. Re-delivered to the same path.
+
+### 2026-08-12 (reference-sync pass) — User edited the workbook directly in Excel; corrected the reference map here rather than reverting
+Between my color-coding delivery and this pass, the workbook's file timestamp
+moved and its structure changed without any action from me — traced to the
+user opening the file in Excel and editing it directly (OneDrive autosaves
+those edits back to the same path, no explicit "Save" needed). **Confirmed
+with the user this was intentional** before doing anything else, rather than
+assuming corruption and overwriting their edits.
+
+**What changed, and current authoritative state:**
+- `0 - Legislative Assumptions` renamed to **`Assumptions`**, and its internal
+  layout shifted (the user inserted a column and trimmed a couple of header
+  rows). All 17 named ranges still resolve correctly — Excel auto-updated
+  every formula that pointed at this tab, nothing broke. **Current addresses
+  (read live from the defined names, not assumed):**
+  | Name | Cell/Range |
+  |---|---|
+  | `SS_Rate` | `Assumptions!D3` |
+  | `SS_WageBase` | `Assumptions!D4` |
+  | `Medicare_Rate` | `Assumptions!D5` |
+  | `AddlMedicare_Rate` | `Assumptions!D6` |
+  | `AddlMedicare_Threshold` | `Assumptions!D7` |
+  | `FedStdDeduction_Single` | `Assumptions!D10` |
+  | `Limit401k` | `Assumptions!D29` |
+  | `LimitIRA` | `Assumptions!D30` |
+  | `RMD_StartAge` | `Assumptions!D31` |
+  | `PenaltyFreeWithdrawalAge` | `Assumptions!D32` |
+  | `CPI_Inflation` | `Assumptions!D86` |
+  | `Portfolio_Return` | `Assumptions!D87` |
+  | `FedOrdinaryBrackets` | `Assumptions!C13:E19` |
+  | `FedLTCGBrackets` | `Assumptions!C24:E26` |
+  | `RMDDivisorTable` | `Assumptions!C35:D83` |
+  | `StateBracketsReference` | `Assumptions!C91:F251` |
+  | `NYCBracketsReference` | `Assumptions!C255:F258` |
+  Any earlier working-log entry above that cites an `0 - Legislative
+  Assumptions` cell address (e.g. `B15`, `B91`, `C5`) describes the state **at
+  the time it was built**, not the current file — use this table instead going
+  forward. Referencing by name (`SS_WageBase`, etc.) rather than address is
+  exactly why this still works after the user's edit.
+- **`Change Log` tab deleted by the user, permanently** — per their explicit
+  instruction, not restored. **This working-log doc is now the sole
+  change-history record for the workbook**; there is no in-file changelog
+  anymore. Future fixes to this workbook should be logged here only.
+- The user also deleted an unused helper "row index" column (column A — a
+  plain `1, 2, 3…` counter, e.g. `A8: =A7+1`) from `Week 5 B - State Tax Tr
+  IRA` and `Week 5 B- Roth 401(k) State Tax`. Confirmed via column-level
+  formula-count diffing that this column was never referenced by any tax
+  calculation in either sheet — harmless cleanup, nothing downstream affected.
+- Colors (green links / blue master-tab inputs) and every prior bug fix (SS
+  cap, HDHP, state-tax tracker) were re-verified intact and unaffected by the
+  user's edits.
+
 ## Status as of end of 2026-08-11 session
 - **⚠️ Important for next session**: `src/index.css` was fixed this session (`@tailwind`
   v3 directives → `@import "tailwindcss";`) because Tailwind's default spacing scale
