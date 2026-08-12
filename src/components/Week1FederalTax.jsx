@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
-import { calculateFinancials } from '../utils/taxCalculator';
+import { useAssumptions } from '../contexts/AssumptionsContext';
+import { calculateBracketBreakdown, calculateFICA } from '../utils/taxEngine';
 
 const styles = {
   container: {
@@ -81,92 +82,30 @@ const styles = {
   }
 };
 
-// Tax bracket data - Updated for 2026 tax year
-const federalTaxBrackets = [
-  { rate: 0.10, lowerBound: 0 },
-  { rate: 0.12, lowerBound: 12400 },
-  { rate: 0.22, lowerBound: 50400 },
-  { rate: 0.24, lowerBound: 105700 },
-  { rate: 0.32, lowerBound: 201775 },
-  { rate: 0.35, lowerBound: 256225 },
-  { rate: 0.37, lowerBound: 640600 }
-];
-
 export default function Week1FederalTax() {
-  const { topInputs, deductionChoices, financialCalculations } = useBudget();
-  
-  // Get taxable income from context (this would be P2 in Excel, referencing 'Week 1 - Summary'!C22)
+  const { topInputs, financialCalculations } = useBudget();
+  const { assumptions } = useAssumptions();
+
+  // Taxable income comes from the shared engine via BudgetContext (this is
+  // P2 in Excel, referencing 'Week 1 - Summary'!C22) -- guaranteed to match
+  // what the Summary tab shows since both now go through taxEngine.js.
   const taxableIncome = financialCalculations.taxableIncome || 0;
-  
-  // Calculate tax bracket applications using exact Excel formulas
-  const taxCalculations = useMemo(() => {
-    const calculations = federalTaxBrackets.map((bracket, index) => {
-      const nextBracket = federalTaxBrackets[index + 1];
-      const prevBracket = federalTaxBrackets[index - 1];
-      
-      // Applied Tax Brackets Tracker (Column Q) - Excel formulas from screenshots
-      let appliedTracker = 0;
-      if (index === 0) {
-        // Q7: =IF(AND($P$2>=P7,$P$2<=P8),2,IF($P$2>P8,1,0))
-        if (taxableIncome >= bracket.lowerBound && taxableIncome <= (nextBracket?.lowerBound || Infinity)) {
-          appliedTracker = 2;
-        } else if (taxableIncome > (nextBracket?.lowerBound || Infinity)) {
-          appliedTracker = 1;
-        } else {
-          appliedTracker = 0;
-        }
-      } else {
-        // Q8-Q13: =IF(SUM($R$7:R7)=1,0,IF(AND($P$2>=P8,$P$2<=P9),2,IF($P$2>P9,IF(P8=$P$13,3,1),0)))
-        const sumOfPreviousTrackers = calculations.slice(0, index).reduce((sum, calc) => sum + (calc.tracker2 || 0), 0);
-        if (sumOfPreviousTrackers === 1) {
-          appliedTracker = 0;
-        } else if (taxableIncome >= bracket.lowerBound && taxableIncome <= (nextBracket?.lowerBound || Infinity)) {
-          appliedTracker = 2;
-        } else if (taxableIncome > (nextBracket?.lowerBound || Infinity)) {
-          if (bracket.lowerBound === federalTaxBrackets[federalTaxBrackets.length - 1].lowerBound) {
-            appliedTracker = 3;
-          } else {
-            appliedTracker = 1;
-          }
-        } else {
-          appliedTracker = 0;
-        }
-      }
-      
-      // "2" Tracker (Column R) - Excel formulas: =IF(Q7=2,1,0)
-      const tracker2 = appliedTracker === 2 ? 1 : 0;
-      
-      // Federal Income Taxes (Column S) - Excel formulas from screenshots
-      let federalTax = 0;
-      if (appliedTracker === 1) {
-        // =IF(Q7=1,(P8-P7)*O7,...)
-        const nextLowerBound = nextBracket?.lowerBound || federalTaxBrackets[federalTaxBrackets.length - 1].lowerBound;
-        federalTax = (nextLowerBound - bracket.lowerBound) * bracket.rate;
-      } else if (appliedTracker === 2) {
-        // =IF(Q7=2,($P$2-P7)*O7,...)
-        federalTax = (taxableIncome - bracket.lowerBound) * bracket.rate;
-      } else if (appliedTracker === 3) {
-        // =IF(Q7=3,($P$2-$P$13)*$O$13,...)
-        const lastBracket = federalTaxBrackets[federalTaxBrackets.length - 1];
-        federalTax = (taxableIncome - lastBracket.lowerBound) * lastBracket.rate;
-      }
-      
-      return {
-        ...bracket,
-        appliedTracker,
-        tracker2,
-        federalTax
-      };
-    });
-    
-    return calculations;
-  }, [taxableIncome]);
-  
-  // Calculate totals
-  const totalFederalIncomeTax = taxCalculations.reduce((sum, calc) => sum + calc.federalTax, 0);
-  const socialSecurityTax = Math.min(taxableIncome * 0.062, 176100 * 0.062);
-  const medicareTax = taxableIncome * 0.0145;
-  
+  const preTaxIncome = parseFloat(topInputs.preTaxIncome) || 0;
+
+  const bracketBreakdown = useMemo(
+    () => calculateBracketBreakdown(taxableIncome, assumptions.federalOrdinaryBrackets),
+    [taxableIncome, assumptions.federalOrdinaryBrackets]
+  );
+
+  const totalFederalIncomeTax = bracketBreakdown.reduce((sum, b) => sum + b.taxInBracket, 0);
+
+  // FICA is computed on gross wages (preTaxIncome), matching Excel's
+  // `Week 1 B - Federal Tax!G18` formula (which pulls income from the
+  // Summary sheet, not this sheet's own post-deduction taxable-income
+  // cell) -- fixes the pre-consolidation bug where this tab applied FICA
+  // to taxable income instead of gross income. See taxEngine.js.
+  const { socialSecurityTax, medicareTax, additionalMedicareTax } = calculateFICA(preTaxIncome, assumptions);
+
   const formatCurrency = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const formatPercent = (num) => (num * 100).toFixed(1) + '%';
 
@@ -213,19 +152,19 @@ export default function Week1FederalTax() {
     `}</style>
     <div style={styles.container} className="week1-federal-page">
       <h2 style={styles.header}>Federal Tax</h2>
-      
-      {/* Input Section - Cell O2 and P2 - Modern Card */}
-      <div style={{ 
-        marginBottom: '32px', 
-        padding: '24px', 
-        backgroundColor: 'white', 
+
+      {/* Input Section - User Taxable Income */}
+      <div style={{
+        marginBottom: '32px',
+        padding: '24px',
+        backgroundColor: 'white',
         borderRadius: '10px',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         border: '1px solid #e5e7eb'
       }} className="week1f-card week1f-lift-surface">
         <h3 style={{ marginBottom: '16px', color: '#111827', fontSize: '18px', fontWeight: '600' }}>User Taxable Income</h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-          <label style={{ fontWeight: '500', color: '#374151', fontSize: '14px' }}>User Taxable Income (O2):</label>
+          <label style={{ fontWeight: '500', color: '#374151', fontSize: '14px' }}>User Taxable Income:</label>
           <input
             className="week1f-input"
             style={styles.inputCell}
@@ -235,27 +174,26 @@ export default function Week1FederalTax() {
             placeholder="='Week 1 - Summary'!C22"
           />
           <span style={{ color: '#6b7280', fontSize: '12px', fontStyle: 'italic' }}>
-            (P2: ='Week 1 - Summary'!C22)
+            (from the Summary tab)
           </span>
         </div>
       </div>
 
-      {/* Main Federal Tax Calculation Table - Columns O-S */}
+      {/* Main Federal Tax Calculation Table */}
       <div style={{ marginBottom: '30px' }} className="week1f-lift-surface">
         <div style={styles.sectionTitle}>Federal Income Tax Calculation</div>
         <table style={styles.table} className="week1f-data-table">
           <thead>
             <tr>
-              <th style={styles.th}>Tax Rate<br/>(Column O)</th>
-              <th style={styles.th}>Lower Bound<br/>(Column P)</th>
-              <th style={styles.th}>Applied Tax Brackets Tracker<br/>(Column Q)</th>
-              <th style={styles.th}>"2" Tracker<br/>(Column R)</th>
-              <th style={styles.th}>Federal Income Taxes<br/>(Column S)</th>
+              <th style={styles.th}>Tax Rate</th>
+              <th style={styles.th}>Bracket Range</th>
+              <th style={styles.th}>Taxable Amount in Bracket</th>
+              <th style={styles.th}>Tax in Bracket</th>
             </tr>
           </thead>
           <tbody>
-            {taxCalculations.map((calc, index) => (
-              <tr 
+            {bracketBreakdown.map((calc, index) => (
+              <tr
                 key={index}
                 onMouseEnter={(e) => {
                   Array.from(e.currentTarget.children).forEach(td => {
@@ -272,20 +210,15 @@ export default function Week1FederalTax() {
                   });
                 }}
               >
+                <td style={styles.td}>{formatPercent(calc.rate)}</td>
                 <td style={styles.td}>
-                  <strong style={{color: '#0d1a4b'}}>O{index + 7}:</strong> {formatPercent(calc.rate)}
-                </td>
-                <td style={styles.td}>
-                  <strong style={{color: '#0d1a4b'}}>P{index + 7}:</strong> {formatCurrency(calc.lowerBound)}
+                  {formatCurrency(calc.lower)} &ndash; {calc.upper >= 1e12 ? '∞' : formatCurrency(calc.upper)}
                 </td>
                 <td style={{...styles.td, ...styles.calculatedCell}} className="calculated">
-                  <strong style={{color: '#0d1a4b'}}>Q{index + 7}:</strong> {calc.appliedTracker}
+                  {formatCurrency(calc.taxableInBracket)}
                 </td>
                 <td style={{...styles.td, ...styles.calculatedCell}} className="calculated">
-                  <strong style={{color: '#0d1a4b'}}>R{index + 7}:</strong> {calc.tracker2}
-                </td>
-                <td style={{...styles.td, ...styles.calculatedCell}} className="calculated">
-                  <strong style={{color: '#0d1a4b'}}>S{index + 7}:</strong> {formatCurrency(calc.federalTax)}
+                  {formatCurrency(calc.taxInBracket)}
                 </td>
               </tr>
             ))}
@@ -294,9 +227,9 @@ export default function Week1FederalTax() {
       </div>
 
       {/* Final Summary Section - Modern Card Design */}
-      <div style={{ 
-        padding: '32px', 
-        backgroundColor: 'white', 
+      <div style={{
+        padding: '32px',
+        backgroundColor: 'white',
         borderRadius: '10px',
         boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
         border: '1px solid #e5e7eb',
@@ -304,7 +237,7 @@ export default function Week1FederalTax() {
       }} className="week1f-card week1f-lift-surface">
         <h3 style={{ marginBottom: '24px', color: '#111827', fontSize: '20px', fontWeight: '600' }}>Tax Payment Summary</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
-          <div style={{ 
+          <div style={{
             textAlign: 'center',
             padding: '24px',
             backgroundColor: '#fafafa',
@@ -313,14 +246,11 @@ export default function Week1FederalTax() {
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
           }} className="week1f-metric-card">
             <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Total Federal Income Tax</div>
-            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b', marginBottom: '8px' }}>
+            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
               {formatCurrency(totalFederalIncomeTax)}
             </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', fontFamily: 'monospace' }}>
-              <strong>S16:</strong> =SUM($S$7:$S$13)
-            </div>
           </div>
-          <div style={{ 
+          <div style={{
             textAlign: 'center',
             padding: '24px',
             backgroundColor: '#fafafa',
@@ -328,15 +258,12 @@ export default function Week1FederalTax() {
             border: '1px solid #e5e7eb',
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
           }} className="week1f-metric-card">
-            <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Federal Social Security Tax Payment</div>
-            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b', marginBottom: '8px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Social Security Tax Payment</div>
+            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
               {formatCurrency(socialSecurityTax)}
             </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', fontFamily: 'monospace' }}>
-              <strong>S18:</strong> =MIN('Week 1 - Summary'!$C$4*$B$20,$B$17)
-            </div>
           </div>
-          <div style={{ 
+          <div style={{
             textAlign: 'center',
             padding: '24px',
             backgroundColor: '#fafafa',
@@ -344,31 +271,44 @@ export default function Week1FederalTax() {
             border: '1px solid #e5e7eb',
             boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
           }} className="week1f-metric-card">
-            <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Federal Medicare Tax Payment</div>
-            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b', marginBottom: '8px' }}>
+            <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Medicare Tax Payment</div>
+            <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
               {formatCurrency(medicareTax)}
             </div>
-            <div style={{ fontSize: '12px', color: '#9ca3af', marginTop: '8px', fontFamily: 'monospace' }}>
-              <strong>S20:</strong> =$B$23*'Week 1 - Summary'!$C$4
-            </div>
           </div>
+          {additionalMedicareTax > 0 && (
+            <div style={{
+              textAlign: 'center',
+              padding: '24px',
+              backgroundColor: '#fafafa',
+              borderRadius: '10px',
+              border: '1px solid #e5e7eb',
+              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+            }} className="week1f-metric-card">
+              <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Additional Medicare Tax</div>
+              <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
+                {formatCurrency(additionalMedicareTax)}
+              </div>
+            </div>
+          )}
         </div>
-        
-        {/* Additional Excel References - Modern Info Box */}
-        <div style={{ 
-          marginTop: '32px', 
-          padding: '20px', 
-          backgroundColor: '#f0f9ff', 
+
+        <div style={{
+          marginTop: '32px',
+          padding: '20px',
+          backgroundColor: '#f0f9ff',
           borderRadius: '10px',
           border: '1px solid #bfdbfe'
         }} className="week1f-metric-card">
-          <h4 style={{ marginBottom: '12px', color: '#1e40af', fontSize: '16px', fontWeight: '600' }}>Key Excel Cell References:</h4>
+          <h4 style={{ marginBottom: '12px', color: '#1e40af', fontSize: '16px', fontWeight: '600' }}>Assumptions used</h4>
           <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.8' }}>
-            <div><strong style={{color: '#1e40af'}}>P2:</strong> ='Week 1 - Summary'!C22 (User Taxable Income)</div>
-            <div><strong style={{color: '#1e40af'}}>B17:</strong> 176100 (Social Security Tax Limit)</div>
-            <div><strong style={{color: '#1e40af'}}>B20:</strong> 0.062 (Social Security Tax %)</div>
-            <div><strong style={{color: '#1e40af'}}>B23:</strong> 0.0145 (Federal Medicare Tax %)</div>
-            <div><strong style={{color: '#1e40af'}}>Week 1 - Summary!$C$4:</strong> Annual income reference</div>
+            <div>Social Security wage base: {formatCurrency(assumptions.scalars.ss_wage_base)}</div>
+            <div>Social Security rate: {formatPercent(assumptions.scalars.ss_rate)}</div>
+            <div>Medicare rate: {formatPercent(assumptions.scalars.medicare_rate)}</div>
+            <div>Standard deduction: {formatCurrency(assumptions.scalars.std_deduction_single)}</div>
+            <div style={{ marginTop: '8px', fontStyle: 'italic' }}>
+              Editable by admins in the Assumptions tab.
+            </div>
           </div>
         </div>
       </div>

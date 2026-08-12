@@ -31,25 +31,49 @@ src/
   components/
     Login.jsx, SignUp.jsx, SignUpSuccess.jsx, UpdatePassword.jsx   Auth screens
     Dashboard.jsx             Authenticated shell / nav
-    WeekAccessAdmin.jsx       Admin UI for per-week access control
+    WeekAccessAdmin.jsx       Admin UI for per-week access control (rendered at
+                               /dashboard/admin/week-access, one of AdminPanel.jsx's tabs)
     AdminSettingsPanel.jsx    Admin UI for managing admins themselves (add/remove
-                               admins, transfer master admin) -- see gating rules below
+                               admins, transfer master admin) -- rendered at
+                               /dashboard/admin/manage -- see gating rules below
+    AssumptionsAdmin.jsx      Admin UI for the legislative/financial constants
+                               (FICA, federal/LTCG/state/NYC brackets, RMD table,
+                               401k/IRA limits, CPI/portfolio-return assumptions)
+                               every tax calculator reads via useAssumptions() --
+                               rendered at /dashboard/admin/assumptions
+    AdminPanel.jsx            Tab shell for /dashboard/admin/* (Week Access / Manage
+                               Admins / Assumptions), <Outlet/> for the three above
     Week1Budgeting.jsx, Week1FederalTax.jsx, Week1StateTax.jsx,
     Week1Summary.jsx, Week2Savings.jsx, Week3CreditCard.jsx,
     Week3CreditCardWrapper.jsx, Week4.jsx, Week5.jsx,
     Week6Retirement.jsx, Week7.jsx, Week9.jsx, Week10.jsx,
     Week11.jsx, Week12.jsx    Week modules (note: not all weeks 1-12 are wired
                                into App.jsx's routes — check there before assuming
-                               a week is reachable)
-    BudgetForm.jsx, SavingsForm.jsx, CalculationDetails.jsx, ExcelWorkshop.jsx,
+                               a week is reachable). Week1FederalTax/Week1StateTax/
+                               Week4/Week6Retirement/Week9/Week12 all read tax/FICA/
+                               RMD/LTCG figures from utils/taxEngine.js +
+                               useAssumptions() (see Database schema and 2026-08-12
+                               working-log entry below) -- no more per-file hardcoded
+                               bracket tables.
+    BudgetForm.jsx, SavingsForm.jsx, ExcelWorkshop.jsx,
     ModuleView.jsx, LectureNotes.jsx   Shared building blocks
     pages/Overview.jsx, pages/Analytics.jsx, pages/BudgetPlanner.jsx
     sidebar-variants/Option3_Minimalist.jsx   Design exploration, not routed
   contexts/
     AuthContext.jsx           Supabase auth session, signIn/signUp/signInWithGoogle/
                                signOut/resetPassword, isAdmin (via utils/adminEmails)
-    BudgetContext.jsx         Budget calculation state
+    BudgetContext.jsx         Budget calculation state; `financialCalculations` /
+                               `summaryCalculations` both delegate to
+                               utils/taxEngine.js's calculateFullTax(), fed by
+                               useAssumptions() -- no local tax logic of its own
+                               anymore (see 2026-08-12 working-log entry)
     WeekAccessContext.jsx     Per-week unlock state (separate from auth — see below)
+    AssumptionsContext.jsx    Legislative/financial constants (assumptions_scalars /
+                               assumptions_brackets / assumptions_rmd_divisors),
+                               mirrors WeekAccessContext.jsx's pattern -- fetch on
+                               mount, admin-gated mutators, falls back to
+                               config/assumptionsDefaults.js if the fetch fails.
+                               Wraps WeekAccessProvider in Dashboard.jsx.
   lib/
     supabase.js, supabaseClient.js   Two near-identical Supabase client modules;
                                both read VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY.
@@ -58,15 +82,28 @@ src/
   utils/
     adminApi.js                 Supabase calls for the `admins` roles table (see
                                  gating rules below) -- replaced adminEmails.js
-    taxCalculator.js
-  data/
-    taxData.js, stateTaxData.js
-  configs/
-    week1Config.js, week2Config.js
+    assumptionsApi.js           Supabase calls for the assumptions_* tables (see
+                                 Database schema below)
+    taxEngine.js                Single shared tax/FICA/RMD/LTCG calculation engine --
+                                 pure functions taking an `assumptions` object, no
+                                 hardcoded constants. Replaces taxCalculator.js
+                                 (deleted) and the ~7 other independently-duplicated
+                                 tax engines that used to live in BudgetContext.jsx,
+                                 Week1FederalTax.jsx, Week1StateTax.jsx, Week4.jsx,
+                                 Week6Retirement.jsx, Week9.jsx, Week12.jsx.
+  config/
+    assumptionsDefaults.js      Bundled fallback snapshot of the assumptions_* table
+                                 contents (same values, extracted from the same Excel
+                                 workbook the DB was seeded from) -- used by
+                                 AssumptionsContext.jsx before first fetch / on error.
 supabase/migrations/           Applied in order shown by filename timestamp
 email-templates/                Supabase auth email HTML (confirmation, magic-link,
                                  reset-password, change-email)
 ```
+
+`taxCalculator.js`, `data/taxData.js`, `data/stateTaxData.js`, `CalculationDetails.jsx`,
+`configs/week1Config.js`, `configs/week2Config.js` were deleted 2026-08-12 (dead code /
+superseded by `taxEngine.js` + the Assumptions table -- see working log).
 
 ## Database schema (Supabase, `supabase/migrations/`)
 
@@ -89,6 +126,20 @@ email-templates/                Supabase auth email HTML (confirmation, magic-li
   — a `SECURITY DEFINER` helper function that checks the `admins` table (see gating
   rules below). `admins` itself has its own SELECT/INSERT/DELETE policies (no UPDATE
   policy — role changes only happen via the `transfer_master_admin()` RPC).
+- `assumptions_scalars` (`key` PK, `value` NUMERIC, `label`, `category`, `updated_at`,
+  `updated_by`), `assumptions_brackets` (`id` PK, `table_name` ∈
+  `federal_ordinary`/`federal_ltcg`/`state`/`nyc`, `group_key` = state code or NULL,
+  `sort_order`, `lower`, `upper`, `rate`), `assumptions_rmd_divisors` (`age` PK,
+  `divisor`). Added 2026-08-12 (`20260812000000_create_assumptions.sql`) — the
+  legislative/financial constants every tax calculator reads via
+  `src/utils/taxEngine.js` + `useAssumptions()`, editable at
+  `/dashboard/admin/assumptions`. Same RLS shape as `global_week_settings`: public
+  `SELECT USING (true)` (every calculator needs to read these, not just admins) +
+  `is_admin(auth.jwt() ->> 'email')`-gated `ALL` for writes. Seed data was extracted
+  directly from the live master Excel workbook's `Assumptions` tab (openpyxl, not
+  re-typed) — see 2026-08-12 working-log entry for the exact extraction/verification
+  process. `upper = 1000000000000` represents "no upper bound" (matches the
+  `LARGE_NUMBER` convention `Week12.jsx` already used pre-consolidation).
 
 ## Non-obvious gating rules
 
@@ -812,6 +863,89 @@ assuming corruption and overwriting their edits.
 - Colors (green links / blue master-tab inputs) and every prior bug fix (SS
   cap, HDHP, state-tax tracker) were re-verified intact and unaffected by the
   user's edits.
+
+### 2026-08-12 — Consolidated all tax/FICA/retirement engines onto one shared, DB-backed Assumptions system
+Per user request ("update the tool so all of the formulas now flow correctly
+and add an admin-only Assumptions tab"), replaced the ~8 independently
+hand-duplicated tax/FICA/RMD/LTCG calculation engines
+(`taxCalculator.js`, `BudgetContext.jsx` x2, `Week1FederalTax.jsx`,
+`Week1StateTax.jsx`, `Week4.jsx`, `Week6Retirement.jsx`, `Week9.jsx`,
+`Week12.jsx`) with a single shared engine (`src/utils/taxEngine.js`) driven
+by a new DB-backed, admin-editable Assumptions config
+(`assumptions_scalars`/`assumptions_brackets`/`assumptions_rmd_divisors` —
+see Database schema above). Branch `feature/assumptions-consolidation`.
+
+- **Seed data provenance**: every constant (FICA rate/wage base, Medicare +
+  Additional Medicare, federal ordinary + LTCG brackets, standard deduction,
+  401(k)/IRA limits, RMD start age, penalty-free withdrawal age, full RMD
+  divisor table ages 72–120, CPI/portfolio-return assumptions, and the full
+  50-state + DC + NYC bracket tables) was extracted directly from the live
+  master Excel workbook's `Assumptions` tab via openpyxl (not re-typed) —
+  same discipline as the 2026-08-12 (earlier) Excel-fix sessions. Applied to
+  the live Supabase project (`zyznmhbtpniluhkyowbb`) via the Management API
+  using a one-time PAT the user generated and shared for this session only
+  (not stored anywhere in the repo). Verified via SQL introspection: 12
+  scalars, 175 bracket rows (7 federal ordinary + 3 LTCG + 4 NYC + 161
+  state), 49 RMD divisor rows, 6 RLS policies (2 per table), all matching
+  exactly.
+- **Fixed all 7 Critical audit findings** (`docs/financial-audit-2026-08-11.md`)
+  in one pass, verified with 26 automated numeric spot-checks against hand-
+  computed expected values (SS cap at $500k income, DE/MS/ID/MO/ND/OH below
+  their thresholds now correctly return $0 instead of negative, GA/IL/7 more
+  flat-rate states now correctly tax instead of $0, Roth 401(k) chart now
+  reads the real accumulation table like its siblings, Week 9 "today's
+  dollars" now discounts from the age the peak balance actually occurred,
+  Week 3 credit-card minimum payment now recalculates against the live
+  balance each month and actually amortizes (10k debt at 24.35% now pays
+  off in 304 months instead of hitting the 600-month "Never" cap), Week 7
+  HDHP out-of-pocket now only charges what was actually spent inside the
+  deductible). Also fixed 6 more High/Medium findings while touching the
+  same code: stale/disagreeing 401(k)/IRA cap literals across
+  `BudgetForm.jsx`/`SavingsForm.jsx`/`Week6Retirement.jsx` (three different
+  values — 2041.66/625, 1958.33/583.33, 23500/7000 — now all one source),
+  the RMD table's >90 cutoff (DB table covers 72–120), Week 12's employer
+  match no longer credited when the employee contributes 0%, and Additional
+  Medicare Tax (previously modeled only in Week12.jsx) added to the shared
+  engine — confirmed via the live Excel workbook this isn't new pedagogy:
+  `Week 7 B - Assumptions!C10/C11` already references
+  `AddlMedicare_Rate`/`AddlMedicare_Threshold`.
+- **New files**: `src/utils/taxEngine.js` (engine), `src/utils/assumptionsApi.js`
+  (Supabase calls, mirrors `adminApi.js`'s pattern), `src/contexts/AssumptionsContext.jsx`
+  (mirrors `WeekAccessContext.jsx`'s pattern, wraps `WeekAccessProvider` in
+  `Dashboard.jsx`), `src/config/assumptionsDefaults.js` (bundled fallback
+  snapshot), `src/components/AssumptionsAdmin.jsx` (admin UI), and the
+  migration itself.
+- **Admin UI decision**: `/dashboard/admin` went back to **real tabs** (Week
+  Access / Manage Admins / Assumptions) — reverses the 2026-08-11 "combine
+  into one stacked page" decision, made when both panels were short. The
+  Assumptions tab is bulky enough (51 states' worth of bracket tables, a
+  49-row RMD table) that stacking no longer made sense. `AdminPanel.jsx` is
+  now a thin tab-bar shell with an `<Outlet/>`; `App.jsx`'s `admin/*` routes
+  changed from "redirect old two-tab URLs to the combined page" back to real
+  nested routes (`admin/week-access`, `admin/manage`, `admin/assumptions`,
+  with `admin` index redirecting to `admin/week-access`).
+- **Deleted 6 dead files** (confirmed zero remaining importers before
+  deleting): `taxCalculator.js`, `data/taxData.js`, `data/stateTaxData.js`
+  (all three superseded by `taxEngine.js` + the Assumptions table),
+  `CalculationDetails.jsx`, `configs/week1Config.js`, `configs/week2Config.js`
+  (pre-existing dead code the audit had already flagged).
+- **Verification**: `npm run build` clean (133 modules, no errors); 26
+  automated numeric checks in `taxEngine.js` covering all 7 Critical
+  findings + the new Additional Medicare Tax + the extended RMD range, all
+  passing; `npm run dev` boots and serves 200. **Not click-tested live** as
+  an authenticated admin — same no-credentials constraint noted throughout
+  this doc. Follow-up: sign in as `km108@rice.edu`, exercise the new
+  Assumptions tab's edit/save flows for each section (scalars, federal
+  brackets, LTCG brackets, RMD table, per-state brackets, NYC brackets), and
+  spot-check a few week modules (Federal Tax, State Tax, Summary, Week 6
+  Retirement, Week 9, Week 12) to confirm they now agree with each other on
+  the same inputs.
+- **Not in scope for this pass** (per the approved plan): the remaining ~15
+  High/Medium/Low audit findings not listed above (e.g. Week 5's mortgage
+  bi-weekly-payment comment/logic mismatch, `SavingsForm.jsx`'s 0%-rate
+  `NaN` guard, Week 6's 401(k)-vs-IRA year-indexing inconsistency) were left
+  untouched — flagged in the original audit report as lower-severity,
+  narrower-trigger issues, not addressed here.
 
 ## Status as of end of 2026-08-11 session
 - **⚠️ Important for next session**: `src/index.css` was fixed this session (`@tailwind`

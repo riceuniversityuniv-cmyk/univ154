@@ -12,7 +12,8 @@ import {
   Legend,
 } from 'chart.js';
 import { useBudget } from '../contexts/BudgetContext';
-import stateTaxData from '../data/stateTaxData';
+import { useAssumptions } from '../contexts/AssumptionsContext';
+import { calculateProgressiveTax, getRMDDivisor } from '../utils/taxEngine';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
@@ -349,59 +350,21 @@ const toNumber = (value) => {
 };
 const toPercent = (value) => toNumber(value) / 100;
 
-const LARGE_NUMBER = 1_000_000_000_000;
 const PROJECTION_YEARS = 60;
 
-const ASSUMPTIONS_2026 = {
-  inflationRate: 0.03,
-  nominalReturnRate: 0.07,
-  default401kLimit2026: 24500,
-  defaultIraLimit2026: 7500,
-  socialSecurityRate: 0.062,
-  socialSecurityWageBase: 176100,
-  medicareRate: 0.0145,
-  additionalMedicareRate: 0.009,
-  additionalMedicareThresholdSingle: 200000,
-  federalStandardDeductionSingle2026: 16100,
-  rmdStartAge: 73,
-};
-
-const FED_ORDINARY_2026 = [
-  { lower: 0, upper: 12400, rate: 0.1 },
-  { lower: 12400, upper: 50400, rate: 0.12 },
-  { lower: 50400, upper: 105700, rate: 0.22 },
-  { lower: 105700, upper: 201775, rate: 0.24 },
-  { lower: 201775, upper: 256225, rate: 0.32 },
-  { lower: 256225, upper: 640600, rate: 0.35 },
-  { lower: 640600, upper: LARGE_NUMBER, rate: 0.37 },
-];
-
-const FED_LTCG_2026 = [
-  { lower: 0, upper: 49450, rate: 0 },
-  { lower: 49450, upper: 545500, rate: 0.15 },
-  { lower: 545500, upper: LARGE_NUMBER, rate: 0.2 },
-];
-
-const RMD_DIVISOR_BY_AGE = {
-  73: 26.5,
-  74: 25.5,
-  75: 24.6,
-  76: 23.7,
-  77: 22.9,
-  78: 22.0,
-  79: 21.1,
-  80: 20.2,
-  81: 19.4,
-  82: 18.5,
-  83: 17.7,
-  84: 16.8,
-  85: 16.0,
-  86: 15.2,
-  87: 14.4,
-  88: 13.7,
-  89: 12.9,
-  90: 12.2,
-};
+// Legislative constants, federal/LTCG bracket tables, and the RMD divisor
+// table all now come from the admin-editable Assumptions table
+// (useAssumptions() inside the component) instead of being hardcoded here
+// -- this was previously the single most complete/correct of the ~8
+// pre-consolidation tax engines (it already modeled Additional Medicare Tax
+// and had the widest RMD divisor coverage of any of them), but still forked
+// its own copy of every constant. See docs/financial-audit-2026-08-11.md
+// and src/utils/taxEngine.js.
+//
+// calculateProgressiveTax and getRMDDivisor are now imported from
+// taxEngine.js (this file's local copies were identical in shape).
+// buildStateBracketMap is no longer needed here: assumptions.stateBrackets
+// already arrives pre-grouped with explicit upper bounds from the DB.
 
 const scaleBrackets = (brackets, factor) =>
   brackets.map((b) => ({
@@ -410,35 +373,6 @@ const scaleBrackets = (brackets, factor) =>
     rate: b.rate,
   }));
 
-const calculateProgressiveTax = (taxableIncome, brackets) => {
-  const income = Math.max(0, taxableIncome);
-  return brackets.reduce((sum, bracket) => {
-    if (income <= bracket.lower) return sum;
-    const taxedAmount = Math.max(0, Math.min(income, bracket.upper) - bracket.lower);
-    return sum + taxedAmount * bracket.rate;
-  }, 0);
-};
-
-const buildStateBracketMap = (rows) => {
-  const grouped = rows.reduce((acc, row) => {
-    if (!acc[row.state]) acc[row.state] = [];
-    acc[row.state].push({ lower: row.lowerBound, rate: row.rate });
-    return acc;
-  }, {});
-
-  Object.keys(grouped).forEach((state) => {
-    grouped[state].sort((a, b) => a.lower - b.lower);
-    grouped[state] = grouped[state].map((entry, index, arr) => ({
-      lower: entry.lower,
-      upper: index < arr.length - 1 ? arr[index + 1].lower : LARGE_NUMBER,
-      rate: entry.rate,
-    }));
-  });
-
-  return grouped;
-};
-
-const WEEK12_STATE_BRACKETS = buildStateBracketMap(stateTaxData);
 const WEEK12_STORAGE_KEY = 'week12_data';
 const WEEK12_DEFAULT_INPUTS = {
   goalAnnualAfterTax: '80000',
@@ -462,6 +396,7 @@ const WEEK12_DEFAULT_INPUTS = {
 
 const Week12 = () => {
   const { topInputs } = useBudget() || {};
+  const { assumptions } = useAssumptions();
   const [inputs, setInputs] = useState(WEEK12_DEFAULT_INPUTS);
 
   const updateInput = (key, sanitizer) => (event) => {
@@ -555,11 +490,11 @@ const Week12 = () => {
     const retirementAge = goalSheet.G12;
     const salaryYear0 = goalSheet.G16;
     const extraRaiseRate = goalSheet.G18;
-    const salaryGrowthRate = ASSUMPTIONS_2026.inflationRate + extraRaiseRate;
+    const salaryGrowthRate = assumptions.scalars.cpi_inflation + extraRaiseRate;
     const contribution401kPct = toPercent(inputs.contribution401kPct);
     const contributionIraPct = toPercent(inputs.contributionIRAPct);
     const employerMatchPct = toPercent(inputs.employerMatchPct);
-    const brokerageGrowthRate = ASSUMPTIONS_2026.inflationRate + toPercent(inputs.annualBrokerageGrowthRate);
+    const brokerageGrowthRate = assumptions.scalars.cpi_inflation + toPercent(inputs.annualBrokerageGrowthRate);
     const brokerageContributionYear0 = toNumber(inputs.annualBrokerageContribution);
     const withdrawalRate = goalSheet.G7;
     const goalToday = goalSheet.G5;
@@ -575,16 +510,20 @@ const Week12 = () => {
 
     for (let year = 0; year < PROJECTION_YEARS; year += 1) {
       const age = currentAge + year;
-      const inflationFactor = Math.pow(1 + ASSUMPTIONS_2026.inflationRate, year);
+      const inflationFactor = Math.pow(1 + assumptions.scalars.cpi_inflation, year);
       const salary = salaryYear0 * Math.pow(1 + salaryGrowthRate, year);
-      const limit401k = ASSUMPTIONS_2026.default401kLimit2026 * inflationFactor;
-      const limitIra = ASSUMPTIONS_2026.defaultIraLimit2026 * inflationFactor;
+      const limit401k = assumptions.scalars.limit_401k * inflationFactor;
+      const limitIra = assumptions.scalars.limit_ira * inflationFactor;
       const contributes = age <= retirementAge;
 
       const contribution401k = contributes ? limit401k * contribution401kPct : 0;
       const contributionIra = contributes ? limitIra * contributionIraPct : 0;
       const contributionBroker = contributes ? brokerageContributionYear0 * Math.pow(1 + brokerageGrowthRate, year) : 0;
-      const employerMatch = contributes ? salary * employerMatchPct : 0;
+      // Employer match requires an actual employee 401(k) contribution, not
+      // just being under retirement age -- setting the contribution % to 0
+      // previously still credited a full salary * employerMatchPct match
+      // every year. See docs/financial-audit-2026-08-11.md finding #11.
+      const employerMatch = contributes && contribution401k > 0 ? salary * employerMatchPct : 0;
 
       let tradBalancePreRmd = 0;
       let rmd = 0;
@@ -595,17 +534,17 @@ const Week12 = () => {
 
       if (year > 0) {
         tradBalancePreRmd =
-          previousTrad * (1 + ASSUMPTIONS_2026.nominalReturnRate) +
+          previousTrad * (1 + assumptions.scalars.portfolio_return) +
           contribution401k +
           employerMatch;
-        const divisor = age >= ASSUMPTIONS_2026.rmdStartAge ? RMD_DIVISOR_BY_AGE[age] : undefined;
+        const divisor = age >= assumptions.scalars.rmd_start_age ? getRMDDivisor(age, assumptions) : undefined;
         rmd = divisor ? tradBalancePreRmd / divisor : 0;
         tradBalance = Math.max(0, tradBalancePreRmd - rmd);
         rothBalance =
-          previousRoth * (1 + ASSUMPTIONS_2026.nominalReturnRate) +
+          previousRoth * (1 + assumptions.scalars.portfolio_return) +
           contributionIra;
         brokerBalance =
-          previousBroker * (1 + ASSUMPTIONS_2026.nominalReturnRate) +
+          previousBroker * (1 + assumptions.scalars.portfolio_return) +
           contributionBroker;
         brokerBasis = previousBrokerBasis + contributionBroker;
       }
@@ -638,7 +577,7 @@ const Week12 = () => {
     // --- Week 7 B - Results cell map ---
     const resultsCells = {};
     resultsCells.C9 = Math.max(0, goalSheet.G12 - goalSheet.G10); // Years to retirement
-    resultsCells.C10 = Math.pow(1 + ASSUMPTIONS_2026.inflationRate, resultsCells.C9); // Inflation factor
+    resultsCells.C10 = Math.pow(1 + assumptions.scalars.cpi_inflation, resultsCells.C9); // Inflation factor
     resultsCells.C11 = outsideIncomeToday; // Outside income (today's $)
     resultsCells.C12 = resultsCells.C11 * resultsCells.C10; // Outside income (nominal at retirement)
     resultsCells.C13 = resultsCells.C9 + 3; // Projection row index
@@ -660,37 +599,37 @@ const Week12 = () => {
     // --- Week 7 B - Tax Engine cell map ---
     const taxCells = {};
     taxCells.C3 = resultsCells.C9;
-    taxCells.C4 = ASSUMPTIONS_2026.inflationRate;
+    taxCells.C4 = assumptions.scalars.cpi_inflation;
     taxCells.C5 = workingState;
     taxCells.C6 = retirementState;
     taxCells.C8 = goalSheet.G16;
-    taxCells.C9 = Math.max(0, taxCells.C8 - ASSUMPTIONS_2026.federalStandardDeductionSingle2026);
-    taxCells.C10 = calculateProgressiveTax(taxCells.C9, FED_ORDINARY_2026);
+    taxCells.C9 = Math.max(0, taxCells.C8 - assumptions.scalars.std_deduction_single);
+    taxCells.C10 = calculateProgressiveTax(taxCells.C9, assumptions.federalOrdinaryBrackets);
     taxCells.C11 = taxCells.C9;
     taxCells.C12 = calculateProgressiveTax(
       taxCells.C11,
-      WEEK12_STATE_BRACKETS[taxCells.C5] || []
+      assumptions.stateBrackets[taxCells.C5] || []
     );
     taxCells.C13 =
-      Math.min(taxCells.C8, ASSUMPTIONS_2026.socialSecurityWageBase) * ASSUMPTIONS_2026.socialSecurityRate +
-      taxCells.C8 * ASSUMPTIONS_2026.medicareRate +
-      Math.max(0, taxCells.C8 - ASSUMPTIONS_2026.additionalMedicareThresholdSingle) *
-        ASSUMPTIONS_2026.additionalMedicareRate;
+      Math.min(taxCells.C8, assumptions.scalars.ss_wage_base) * assumptions.scalars.ss_rate +
+      taxCells.C8 * assumptions.scalars.medicare_rate +
+      Math.max(0, taxCells.C8 - assumptions.scalars.addl_medicare_threshold) *
+        assumptions.scalars.addl_medicare_rate;
     taxCells.C14 = taxCells.C8 - (taxCells.C10 + taxCells.C12 + taxCells.C13);
 
     taxCells.C17 = resultsCells.C18;
     taxCells.C18 = resultsCells.C20;
     taxCells.C19 =
-      ASSUMPTIONS_2026.federalStandardDeductionSingle2026 * Math.pow(1 + taxCells.C4, taxCells.C3);
+      assumptions.scalars.std_deduction_single * Math.pow(1 + taxCells.C4, taxCells.C3);
     taxCells.C16 = Math.max(0, taxCells.C19 - taxCells.C17);
     taxCells.C20 = Math.max(0, taxCells.C17 - taxCells.C19);
     const indexedFedOrdinaryBrackets = scaleBrackets(
-      FED_ORDINARY_2026,
+      assumptions.federalOrdinaryBrackets,
       Math.pow(1 + taxCells.C4, taxCells.C3)
     );
     taxCells.C21 = calculateProgressiveTax(taxCells.C20, indexedFedOrdinaryBrackets);
-    taxCells.C22 = FED_LTCG_2026[0].upper * Math.pow(1 + taxCells.C4, taxCells.C3);
-    taxCells.C23 = FED_LTCG_2026[1].upper * Math.pow(1 + taxCells.C4, taxCells.C3);
+    taxCells.C22 = assumptions.federalLtcgBrackets[0].upper * Math.pow(1 + taxCells.C4, taxCells.C3);
+    taxCells.C23 = assumptions.federalLtcgBrackets[1].upper * Math.pow(1 + taxCells.C4, taxCells.C3);
     taxCells.C24 = Math.max(
       0,
       Math.min(
@@ -714,7 +653,7 @@ const Week12 = () => {
     taxCells.C29 = calculateProgressiveTax(
       taxCells.C28,
       scaleBrackets(
-        WEEK12_STATE_BRACKETS[taxCells.C6] || [],
+        assumptions.stateBrackets[taxCells.C6] || [],
         Math.pow(1 + taxCells.C4, taxCells.C3)
       )
     );
@@ -769,11 +708,11 @@ const Week12 = () => {
       gapVsGoalToday,
       totalInvestmentBalanceAtRetirement,
       yearly401kContribution:
-        contribution401kPct * ASSUMPTIONS_2026.default401kLimit2026,
+        contribution401kPct * assumptions.scalars.limit_401k,
       yearlyIraContribution:
-        contributionIraPct * ASSUMPTIONS_2026.defaultIraLimit2026,
+        contributionIraPct * assumptions.scalars.limit_ira,
     };
-  }, [inputs, linkedSalary, budgetContextLooksUntouched]);
+  }, [inputs, linkedSalary, budgetContextLooksUntouched, assumptions]);
 
   const goalVsIncomeData = useMemo(
     () => ({

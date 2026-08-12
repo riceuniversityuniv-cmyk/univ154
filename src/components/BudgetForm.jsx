@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
-import stateTaxData from '../data/stateTaxData';
+import { useAssumptions } from '../contexts/AssumptionsContext';
 
 // This data structure now includes all necessary info for rendering the exact layout
 const budgetConfig = {
@@ -604,6 +604,9 @@ export default function BudgetForm() {
         saveBudgetData,
         loadBudgetData
     } = useBudget();
+    const { assumptions } = useAssumptions();
+    const monthly401kLimit = assumptions.scalars.limit_401k / 12;
+    const monthlyIraLimit = assumptions.scalars.limit_ira / 12;
 
     // Auto-save function (without alert)
     const autoSaveBudget = () => {
@@ -751,21 +754,25 @@ export default function BudgetForm() {
             return;
           }
           
-          // Validate retirement contribution limits (monthly)
-          if (id === 'traditional_401k' && numValue > 2041.66) {
-            alert('Traditional 401(k) maximum contribution is $2,041.66 monthly');
+          // Validate retirement contribution limits (monthly), sourced from
+          // the Assumptions table -- was hardcoded to 2041.66/625.00 here,
+          // disagreeing with Week6Retirement.jsx's 1958.33/583.33 and
+          // SavingsForm.jsx's annual 23500/7000. See
+          // docs/financial-audit-2026-08-11.md finding #14.
+          if (id === 'traditional_401k' && numValue > monthly401kLimit) {
+            alert(`Traditional 401(k) maximum contribution is $${monthly401kLimit.toFixed(2)} monthly`);
             return;
           }
-          if (id === 'traditional_ira' && numValue > 625.00) {
-            alert('Traditional IRA maximum contribution is $625.00 monthly');
+          if (id === 'traditional_ira' && numValue > monthlyIraLimit) {
+            alert(`Traditional IRA maximum contribution is $${monthlyIraLimit.toFixed(2)} monthly`);
             return;
           }
-          if (id === 'roth_401k' && numValue > 2041.66) {
-            alert('Roth 401(k) maximum contribution is $2,041.66 monthly');
+          if (id === 'roth_401k' && numValue > monthly401kLimit) {
+            alert(`Roth 401(k) maximum contribution is $${monthly401kLimit.toFixed(2)} monthly`);
             return;
           }
-          if (id === 'roth_ira' && numValue > 625.00) {
-            alert('Roth IRA maximum contribution is $625.00 monthly');
+          if (id === 'roth_ira' && numValue > monthlyIraLimit) {
+            alert(`Roth IRA maximum contribution is $${monthlyIraLimit.toFixed(2)} monthly`);
             return;
           }
         }
@@ -991,19 +998,18 @@ export default function BudgetForm() {
         if (monthlyAfterTaxIncome <= 0) return 0;
         
         if (item.id === 'roth_401k') {
-          // Excel: =MIN('Week 1 - Budgeting'!$G$40*(1/20),2041.66)
-          // This is 5% of monthly after-tax income, capped at $2,041.66 (monthly max)
-          return Math.min(monthlyAfterTaxIncome * 0.05, 2041.66);
+          // 5% of monthly after-tax income, capped at the monthly 401(k)
+          // limit (Assumptions table, annual limit / 12).
+          return Math.min(monthlyAfterTaxIncome * 0.05, monthly401kLimit);
         }
         if (item.id === 'roth_ira') {
-          // Excel: =IF(G46=2041.66,MIN('Week 1 - Budgeting'!$G$40*(0.05-I46),625.00),0)
           // Only contribute to Roth IRA if Roth 401k is at its maximum
-          const roth401kAmount = Math.min(monthlyAfterTaxIncome * 0.05, 2041.66);
-          if (roth401kAmount === 2041.66) {
+          const roth401kAmount = Math.min(monthlyAfterTaxIncome * 0.05, monthly401kLimit);
+          if (roth401kAmount === monthly401kLimit) {
             // Calculate Roth 401k percentage first
             const roth401kPercent = roth401kAmount / monthlyAfterTaxIncome;
-            // Then calculate Roth IRA: 5% total - Roth 401k percentage, capped at $625.00
-            return Math.min(monthlyAfterTaxIncome * (0.05 - roth401kPercent), 625.00);
+            // Then calculate Roth IRA: 5% total - Roth 401k percentage, capped at the monthly IRA limit
+            return Math.min(monthlyAfterTaxIncome * (0.05 - roth401kPercent), monthlyIraLimit);
           }
           return 0;
         }
@@ -1272,7 +1278,7 @@ export default function BudgetForm() {
     const debugCalculations = () => {
         const preTaxIncome = parseFloat(topInputs.preTaxIncome || 0);
         const monthlyPreTaxIncome = preTaxIncome / 12;
-        const standardDeduction = 16100; // 2026 single filers
+        const standardDeduction = assumptions.scalars.std_deduction_single;
         
         // Pre-Tax Expenses
         const suggestedPreTaxExpenses = 150 * 12; // $1,800
@@ -1498,7 +1504,7 @@ export default function BudgetForm() {
                     onFocus={(e) => Object.assign(e.target.style, styles.selectInputFocus)}
                     onBlur={(e) => Object.assign(e.target.style, styles.selectInput)}
                   >
-                    {Array.from(new Set(stateTaxData.map(row => row.state))).map(state => <option key={state} value={state}>{state}</option>)}
+                    {Object.keys(assumptions.stateBrackets).sort().map(state => <option key={state} value={state}>{state}</option>)}
                   </select>
                 ) : field.id === 'residenceInNYC' ? (
                   <select

@@ -1,36 +1,7 @@
 import React, { createContext, useState, useMemo, useContext } from 'react';
-import { calculateFinancials } from '../utils/taxCalculator';
+import { calculateFullTax, calculateStandardDeduction } from '../utils/taxEngine';
+import { useAssumptions } from './AssumptionsContext';
 import { supabase } from '../lib/supabaseClient';
-
-// Helper function to calculate federal income tax (copied from taxCalculator.js)
-function calculateFederalIncomeTax(taxableIncome) {
-  if (taxableIncome <= 0) return 0;
-
-  const federalTaxBrackets = [
-    { rate: 0.10, lowerBound: 0 },
-    { rate: 0.12, lowerBound: 12400 },
-    { rate: 0.22, lowerBound: 50400 },
-    { rate: 0.24, lowerBound: 105700 },
-    { rate: 0.32, lowerBound: 201775 },
-    { rate: 0.35, lowerBound: 256225 },
-    { rate: 0.37, lowerBound: 640600 },
-  ];
-
-  const brackets = [...federalTaxBrackets].sort((a, b) => a.lowerBound - b.lowerBound);
-  let totalTax = 0;
-  let remainingIncome = taxableIncome;
-
-  for (let i = brackets.length - 1; i >= 0; i--) {
-    const bracket = brackets[i];
-    if (remainingIncome > bracket.lowerBound) {
-      const incomeInBracket = remainingIncome - bracket.lowerBound;
-      totalTax += incomeInBracket * bracket.rate;
-      remainingIncome = bracket.lowerBound;
-    }
-  }
-
-  return totalTax;
-}
 
 const BudgetContext = createContext();
 
@@ -39,6 +10,8 @@ export const useBudget = () => {
 };
 
 export const BudgetProvider = ({ children }) => {
+  const { assumptions } = useAssumptions();
+
   const [topInputs, setTopInputs] = useState({
     preTaxIncome: '100000',
     location: 'NY',
@@ -140,38 +113,23 @@ export const BudgetProvider = ({ children }) => {
   });
 
   const financialCalculations = useMemo(() => {
-    const preTax = parseFloat(topInputs.preTaxIncome) || 0;
-    // Use default deduction choices for single taxpayer
-    const defaultDeductionChoices = {
-      marriageStatus: 'single',
-      filedJointly: 'independently',
-      dependency: 'no',
-      age: 'under65',
-      blind: 'no',
-      qualifyingSurvivingSpouse: 'no',
-    };
-    return calculateFinancials(preTax, defaultDeductionChoices, topInputs.location, topInputs.residenceInNYC);
-  }, [topInputs.preTaxIncome, topInputs.location, topInputs.residenceInNYC]);
+    const preTaxIncome = parseFloat(topInputs.preTaxIncome) || 0;
+    const residenceInNYC = topInputs.location === 'NY' && topInputs.residenceInNYC === 'Yes';
+    return calculateFullTax({ preTaxIncome, preTaxExpenses: 0, state: topInputs.location, residenceInNYC }, assumptions);
+  }, [topInputs.preTaxIncome, topInputs.location, topInputs.residenceInNYC, assumptions]);
 
-  // Summary sheet calculations (Week 1 B - Summary)
+  // Summary sheet calculations (Week 1 B - Summary). "Suggested" and "User"
+  // are the same tax picture computed twice, once against a suggested
+  // pre-tax-expenses figure and once against the user's actual entered
+  // pre-tax expenses -- both now go through the single shared taxEngine.js
+  // instead of a hand-duplicated bracket walk, so this tab can no longer
+  // drift from the Federal Tax / State Tax tabs (see
+  // docs/financial-audit-2026-08-11.md findings #1, #9, #10, #13).
   const summaryCalculations = useMemo(() => {
     const preTaxIncome = parseFloat(topInputs.preTaxIncome || 0);
-    const standardDeduction = 16100; // $16,100 - 2026 single filers
-    
-    // Debug logging for all income values to track the issue
-    console.log('=== SUMMARY CALCULATIONS DEBUG ===');
-    console.log('topInputs.preTaxIncome (raw):', topInputs.preTaxIncome);
-    console.log('preTaxIncome (parsed):', preTaxIncome);
-    console.log('standardDeduction:', standardDeduction);
-    console.log('userPreTaxInputs:', userPreTaxInputs);
-    
-    // Debug logging for $1,000,000
-    if (preTaxIncome === 1000000) {
-      console.log('=== DETAILED TAX CALCULATIONS FOR $1,000,000 ===');
-      console.log('Pre-Tax Income:', preTaxIncome);
-      console.log('Standard Deduction:', standardDeduction);
-    }
-    
+    const standardDeduction = calculateStandardDeduction(assumptions);
+    const residenceInNYC = topInputs.location === 'NY' && topInputs.residenceInNYC === 'Yes';
+
     // Pre-Tax Expenses calculations (from Budgeting sheet)
     // G28 + G38 (Recommended Insurance + Recommended Retirement) * 12
     const suggestedPreTaxExpenses = 150 * 12; // Health Insurance $150 * 12 months = $1,800
@@ -183,625 +141,40 @@ export const BudgetProvider = ({ children }) => {
       (parseFloat(userPreTaxInputs.traditional_401k) || 0) +
       (parseFloat(userPreTaxInputs.traditional_ira) || 0)
     ) * 12;
-    
-    // Taxable Income calculations
-    // C9: =C4-C6-C7
-    // F9: =F4-F6-F7
-    const suggestedTaxableIncome = preTaxIncome - standardDeduction - suggestedPreTaxExpenses;
-    const userTaxableIncome = preTaxIncome - standardDeduction - userPreTaxExpenses;
-    
-    if (preTaxIncome === 1000000) {
-      console.log('Suggested Pre-Tax Expenses:', suggestedPreTaxExpenses);
-      console.log('User Pre-Tax Expenses:', userPreTaxExpenses);
-      console.log('Suggested Taxable Income:', suggestedTaxableIncome);
-      console.log('User Taxable Income:', userTaxableIncome);
-    }
-    
-    // SUGGESTED SECTION TAX CALCULATIONS (custom calculation to match Excel exactly)
-    
-    // Federal Income Tax: Calculate using exact Excel logic
-    // Updated for 2026 tax year
-    const federalTaxBrackets = [
-      { rate: 0.10, lowerBound: 0 },
-      { rate: 0.12, lowerBound: 12400 },
-      { rate: 0.22, lowerBound: 50400 },
-      { rate: 0.24, lowerBound: 105700 },
-      { rate: 0.32, lowerBound: 201775 },
-      { rate: 0.35, lowerBound: 256225 },
-      { rate: 0.37, lowerBound: 640600 },
-    ];
-    
-    let suggestedFederalIncomeTax = 0;
-    // If taxable income is negative or zero, no federal tax is owed
-    if (suggestedTaxableIncome <= 0) {
-      suggestedFederalIncomeTax = 0;
-    } else {
-    for (let i = 0; i < federalTaxBrackets.length; i++) {
-      const currentBracket = federalTaxBrackets[i];
-      const nextBracket = federalTaxBrackets[i + 1];
-      
-      // Applied Tax Brackets Tracker logic (from Excel)
-      let appliedTracker;
-      if (suggestedTaxableIncome <= currentBracket.lowerBound) {
-        appliedTracker = 0; // No tax in this bracket
-      } else if (nextBracket && suggestedTaxableIncome >= nextBracket.lowerBound) {
-        appliedTracker = 1; // Full bracket
-      } else {
-        appliedTracker = 2; // Partial bracket (last bracket reached)
-      }
-      
-      // Calculate tax for this bracket based on Excel formula
-      let bracketTax = 0;
-      if (appliedTracker === 1) {
-        // Full bracket: (nextLowerBound - currentLowerBound) * rate
-        const nextLowerBound = nextBracket ? nextBracket.lowerBound : Infinity;
-        bracketTax = (nextLowerBound - currentBracket.lowerBound) * currentBracket.rate;
-      } else if (appliedTracker === 2) {
-        // Partial bracket: (taxableIncome - currentLowerBound) * rate
-        bracketTax = (suggestedTaxableIncome - currentBracket.lowerBound) * currentBracket.rate;
-      }
-      
-      suggestedFederalIncomeTax += bracketTax;
-      }
-    }
-    
-    if (preTaxIncome === 1000000) {
-      console.log('Suggested Federal Income Tax:', suggestedFederalIncomeTax);
-    }
-    
-    // Social Security and Medicare: based on original pre-tax income (not taxable income)
-    const suggestedSocialSecurityTax = Math.min(preTaxIncome * 0.062, 176100); // MIN(preTaxIncome * 6.2%, 176100)
-    const suggestedMedicareTax = preTaxIncome * 0.0145; // 1.45%
-    
-    if (preTaxIncome === 1000000) {
-      console.log('Suggested Social Security Tax:', suggestedSocialSecurityTax);
-      console.log('Suggested Medicare Tax:', suggestedMedicareTax);
-    }
-    
-    // State Income Tax: Calculate using exact Excel logic
-    const stateTaxBrackets = {
-      'AL': [
-        { rate: 0.02, lowerBound: 0, upperBound: 500 },
-        { rate: 0.04, lowerBound: 500, upperBound: 3000 },
-        { rate: 0.05, lowerBound: 3000, upperBound: Infinity },
-      ],
-      'AK': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'AZ': [
-        { rate: 0.025, lowerBound: 0, upperBound: Infinity },
-      ],
-      'AR': [
-        { rate: 0.02, lowerBound: 0, upperBound: 4500 },
-        { rate: 0.039, lowerBound: 4500, upperBound: Infinity },
-      ],
-      'CA': [
-        { rate: 0.01, lowerBound: 0, upperBound: 10756 },
-        { rate: 0.02, lowerBound: 10756, upperBound: 25499 },
-        { rate: 0.04, lowerBound: 25499, upperBound: 40245 },
-        { rate: 0.06, lowerBound: 40245, upperBound: 55866 },
-        { rate: 0.08, lowerBound: 55866, upperBound: 70606 },
-        { rate: 0.093, lowerBound: 70606, upperBound: 360659 },
-        { rate: 0.103, lowerBound: 360659, upperBound: 432787 },
-        { rate: 0.123, lowerBound: 432787, upperBound: 721314 },
-        { rate: 0.133, lowerBound: 721314, upperBound: 1000000 },
-        { rate: 0.143, lowerBound: 1000000, upperBound: Infinity },
-      ],
-      'CO': [
-        { rate: 0.044, lowerBound: 0, upperBound: Infinity },
-      ],
-      'CT': [
-        { rate: 0.02, lowerBound: 0, upperBound: 10000 },
-        { rate: 0.045, lowerBound: 10000, upperBound: 50000 },
-        { rate: 0.055, lowerBound: 50000, upperBound: 100000 },
-        { rate: 0.06, lowerBound: 100000, upperBound: 200000 },
-        { rate: 0.065, lowerBound: 200000, upperBound: 250000 },
-        { rate: 0.069, lowerBound: 250000, upperBound: 500000 },
-        { rate: 0.0699, lowerBound: 500000, upperBound: Infinity },
-      ],
-      'DE': [
-        { rate: 0.00, lowerBound: 0, upperBound: 2000 },
-        { rate: 0.022, lowerBound: 2000, upperBound: 5000 },
-        { rate: 0.039, lowerBound: 5000, upperBound: 10000 },
-        { rate: 0.048, lowerBound: 10000, upperBound: 20000 },
-        { rate: 0.052, lowerBound: 20000, upperBound: 25000 },
-        { rate: 0.0555, lowerBound: 25000, upperBound: 60000 },
-        { rate: 0.066, lowerBound: 60000, upperBound: Infinity },
-      ],
-      'FL': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'GA': [
-        { rate: 0.0539, lowerBound: 0, upperBound: Infinity },
-      ],
-      'HI': [
-        { rate: 0.014, lowerBound: 0, upperBound: 9600 },
-        { rate: 0.032, lowerBound: 9600, upperBound: 14400 },
-        { rate: 0.055, lowerBound: 14400, upperBound: 19200 },
-        { rate: 0.064, lowerBound: 19200, upperBound: 24000 },
-        { rate: 0.068, lowerBound: 24000, upperBound: 36000 },
-        { rate: 0.072, lowerBound: 36000, upperBound: 48000 },
-        { rate: 0.076, lowerBound: 48000, upperBound: 125000 },
-        { rate: 0.0825, lowerBound: 125000, upperBound: 175000 },
-        { rate: 0.09, lowerBound: 175000, upperBound: 225000 },
-        { rate: 0.10, lowerBound: 225000, upperBound: 275000 },
-        { rate: 0.11, lowerBound: 275000, upperBound: 325000 },
-        { rate: 0.12, lowerBound: 325000, upperBound: Infinity },
-      ],
-      'ID': [
-        { rate: 0.00, lowerBound: 0, upperBound: 4673 },
-        { rate: 0.05695, lowerBound: 4673, upperBound: Infinity },
-      ],
-      'IL': [
-        { rate: 0.0495, lowerBound: 0, upperBound: Infinity },
-      ],
-      'IN': [
-        { rate: 0.03, lowerBound: 0, upperBound: Infinity },
-      ],
-      'IA': [
-        { rate: 0.038, lowerBound: 0, upperBound: Infinity },
-      ],
-      'KS': [
-        { rate: 0.052, lowerBound: 0, upperBound: 23000 },
-        { rate: 0.0558, lowerBound: 23000, upperBound: Infinity },
-      ],
-      'KY': [
-        { rate: 0.04, lowerBound: 0, upperBound: Infinity },
-      ],
-      'LA': [
-        { rate: 0.03, lowerBound: 0, upperBound: Infinity },
-      ],
-      'ME': [
-        { rate: 0.058, lowerBound: 0, upperBound: 26800 },
-        { rate: 0.0675, lowerBound: 26800, upperBound: 63450 },
-        { rate: 0.0715, lowerBound: 63450, upperBound: Infinity },
-      ],
-      'MD': [
-        { rate: 0.02, lowerBound: 0, upperBound: 1000 },
-        { rate: 0.03, lowerBound: 1000, upperBound: 2000 },
-        { rate: 0.04, lowerBound: 2000, upperBound: 3000 },
-        { rate: 0.0475, lowerBound: 3000, upperBound: 100000 },
-        { rate: 0.05, lowerBound: 100000, upperBound: 125000 },
-        { rate: 0.0525, lowerBound: 125000, upperBound: 150000 },
-        { rate: 0.055, lowerBound: 150000, upperBound: 250000 },
-        { rate: 0.0575, lowerBound: 250000, upperBound: Infinity },
-      ],
-      'MA': [
-        { rate: 0.05, lowerBound: 0, upperBound: 1083150 },
-        { rate: 0.09, lowerBound: 1083150, upperBound: Infinity },
-      ],
-      'MI': [
-        { rate: 0.0425, lowerBound: 0, upperBound: Infinity },
-      ],
-      'MN': [
-        { rate: 0.0535, lowerBound: 0, upperBound: 32570 },
-        { rate: 0.068, lowerBound: 32570, upperBound: 106990 },
-        { rate: 0.0785, lowerBound: 106990, upperBound: 198630 },
-        { rate: 0.0985, lowerBound: 198630, upperBound: Infinity },
-      ],
-      'MS': [
-        { rate: 0.00, lowerBound: 0, upperBound: 10000 },
-        { rate: 0.044, lowerBound: 10000, upperBound: Infinity },
-      ],
-      'MO': [
-        { rate: 0.02, lowerBound: 1313, upperBound: 2626 },
-        { rate: 0.025, lowerBound: 2626, upperBound: 3939 },
-        { rate: 0.03, lowerBound: 3939, upperBound: 5252 },
-        { rate: 0.035, lowerBound: 5252, upperBound: 6565 },
-        { rate: 0.04, lowerBound: 6565, upperBound: 7878 },
-        { rate: 0.045, lowerBound: 7878, upperBound: 9191 },
-        { rate: 0.047, lowerBound: 9191, upperBound: Infinity },
-      ],
-      'MT': [
-        { rate: 0.047, lowerBound: 0, upperBound: 21100 },
-        { rate: 0.059, lowerBound: 21100, upperBound: Infinity },
-      ],
-      'NE': [
-        { rate: 0.0246, lowerBound: 0, upperBound: 4030 },
-        { rate: 0.0351, lowerBound: 4030, upperBound: 24120 },
-        { rate: 0.0501, lowerBound: 24120, upperBound: 38870 },
-        { rate: 0.052, lowerBound: 38870, upperBound: Infinity },
-      ],
-      'NV': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'NH': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'NJ': [
-        { rate: 0.014, lowerBound: 0, upperBound: 20000 },
-        { rate: 0.0175, lowerBound: 20000, upperBound: 35000 },
-        { rate: 0.035, lowerBound: 35000, upperBound: 40000 },
-        { rate: 0.05525, lowerBound: 40000, upperBound: 75000 },
-        { rate: 0.0637, lowerBound: 75000, upperBound: 500000 },
-        { rate: 0.0897, lowerBound: 500000, upperBound: 1000000 },
-        { rate: 0.1075, lowerBound: 1000000, upperBound: Infinity },
-      ],
-      'NM': [
-        { rate: 0.015, lowerBound: 0, upperBound: 5500 },
-        { rate: 0.032, lowerBound: 5500, upperBound: 16500 },
-        { rate: 0.043, lowerBound: 16500, upperBound: 33500 },
-        { rate: 0.047, lowerBound: 33500, upperBound: 66500 },
-        { rate: 0.049, lowerBound: 66500, upperBound: 210000 },
-        { rate: 0.059, lowerBound: 210000, upperBound: Infinity },
-      ],
-      'NC': [
-        { rate: 0.0425, lowerBound: 0, upperBound: Infinity },
-      ],
-      'ND': [
-        { rate: 0.00, lowerBound: 0, upperBound: 48475 },
-        { rate: 0.0195, lowerBound: 48475, upperBound: 244825 },
-        { rate: 0.025, lowerBound: 244825, upperBound: Infinity },
-      ],
-      'OH': [
-        { rate: 0.00, lowerBound: 0, upperBound: 26050 },
-        { rate: 0.0275, lowerBound: 26050, upperBound: 100000 },
-        { rate: 0.035, lowerBound: 100000, upperBound: Infinity },
-      ],
-      'OK': [
-        { rate: 0.0025, lowerBound: 0, upperBound: 1000 },
-        { rate: 0.0075, lowerBound: 1000, upperBound: 2500 },
-        { rate: 0.0175, lowerBound: 2500, upperBound: 3750 },
-        { rate: 0.0275, lowerBound: 3750, upperBound: 4900 },
-        { rate: 0.0375, lowerBound: 4900, upperBound: 7200 },
-        { rate: 0.0475, lowerBound: 7200, upperBound: Infinity },
-      ],
-      'OR': [
-        { rate: 0.0475, lowerBound: 0, upperBound: 4400 },
-        { rate: 0.0675, lowerBound: 4400, upperBound: 11050 },
-        { rate: 0.0875, lowerBound: 11050, upperBound: 125000 },
-        { rate: 0.099, lowerBound: 125000, upperBound: Infinity },
-      ],
-      'PA': [
-        { rate: 0.0307, lowerBound: 0, upperBound: Infinity },
-      ],
-      'RI': [
-        { rate: 0.0375, lowerBound: 0, upperBound: 79900 },
-        { rate: 0.0475, lowerBound: 79900, upperBound: 181650 },
-        { rate: 0.0599, lowerBound: 181650, upperBound: Infinity },
-      ],
-      'SC': [
-        { rate: 0.00, lowerBound: 0, upperBound: 3560 },
-        { rate: 0.03, lowerBound: 3560, upperBound: 17830 },
-        { rate: 0.062, lowerBound: 17830, upperBound: Infinity },
-      ],
-      'SD': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'TN': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'TX': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'UT': [
-        { rate: 0.0455, lowerBound: 0, upperBound: Infinity },
-      ],
-      'VT': [
-        { rate: 0.0335, lowerBound: 0, upperBound: 47900 },
-        { rate: 0.066, lowerBound: 47900, upperBound: 116000 },
-        { rate: 0.076, lowerBound: 116000, upperBound: 242000 },
-        { rate: 0.0875, lowerBound: 242000, upperBound: Infinity },
-      ],
-      'VA': [
-        { rate: 0.02, lowerBound: 0, upperBound: 3000 },
-        { rate: 0.03, lowerBound: 3000, upperBound: 5000 },
-        { rate: 0.05, lowerBound: 5000, upperBound: 17000 },
-        { rate: 0.0575, lowerBound: 17000, upperBound: Infinity },
-      ],
-      'WA': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'WV': [
-        { rate: 0.0222, lowerBound: 0, upperBound: 10000 },
-        { rate: 0.0296, lowerBound: 10000, upperBound: 25000 },
-        { rate: 0.0333, lowerBound: 25000, upperBound: 40000 },
-        { rate: 0.0444, lowerBound: 40000, upperBound: 60000 },
-        { rate: 0.0482, lowerBound: 60000, upperBound: Infinity },
-      ],
-      'WI': [
-        { rate: 0.035, lowerBound: 0, upperBound: 14680 },
-        { rate: 0.044, lowerBound: 14680, upperBound: 29370 },
-        { rate: 0.053, lowerBound: 29370, upperBound: 323290 },
-        { rate: 0.0765, lowerBound: 323290, upperBound: Infinity },
-      ],
-      'WY': [
-        { rate: 0.00, lowerBound: 0, upperBound: Infinity },
-      ],
-      'DC': [
-        { rate: 0.04, lowerBound: 0, upperBound: 10000 },
-        { rate: 0.06, lowerBound: 10000, upperBound: 40000 },
-        { rate: 0.065, lowerBound: 40000, upperBound: 60000 },
-        { rate: 0.085, lowerBound: 60000, upperBound: 250000 },
-        { rate: 0.0925, lowerBound: 250000, upperBound: 500000 },
-        { rate: 0.0975, lowerBound: 500000, upperBound: 1000000 },
-        { rate: 0.1075, lowerBound: 1000000, upperBound: Infinity },
-      ],
-      'NY': [
-        { rate: 0.04, lowerBound: 0, upperBound: 8500 },
-        { rate: 0.045, lowerBound: 8500, upperBound: 11700 },
-        { rate: 0.0525, lowerBound: 11700, upperBound: 13900 },
-        { rate: 0.055, lowerBound: 13900, upperBound: 80650 },
-        { rate: 0.06, lowerBound: 80650, upperBound: 215400 },
-        { rate: 0.0685, lowerBound: 215400, upperBound: 1077550 },
-        { rate: 0.0965, lowerBound: 1077550, upperBound: 5000000 },
-        { rate: 0.103, lowerBound: 5000000, upperBound: 25000000 },
-        { rate: 0.109, lowerBound: 25000000, upperBound: Infinity },
-      ],
-    };
-    
-    let suggestedStateIncomeTax = 0;
-    
-    // Calculate state tax for any state
-    if (topInputs.location && stateTaxBrackets[topInputs.location]) {
-      const stateBrackets = stateTaxBrackets[topInputs.location];
-      
-      for (let i = 0; i < stateBrackets.length; i++) {
-        const currentBracket = stateBrackets[i];
-        
-        // Applied Tax Brackets Tracker logic (from Excel)
-        let appliedTracker;
-        
-        if (suggestedTaxableIncome < currentBracket.lowerBound) {
-          appliedTracker = 0; // No tax in this bracket
-        } else if (suggestedTaxableIncome >= currentBracket.upperBound) {
-          appliedTracker = 1; // Full bracket
-        } else {
-          appliedTracker = 2; // Partial bracket (last bracket reached)
-        }
-        
-        // Special case: if taxable income is negative and we're in the first bracket (lowerBound = 0), treat as partial bracket
-        if (suggestedTaxableIncome < 0 && currentBracket.lowerBound === 0) {
-          appliedTracker = 2;
-        }
-        
-        // Calculate tax for this bracket using Excel formula logic
-        let bracketTax = 0;
-        if (appliedTracker === 1) {
-          // Full bracket: (upperBound - lowerBound) * rate
-          bracketTax = (currentBracket.upperBound - currentBracket.lowerBound) * currentBracket.rate;
-        } else if (appliedTracker === 2) {
-          // Partial bracket: (taxableIncome - lowerBound) * rate
-          bracketTax = (suggestedTaxableIncome - currentBracket.lowerBound) * currentBracket.rate;
-        }
-        
-        if (preTaxIncome === 100000 || preTaxIncome === 250000) {
-          console.log(`Bracket ${i}: ${currentBracket.lowerBound} to ${currentBracket.upperBound}, rate: ${currentBracket.rate}%, appliedTracker: ${appliedTracker}, bracketTax: $${bracketTax.toFixed(2)}`);
-        }
-        
-        suggestedStateIncomeTax += bracketTax;
-      }
-    }
-    
-    if (preTaxIncome === 1000000) {
-      console.log('Suggested State Income Tax:', suggestedStateIncomeTax);
-    }
-    
-    // NYC Tax: Calculate using exact Excel logic (only if residenceInNYC is 'Yes')
-    let suggestedNYCTax = 0;
-    if (topInputs.location === 'NY' && topInputs.residenceInNYC === 'Yes') {
-      // NYC Tax Brackets (from Excel)
-      const nycTaxBrackets = [
-        { rate: 0.0308, lowerBound: 0, upperBound: 12000 },
-        { rate: 0.0376, lowerBound: 12000, upperBound: 25000 },
-        { rate: 0.0382, lowerBound: 25000, upperBound: 50000 },
-        { rate: 0.0388, lowerBound: 50000, upperBound: Infinity },
-      ];
-      
-      for (let i = 0; i < nycTaxBrackets.length; i++) {
-        const currentBracket = nycTaxBrackets[i];
-        
-        // Applied Tax Brackets Tracker logic (from Excel)
-        let appliedTracker;
-        
-        if (suggestedTaxableIncome < currentBracket.lowerBound) {
-          appliedTracker = 0; // No tax in this bracket
-        } else if (suggestedTaxableIncome >= currentBracket.upperBound) {
-          appliedTracker = 1; // Full bracket
-        } else {
-          appliedTracker = 3; // Partial bracket (last bracket reached)
-        }
-        
-        // Special case: if taxable income is negative and we're in the first bracket (lowerBound = 0), treat as partial bracket
-        if (suggestedTaxableIncome < 0 && currentBracket.lowerBound === 0) {
-          appliedTracker = 3;
-        }
-        
-        // Calculate tax for this bracket using Excel formula logic
-        let bracketTax = 0;
-        if (appliedTracker === 1) {
-          // Full bracket: (upperBound - lowerBound) * rate
-          bracketTax = (currentBracket.upperBound - currentBracket.lowerBound) * currentBracket.rate;
-        } else if (appliedTracker === 3) {
-          // Partial bracket: (taxableIncome - lowerBound) * rate
-          bracketTax = (suggestedTaxableIncome - currentBracket.lowerBound) * currentBracket.rate;
-        }
-        
-        suggestedNYCTax += bracketTax;
-      }
-    }
-    
-    if (preTaxIncome === 1000000) {
-      console.log('Suggested NYC Tax:', suggestedNYCTax);
-    }
-    
-    // USER SECTION TAX CALCULATIONS
-    // Calculate user's actual taxes based on their pre-tax expense inputs
-    const userFederalIncomeTax = calculateFederalIncomeTax(userTaxableIncome);
-    
-    if (preTaxIncome === 1000000) {
-      console.log('User Federal Income Tax:', userFederalIncomeTax);
-    }
-    
-    // Social Security and Medicare: based on original pre-tax income (not taxable income)
-    const userSocialSecurityTax = Math.min(preTaxIncome * 0.062, 176100); // MIN(preTaxIncome * 6.2%, 176100)
-    const userMedicareTax = preTaxIncome * 0.0145; // 1.45%
-    
-    if (preTaxIncome === 1000000) {
-      console.log('User Social Security Tax:', userSocialSecurityTax);
-      console.log('User Medicare Tax:', userMedicareTax);
-    }
-    
-    // State Income Tax: Calculate using exact Excel logic for user's taxable income
-    let userStateIncomeTax = 0;
-    if (topInputs.location && stateTaxBrackets[topInputs.location]) {
-      const stateBrackets = stateTaxBrackets[topInputs.location];
-      
-      for (let i = 0; i < stateBrackets.length; i++) {
-        const currentBracket = stateBrackets[i];
-        
-        // Applied Tax Brackets Tracker logic (from Excel) - DIFFERENT from suggested
-        let appliedTracker;
-        
-        if (userTaxableIncome < currentBracket.lowerBound) {
-          appliedTracker = 0; // No tax in this bracket
-        } else if (userTaxableIncome >= currentBracket.upperBound) {
-          appliedTracker = 1; // Full bracket
-        } else {
-          appliedTracker = 2; // Partial bracket (last bracket reached)
-        }
-        
-        // Special case: if taxable income is negative and we're in the first bracket (lowerBound = 0), treat as partial bracket
-        if (userTaxableIncome < 0 && currentBracket.lowerBound === 0) {
-          appliedTracker = 2;
-        }
-        
-        // Calculate tax for this bracket using Excel formula logic
-        let bracketTax = 0;
-        if (appliedTracker === 1) {
-          // Full bracket: (upperBound - lowerBound) * rate
-          bracketTax = (currentBracket.upperBound - currentBracket.lowerBound) * currentBracket.rate;
-        } else if (appliedTracker === 2) {
-          // Partial bracket: (taxableIncome - lowerBound) * rate
-          bracketTax = (userTaxableIncome - currentBracket.lowerBound) * currentBracket.rate;
-        }
-        
-        if (preTaxIncome === 100000 || preTaxIncome === 250000) {
-          console.log(`USER Bracket ${i}: ${currentBracket.lowerBound} to ${currentBracket.upperBound}, rate: ${currentBracket.rate}%, appliedTracker: ${appliedTracker}, bracketTax: $${bracketTax.toFixed(2)}`);
-        }
-        
-        userStateIncomeTax += bracketTax;
-      }
-    }
-    
-    // NYC Tax: Calculate using exact Excel logic (only if residenceInNYC is 'Yes')
-    let userNYCTax = 0;
-    if (topInputs.location === 'NY' && topInputs.residenceInNYC === 'Yes') {
-      // NYC Tax Brackets (from Excel)
-      const nycTaxBrackets = [
-        { rate: 0.0308, lowerBound: 0, upperBound: 12000 },
-        { rate: 0.0376, lowerBound: 12000, upperBound: 25000 },
-        { rate: 0.0382, lowerBound: 25000, upperBound: 50000 },
-        { rate: 0.0388, lowerBound: 50000, upperBound: Infinity },
-      ];
-      
-      for (let i = 0; i < nycTaxBrackets.length; i++) {
-        const currentBracket = nycTaxBrackets[i];
-        
-        // Applied Tax Brackets Tracker logic (from Excel)
-        let appliedTracker;
-        
-        if (userTaxableIncome < currentBracket.lowerBound) {
-          appliedTracker = 0; // No tax in this bracket
-        } else if (userTaxableIncome >= currentBracket.upperBound) {
-          appliedTracker = 1; // Full bracket
-        } else {
-          appliedTracker = 3; // Partial bracket (last bracket reached)
-        }
-        
-        // Special case: if taxable income is negative and we're in the first bracket (lowerBound = 0), treat as partial bracket
-        if (userTaxableIncome < 0 && currentBracket.lowerBound === 0) {
-          appliedTracker = 3;
-        }
-        
-        // Calculate tax for this bracket using Excel formula logic
-        let bracketTax = 0;
-        if (appliedTracker === 1) {
-          // Full bracket: (upperBound - lowerBound) * rate
-          bracketTax = (currentBracket.upperBound - currentBracket.lowerBound) * currentBracket.rate;
-        } else if (appliedTracker === 3) {
-          // Partial bracket: (taxableIncome - lowerBound) * rate
-          bracketTax = (userTaxableIncome - currentBracket.lowerBound) * currentBracket.rate;
-        }
-        
-        if (preTaxIncome === 100000 || preTaxIncome === 250000) {
-          console.log(`USER NYC Bracket ${i}: ${currentBracket.lowerBound} to ${currentBracket.upperBound}, rate: ${currentBracket.rate}%, appliedTracker: ${appliedTracker}, bracketTax: $${bracketTax.toFixed(2)}`);
-        }
-        
-        userNYCTax += bracketTax;
-      }
-    }
-    
-    // After Tax Income calculations
-    // C18: =MAX(C9-SUM(C11:C16)+C6,0) - Taxable Income minus all taxes plus Standard Deduction
-    // F18: =MAX(F9-SUM(F11:F16)+F6,0) - Taxable Income minus all taxes plus Standard Deduction
-    const suggestedAfterTaxIncome = Math.max(
-      suggestedTaxableIncome - (suggestedFederalIncomeTax + suggestedSocialSecurityTax + suggestedMedicareTax + suggestedStateIncomeTax + suggestedNYCTax) + standardDeduction,
-      0
+
+    const suggested = calculateFullTax(
+      { preTaxIncome, preTaxExpenses: suggestedPreTaxExpenses, state: topInputs.location, residenceInNYC },
+      assumptions
     );
-    
-    const userAfterTaxIncome = Math.max(
-      userTaxableIncome - (userFederalIncomeTax + userSocialSecurityTax + userMedicareTax + userStateIncomeTax + userNYCTax) + standardDeduction,
-      0
+    const user = calculateFullTax(
+      { preTaxIncome, preTaxExpenses: userPreTaxExpenses, state: topInputs.location, residenceInNYC },
+      assumptions
     );
-    
-    // Always log the final userAfterTaxIncome calculation for debugging
-    console.log('=== USER AFTER TAX INCOME CALCULATION ===');
-    console.log('preTaxIncome:', preTaxIncome);
-    console.log('userTaxableIncome:', userTaxableIncome);
-    console.log('userFederalIncomeTax:', userFederalIncomeTax);
-    console.log('userSocialSecurityTax:', userSocialSecurityTax);
-    console.log('userMedicareTax:', userMedicareTax);
-    console.log('userStateIncomeTax:', userStateIncomeTax);
-    console.log('userNYCTax:', userNYCTax);
-    console.log('standardDeduction:', standardDeduction);
-    console.log('Total Taxes:', userFederalIncomeTax + userSocialSecurityTax + userMedicareTax + userStateIncomeTax + userNYCTax);
-    console.log('userAfterTaxIncome (FINAL):', userAfterTaxIncome);
-    console.log('=== END USER AFTER TAX INCOME CALCULATION ===');
-    
-    if (preTaxIncome === 1000000 || preTaxIncome === 20000 || preTaxIncome === 10000) {
-      console.log('=== DEBUG CALCULATIONS FOR INCOME:', preTaxIncome, '===');
-      console.log('Pre-Tax Income:', preTaxIncome);
-      console.log('Standard Deduction:', standardDeduction);
-      console.log('Suggested Taxable Income:', suggestedTaxableIncome);
-      console.log('User Taxable Income:', userTaxableIncome);
-      console.log('Suggested Federal Tax:', suggestedFederalIncomeTax);
-      console.log('Suggested Social Security Tax:', suggestedSocialSecurityTax);
-      console.log('Suggested Medicare Tax:', suggestedMedicareTax);
-      console.log('Suggested State Tax:', suggestedStateIncomeTax);
-      console.log('Suggested NYC Tax:', suggestedNYCTax);
-      console.log('User Federal Tax:', userFederalIncomeTax);
-      console.log('User Social Security Tax:', userSocialSecurityTax);
-      console.log('User Medicare Tax:', userMedicareTax);
-      console.log('User State Tax:', userStateIncomeTax);
-      console.log('User NYC Tax:', userNYCTax);
-      console.log('Suggested After Tax Income:', suggestedAfterTaxIncome);
-      console.log('User After Tax Income:', userAfterTaxIncome);
-      console.log('=== END DEBUG CALCULATIONS ===');
-    }
-    
+
     return {
       preTaxIncome, // C4, F4
       standardDeduction, // C6, F6
       suggestedPreTaxExpenses, // C7
       userPreTaxExpenses, // F7
-      suggestedTaxableIncome, // C9
-      userTaxableIncome, // F9
-      suggestedFederalIncomeTax, // C11
-      suggestedSocialSecurityTax, // C12
-      suggestedMedicareTax, // C13
-      suggestedStateIncomeTax, // C15
-      suggestedNYCTax, // C16
-      userFederalIncomeTax, // F11
-      userSocialSecurityTax, // F12
-      userMedicareTax, // F13
-      userStateIncomeTax, // F15
-      userNYCTax, // F16
-      suggestedAfterTaxIncome, // C18
-      userAfterTaxIncome, // F18
+      suggestedTaxableIncome: suggested.taxableIncome, // C9
+      userTaxableIncome: user.taxableIncome, // F9
+      suggestedFederalIncomeTax: suggested.federalIncomeTax, // C11
+      suggestedSocialSecurityTax: suggested.socialSecurityTax, // C12
+      suggestedMedicareTax: suggested.medicareTax, // C13
+      suggestedAdditionalMedicareTax: suggested.additionalMedicareTax,
+      suggestedStateIncomeTax: suggested.stateIncomeTax, // C15
+      suggestedNYCTax: suggested.nycTax, // C16
+      userFederalIncomeTax: user.federalIncomeTax, // F11
+      userSocialSecurityTax: user.socialSecurityTax, // F12
+      userMedicareTax: user.medicareTax, // F13
+      userAdditionalMedicareTax: user.additionalMedicareTax,
+      userStateIncomeTax: user.stateIncomeTax, // F15
+      userNYCTax: user.nycTax, // F16
+      suggestedAfterTaxIncome: suggested.afterTaxIncome, // C18
+      userAfterTaxIncome: user.afterTaxIncome, // F18
       zeroPretaxTaxableIncome: preTaxIncome - standardDeduction, // C22
     };
-  }, [topInputs.preTaxIncome, financialCalculations, userPreTaxInputs]);
+  }, [topInputs.preTaxIncome, topInputs.location, topInputs.residenceInNYC, userPreTaxInputs, assumptions]);
 
   // Week 2: Savings calculations matching Excel structure
   const savingsCalculations = useMemo(() => {

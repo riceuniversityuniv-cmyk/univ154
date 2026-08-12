@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
+import { useAssumptions } from '../contexts/AssumptionsContext';
 
 // Number counting animation hook
 const useCountUp = (end, duration = 1000, decimals = 0) => {
@@ -544,6 +545,7 @@ const InfoIcon = () => (
 
 export default function SavingsForm() {
     const budgetContext = useBudget();
+    const { assumptions } = useAssumptions();
     
     // Add debugging
     console.log('SavingsForm: budgetContext', budgetContext);
@@ -933,13 +935,17 @@ export default function SavingsForm() {
             return;
           }
           
-          // Validate retirement contribution limits
-          if (id === 'retirement_roth_401k' && numValue > 23500) {
-            alert('Roth 401(k) maximum contribution is $23,500 annually');
+          // Validate retirement contribution limits, sourced from the
+          // Assumptions table -- was hardcoded to the old 2025 annual
+          // limits (23500/7000) here, disagreeing with BudgetForm.jsx's
+          // and Week12.jsx's 24500/7500. See
+          // docs/financial-audit-2026-08-11.md finding #14.
+          if (id === 'retirement_roth_401k' && numValue > assumptions.scalars.limit_401k) {
+            alert(`Roth 401(k) maximum contribution is $${assumptions.scalars.limit_401k.toLocaleString()} annually`);
             return;
           }
-          if (id === 'retirement_roth_ira' && numValue > 7000) {
-            alert('Roth IRA maximum contribution is $7,000 annually');
+          if (id === 'retirement_roth_ira' && numValue > assumptions.scalars.limit_ira) {
+            alert(`Roth IRA maximum contribution is $${assumptions.scalars.limit_ira.toLocaleString()} annually`);
             return;
           }
         }

@@ -11,6 +11,7 @@ import BudgetPlanner from './pages/BudgetPlanner'
 import Analytics from './pages/Analytics'
 import { BudgetProvider } from '../contexts/BudgetContext'
 import { WeekAccessProvider, useWeekAccess } from '../contexts/WeekAccessContext'
+import { AssumptionsProvider } from '../contexts/AssumptionsContext'
 
 // Import icons
 import { MdDashboard, MdSchool, MdInsertChart, MdChat, MdNotifications, MdUpload, MdDownload, MdBook, MdCheckCircle, MdBarChart, MdAccountBalance, MdTimeline, MdCalendarToday, MdAssignment, MdTrendingUp, MdChevronLeft, MdChevronRight, MdFolderOpen } from 'react-icons/md'
@@ -204,16 +205,18 @@ function DashboardContent() {
   console.log('=============================');
 
   return (
-    <WeekAccessProvider user={user} isAdmin={effectiveIsAdmin}>
-      <DashboardContentInner
-        isAdmin={effectiveIsAdmin}
-        isRealAdmin={isAdmin}
-        previewAsStudent={previewAsStudent}
-        onPreviewAsStudentChange={setPreviewAsStudent}
-        user={user}
-        signOut={signOut}
-      />
-    </WeekAccessProvider>
+    <AssumptionsProvider isAdmin={effectiveIsAdmin} userEmail={user?.email}>
+      <WeekAccessProvider user={user} isAdmin={effectiveIsAdmin}>
+        <DashboardContentInner
+          isAdmin={effectiveIsAdmin}
+          isRealAdmin={isAdmin}
+          previewAsStudent={previewAsStudent}
+          onPreviewAsStudentChange={setPreviewAsStudent}
+          user={user}
+          signOut={signOut}
+        />
+      </WeekAccessProvider>
+    </AssumptionsProvider>
   )
 }
 

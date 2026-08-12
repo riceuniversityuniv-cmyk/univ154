@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
+import { useAssumptions } from '../contexts/AssumptionsContext';
+import { calculateLTCGTax } from '../utils/taxEngine';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -44,6 +46,8 @@ const sanitizePct = (v) => {
 };
 
 const Week9 = () => {
+  const { assumptions } = useAssumptions();
+
   // Contributions (string state: allow empty, decimals for currency)
   const [contribStartAge, setContribStartAge] = useState('22');
   const [contribEndAge, setContribEndAge] = useState('65');
@@ -122,10 +126,16 @@ const Week9 = () => {
   // 4) Total Taxes: Total Gross Withdrawals × effective tax rate.
   // 5) Total Net Withdrawals (post-taxes): Total Gross Withdrawals − Total Taxes.
   //
-  // Note: These assumptions are aligned to the worksheet baseline used in Week 9.
-  const inflationRate = 0.035;
+  // Note: inflation now comes from the admin-editable Assumptions table
+  // instead of being hardcoded here (was 0.035). Capital gains are taxed
+  // via the real bracket-stacked federal LTCG table (taxEngine.js) instead
+  // of a flat 15% -- see docs/financial-audit-2026-08-11.md finding #26.
+  // Each year's realized gain is stacked from $0 (this projection has no
+  // other-income context to stack on top of -- a retiree living off
+  // portfolio withdrawals with no other ordinary income is the intended
+  // scenario here).
+  const inflationRate = assumptions.scalars.cpi_inflation;
   const currentAgeForPV = minAge;
-  const longTermCapitalGainsTaxRate = 0.15;
 
   // Build full scenario projection (single source of truth for chart + summary)
   const buildScenarioProjection = (blendedReturnPct) => {
@@ -135,6 +145,7 @@ const Week9 = () => {
     let prevEndingMarketValue = 0;
     let prevEndingCostBasis = 0;
     let maxEndingBalance = 0;
+    let maxEndingBalanceAge = currentAgeForPV;
     let totalGrossWithdrawals = 0;
     let totalTaxes = 0;
 
@@ -167,7 +178,7 @@ const Week9 = () => {
           ? Math.max((preWithdrawalValue - basisBeforeWithdrawal) / preWithdrawalValue, 0)
           : 0;
       const realizedCapitalGain = actualWithdrawal * gainRatio;
-      const capitalGainsTax = realizedCapitalGain * longTermCapitalGainsTaxRate;
+      const capitalGainsTax = calculateLTCGTax(realizedCapitalGain, 0, assumptions);
 
       const endingMarketValue = preWithdrawalValue - actualWithdrawal;
       const principalWithdrawn = actualWithdrawal - realizedCapitalGain;
@@ -177,7 +188,10 @@ const Week9 = () => {
       prevEndingMarketValue = endingMarketValue;
       prevEndingCostBasis = endingCostBasis;
 
-      if (endingMarketValue > maxEndingBalance) maxEndingBalance = endingMarketValue;
+      if (endingMarketValue > maxEndingBalance) {
+        maxEndingBalance = endingMarketValue;
+        maxEndingBalanceAge = age;
+      }
       totalGrossWithdrawals += actualWithdrawal;
       totalTaxes += capitalGainsTax;
     }
@@ -187,7 +201,13 @@ const Week9 = () => {
       netByAge.push(Math.round(endingByAge[age] ?? 0));
     }
 
-    const nper = Math.max(0, maxAge - currentAgeForPV);
+    // Discount by the number of years until the peak balance actually
+    // occurred, not a fixed full-span horizon (maxAge - currentAgeForPV,
+    // which was always 80 regardless of when the peak happened -- default
+    // inputs peak around age 45, so the old code over-discounted by
+    // roughly a factor of 7). See docs/financial-audit-2026-08-11.md
+    // finding #7.
+    const nper = Math.max(0, maxEndingBalanceAge - currentAgeForPV);
     const valueTodayDollars = maxEndingBalance / Math.pow(1 + inflationRate, nper);
     const totalNetWithdrawals = totalGrossWithdrawals - totalTaxes;
 
@@ -206,15 +226,15 @@ const Week9 = () => {
   // Scenario projections (single source for summary + chart)
   const scenario1Projection = useMemo(
     () => buildScenarioProjection(blendedReturn1),
-    [blendedReturn1, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P]
+    [blendedReturn1, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P, assumptions]
   );
   const scenario2Projection = useMemo(
     () => buildScenarioProjection(blendedReturn2),
-    [blendedReturn2, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P]
+    [blendedReturn2, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P, assumptions]
   );
   const scenario3Projection = useMemo(
     () => buildScenarioProjection(blendedReturn3),
-    [blendedReturn3, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P]
+    [blendedReturn3, startAge, endContribAge, firstWithdrawAge, wEndAge, wPct, P, assumptions]
   );
 
   const scenario1Metrics = scenario1Projection.metrics;

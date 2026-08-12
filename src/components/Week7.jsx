@@ -138,10 +138,19 @@ const Week7 = () => {
     // Only apply coinsurance if medical expenses exceed deductible
     // Note: coinsuranceRate is 20 (20%), so we divide by 100 to get decimal
     const coinsuranceAmount = Math.max(medicalExpensesNum - deductibleNum, 0) * (coinsuranceRateNum / 100);
-    
-    // Calculate total out-of-pocket: C10 + coinsuranceAmount
-    const totalOutOfPocket = deductibleNum + coinsuranceAmount;
-    
+
+    // Deductible phase: you only pay up to what you actually spent inside
+    // it, not the full deductible unconditionally -- was previously always
+    // adding the entire deductible even when medical expenses never
+    // reached it (e.g. $500 of expenses against a $5,000 deductible showed
+    // $5,000 owed instead of $500). Correct formula:
+    // min(medicalExpenses, deductible) + coinsurance on the excess. Same
+    // shape as Excel's `Week 9 - Insurance!D25` (inherited bug, fixed here
+    // to match the corrected master workbook). See
+    // docs/financial-audit-2026-08-11.md finding #5.
+    const deductiblePortion = Math.min(medicalExpensesNum, deductibleNum);
+    const totalOutOfPocket = deductiblePortion + coinsuranceAmount;
+
     // Apply max out-of-pocket limit: MIN(totalOutOfPocket, C14)
     const outOfPocketCosts = Math.min(totalOutOfPocket, maxOutOfPocketNum);
     
