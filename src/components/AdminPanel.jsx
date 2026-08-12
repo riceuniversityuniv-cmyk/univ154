@@ -1,17 +1,43 @@
 import React from 'react';
+import { Outlet, NavLink } from 'react-router-dom';
 import { useWeekAccess } from '../contexts/WeekAccessContext';
 import { MdWarning } from 'react-icons/md';
-import WeekAccessAdmin from './WeekAccessAdmin';
-import AdminSettingsPanel from './AdminSettingsPanel';
 
-// Shared shell for the combined Admin section: Week Access management
-// stacked above Manage Admins, on a single page/route (no tabs). Both keep
-// their own internals unchanged.
+// Tab shell for the Admin section: Week Access / Manage Admins / Assumptions,
+// each rendered via nested routes (<Outlet/>). Real tabs, replacing the
+// earlier single-stacked-page layout -- reinstated because the Assumptions
+// tab is bulky (FICA/federal/LTCG scalars, a 49-row RMD divisor table, and
+// 51 jurisdictions' worth of state brackets), so one long scrolling page no
+// longer made sense once it was added. See docs/univ154-migration.md.
 //
 // Gates on the *effective* admin flag from WeekAccessContext (not
 // useAuth().isAdmin directly) so this page -- and everything nested under
-// it -- correctly locks out while "Preview as Student" is on. See
-// docs/superpowers/specs/2026-08-11-admin-consolidation-and-preview-mode-design.md.
+// it -- correctly locks out while "Preview as Student" is on.
+
+const tabs = [
+  { path: '/dashboard/admin/week-access', label: 'Week Access' },
+  { path: '/dashboard/admin/manage', label: 'Manage Admins' },
+  { path: '/dashboard/admin/assumptions', label: 'Assumptions' },
+];
+
+const tabBarStyle = {
+  display: 'flex',
+  gap: '4px',
+  justifyContent: 'center',
+  borderBottom: '2px solid #e0e0e0',
+  marginBottom: '24px',
+};
+
+const tabStyle = ({ isActive }) => ({
+  padding: '12px 24px',
+  fontSize: '14px',
+  fontWeight: '600',
+  color: isActive ? '#002060' : '#6b7280',
+  borderBottom: isActive ? '3px solid #002060' : '3px solid transparent',
+  marginBottom: '-2px',
+  textDecoration: 'none',
+  transition: 'color 0.2s',
+});
 
 export default function AdminPanel() {
   const { isAdmin } = useWeekAccess();
@@ -30,8 +56,14 @@ export default function AdminPanel() {
 
   return (
     <div style={{ maxWidth: 900, margin: '0 auto' }}>
-      <WeekAccessAdmin />
-      <AdminSettingsPanel />
+      <nav style={tabBarStyle}>
+        {tabs.map((tab) => (
+          <NavLink key={tab.path} to={tab.path} style={tabStyle}>
+            {tab.label}
+          </NavLink>
+        ))}
+      </nav>
+      <Outlet />
     </div>
   );
 }

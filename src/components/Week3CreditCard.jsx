@@ -65,9 +65,22 @@ const Week3CreditCard = () => {
   };
 
   // Calculated values
-  // Minimum payment = Interest for Month 1 (Week 3.1 B - AM Table!E4)
   const monthlyRate = (parseFloat(annualInterestRate) || 0) / 100 / 12;
-  const minimumPayment = Math.round(((parseFloat(debtAmount) || 0) * monthlyRate) * 100) / 100;
+
+  // Minimum payment formula: interest owed this period + 1% of the current
+  // balance, floored at $25, never exceeding what's actually owed (balance
+  // + interest). Matches Excel's real formula (`Week 3.1 B - AM Table!N4`:
+  // MIN(MAX(interest + 1%*balance, 25), balance+interest)) -- recalculated
+  // against the LIVE balance every month in the amortization loop below,
+  // not frozen at the original balance the way this used to be computed
+  // (which made "minimum payment" mathematically identical to interest-only
+  // and the debt could never amortize). See
+  // docs/financial-audit-2026-08-11.md finding #2.
+  const computeMinimumPayment = (balance, interestForPeriod) =>
+    Math.min(Math.max(interestForPeriod + 0.01 * balance, 25), balance + interestForPeriod);
+
+  const debtAmountNum = parseFloat(debtAmount) || 0;
+  const minimumPayment = Math.round(computeMinimumPayment(debtAmountNum, debtAmountNum * monthlyRate) * 100) / 100;
 
   // Auto-save function (without alert)
   const autoSaveWeek3 = () => {
@@ -257,9 +270,8 @@ const Week3CreditCard = () => {
   const calculateMinimumPaymentAmortization = () => {
     const principal = parseFloat(debtAmount) || 0;
     const monthlyRate = (parseFloat(annualInterestRate) || 0) / 100 / 12;
-    const minPayment = minimumPayment;
-    
-    if (principal <= 0 || monthlyRate <= 0 || minPayment <= 0) {
+
+    if (principal <= 0 || monthlyRate <= 0) {
       return { amortizationTable: [], summary: { interestPaid: 0, principalPaid: 0, totalAmountPaid: 0 } };
     }
 
@@ -269,14 +281,12 @@ const Week3CreditCard = () => {
     let isPaidOff = false;
 
     while (!isPaidOff && month <= 600) { // Max 50 years (Excel limit)
-      // Calculate interest: O4 = MIN(N4, M4 * (Annual Interest Rate / 12))
-      // Excel: O4 = MIN(N4,M4*('Week 3.1 - Credit Card Debt'!$C$7/12))
       const calculatedInterest = loanAmount * monthlyRate;
-      
-      // Calculate payment: N4 = Minimum Payment (first month), N5+ = MIN(Minimum Payment, Previous Balance + Current Interest)
-      // Excel: N5 = MIN('Week 3.1 - Credit Card Debt'!$G$5,Q4+M4*('Week 3.1 - Credit Card Debt'!$C$7/12))
-      const actualPayment = month === 1 ? minPayment : Math.min(minPayment, loanAmount + calculatedInterest);
-      
+
+      // Minimum payment recalculated every month against the CURRENT
+      // (live, shrinking) balance -- see computeMinimumPayment above.
+      const actualPayment = computeMinimumPayment(loanAmount, calculatedInterest);
+
       // Calculate interest paid: O4 = MIN(N4, M4 * (Annual Interest Rate / 12))
       const interestPaid = Math.min(actualPayment, calculatedInterest);
       

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import stateTaxData from '../data/stateTaxData';
 import { useBudget } from '../contexts/BudgetContext';
+import { useAssumptions } from '../contexts/AssumptionsContext';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -240,9 +240,10 @@ function getLastValid(arr) {
 
 export default function Week6Retirement() {
   const { topInputs, retirementInputs, setRetirementInputs, userPreTaxInputs, financialCalculations, summaryCalculations, saveBudgetData, loadBudgetData } = useBudget() || {};
+  const { assumptions } = useAssumptions();
 
   const selectedState = topInputs?.location;
-  const stateBrackets = selectedState ? stateTaxData.filter(row => row.state === selectedState) : [];
+  const stateBrackets = selectedState ? (assumptions.stateBrackets[selectedState] || []) : [];
 
   // Shared input state
   const [startAge, setStartAge] = useState(20);
@@ -366,7 +367,10 @@ export default function Week6Retirement() {
     rothIRAAgeA: 60, // Roth IRA Scenario A age
     rothIRAAgeB: 60, // Roth IRA Scenario B age
     rothIRAAgeC: 60, // Roth IRA Scenario C age
-    rmdAge: 75
+    // Sourced from the Assumptions table (was hardcoded to 75 here, which
+    // disagreed with the `|| 73` fallback used elsewhere in this file --
+    // see docs/financial-audit-2026-08-11.md).
+    rmdAge: assumptions.scalars.rmd_start_age
   });
 
   // State for validation errors in retirement planning inputs
@@ -472,7 +476,11 @@ export default function Week6Retirement() {
   console.log('userAfterTaxIncome (Week 6):', userAfterTaxIncome);
   
   const effectiveTakeHomeRate = userAfterTaxIncome / preTaxIncome;
-  const maxContribution = 23500 * (effectiveTakeHomeRate);
+  // Was hardcoded to 23500 (the old 2025 401k limit) -- now sourced from
+  // the Assumptions table (24500), same source BudgetForm.jsx/Week12.jsx
+  // use, closing the three-way disagreement documented in
+  // docs/financial-audit-2026-08-11.md finding #14.
+  const maxContribution = assumptions.scalars.limit_401k * (effectiveTakeHomeRate);
 
   // Calculate monthly incomes
   const monthlyPreTaxIncome = preTaxIncome / 12;
@@ -1544,38 +1552,30 @@ export default function Week6Retirement() {
   };
 
   // Generate chart data for Roth 401k Balance vs Age
+  // Fixed to match its three sibling chart generators (Traditional 401k,
+  // Traditional IRA, Roth IRA below): read balances straight from the real
+  // accumulation table instead of recomputing them with an independent
+  // closed-form formula. The old formula had an extra trailing `(1+r)`
+  // factor -- already wrong at year 0 (showed C*(1+r) instead of the
+  // table's C), diverging further every subsequent year -- so this chart
+  // could disagree with the Roth 401(k) table and withdrawal figures shown
+  // elsewhere on this same page. See docs/financial-audit-2026-08-11.md
+  // finding #6.
   const generateRoth401kChartData = () => {
     const seriesAData = calculateRoth401kSeriesA();
     const seriesBData = calculateRoth401kSeriesB();
     const seriesCData = calculateRoth401kSeriesC();
-    
+
     const chartData = [];
     const startAge = retirementPlanningInputs.contributionStartAge || 22;
     const endAge = retirementPlanningInputs.retirementAge || 65;
-    
-    // Calculate balance for each year using compound interest
+
     for (let age = startAge; age <= endAge; age++) {
       const year = age - startAge;
-      const monthlyPaymentA = monthlyPayments.roth_401k_a || 0;
-      const monthlyPaymentB = monthlyPayments.roth_401k_b || 0;
-      const monthlyPaymentC = monthlyPayments.roth_401k_c || 0;
-      
-      const annualContributionA = monthlyPaymentA * 12;
-      const annualContributionB = monthlyPaymentB * 12;
-      const annualContributionC = monthlyPaymentC * 12;
-      
-      const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-      const totalAnnualContributionA = annualContributionA + (annualContributionA * employerMatchRate);
-      const totalAnnualContributionB = annualContributionB + (annualContributionB * employerMatchRate);
-      const totalAnnualContributionC = annualContributionC + (annualContributionC * employerMatchRate);
-      
-      const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-      
-      // Calculate balance using compound interest formula
-      const seriesABalance = totalAnnualContributionA * ((Math.pow(1 + returnRate, year + 1) - 1) / returnRate) * (1 + returnRate);
-      const seriesBBalance = totalAnnualContributionB * ((Math.pow(1 + returnRate, year + 1) - 1) / returnRate) * (1 + returnRate);
-      const seriesCBalance = totalAnnualContributionC * ((Math.pow(1 + returnRate, year + 1) - 1) / returnRate) * (1 + returnRate);
-      
+      const seriesABalance = seriesAData.accumulationData[year]?.accountBalance || 0;
+      const seriesBBalance = seriesBData.accumulationData[year]?.accountBalance || 0;
+      const seriesCBalance = seriesCData.accumulationData[year]?.accountBalance || 0;
+
       chartData.push({
         age,
         seriesA: Math.round(seriesABalance),
@@ -1583,7 +1583,7 @@ export default function Week6Retirement() {
         seriesC: Math.round(seriesCBalance)
       });
     }
-    
+
     return chartData;
   };
 
@@ -1922,10 +1922,14 @@ export default function Week6Retirement() {
     const numValue = parseFloat(cleanValue);
     
     // Set different limits based on account type
-    let maxValue = 1958.33; // Default for 401(k) plans
+    // Sourced from the Assumptions table (401k/IRA annual limits / 12)
+    // instead of hardcoded monthly figures -- see
+    // docs/financial-audit-2026-08-11.md finding #14 (this file, BudgetForm.jsx,
+    // and Week12.jsx each had their own disagreeing cap literals).
+    let maxValue = assumptions.scalars.limit_401k / 12; // Default for 401(k) plans
     let accountType = '401(k)';
     if (key.includes('ira')) {
-      maxValue = 583.33; // IRA plans have lower limit
+      maxValue = assumptions.scalars.limit_ira / 12; // IRA plans have lower limit
       accountType = 'IRA';
     }
     
@@ -1997,10 +2001,14 @@ export default function Week6Retirement() {
     const numValue = parseFloat(numericValue);
     
     // Set different limits based on account type
-    let maxValue = 1958.33; // Default for 401(k) plans
+    // Sourced from the Assumptions table (401k/IRA annual limits / 12)
+    // instead of hardcoded monthly figures -- see
+    // docs/financial-audit-2026-08-11.md finding #14 (this file, BudgetForm.jsx,
+    // and Week12.jsx each had their own disagreeing cap literals).
+    let maxValue = assumptions.scalars.limit_401k / 12; // Default for 401(k) plans
     let accountType = '401(k)';
     if (key.includes('ira')) {
-      maxValue = 583.33; // IRA plans have lower limit
+      maxValue = assumptions.scalars.limit_ira / 12; // IRA plans have lower limit
       accountType = 'IRA';
     }
     
@@ -2115,7 +2123,7 @@ export default function Week6Retirement() {
                key === 'rothIRAAgeA' || key === 'rothIRAAgeB' || key === 'rothIRAAgeC') {
       // Traditional IRA ages are limited by RMD age
       if (key.startsWith('traditionalIRA')) {
-        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || 73;
+        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || assumptions.scalars.rmd_start_age;
         if (numValue <= 30 || numValue > rmdAge) {
           errorMessage = `Starting Distribution Age must be between 31 and ${rmdAge} years.`;
         }
@@ -2128,7 +2136,7 @@ export default function Week6Retirement() {
       }
       // Traditional and Roth 401k ages are limited by RMD age
       else {
-        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || 73;
+        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || assumptions.scalars.rmd_start_age;
         if (numValue <= 30 || numValue > rmdAge) {
           errorMessage = `Starting Distribution Age must be between 31 and ${rmdAge} years.`;
         }
@@ -2149,22 +2157,25 @@ export default function Week6Retirement() {
   // Calculate recommended Roth 401(k) amount using Week 1 logic (suggested after-tax income)
   const calculateRecommendedRoth401k = () => {
     if (monthlySuggestedAfterTaxIncome <= 0) return 0;
-    // Excel: =MIN('Week 1 - Budgeting'!$G$40*(1/20),1958.33)
-    // This is 5% of monthly after-tax income, capped at $1,958.33 (monthly max for $23,500 annual)
-    return Math.min(monthlySuggestedAfterTaxIncome * 0.05, 1958.33);
+    // 5% of monthly after-tax income, capped at the monthly 401(k) limit
+    // (Assumptions table, annual limit / 12) -- was hardcoded to 1958.33
+    // (the old 2025 limit / 12), disagreeing with BudgetForm.jsx/Week12.jsx.
+    const monthly401kLimit = assumptions.scalars.limit_401k / 12;
+    return Math.min(monthlySuggestedAfterTaxIncome * 0.05, monthly401kLimit);
   };
 
   // Calculate recommended Roth IRA amount using Week 1 logic (suggested after-tax income)
   const calculateRecommendedRothIRA = () => {
     if (monthlySuggestedAfterTaxIncome <= 0) return 0;
-    // Excel: =IF(G46=1958.33,MIN('Week 1 - Budgeting'!$G$40*(0.05-I46),583.33),0)
     // Only contribute to Roth IRA if Roth 401k is at its maximum
-    const roth401kAmount = Math.min(monthlySuggestedAfterTaxIncome * 0.05, 1958.33);
-    if (roth401kAmount === 1958.33) {
+    const monthly401kLimit = assumptions.scalars.limit_401k / 12;
+    const monthlyIraLimit = assumptions.scalars.limit_ira / 12;
+    const roth401kAmount = Math.min(monthlySuggestedAfterTaxIncome * 0.05, monthly401kLimit);
+    if (roth401kAmount === monthly401kLimit) {
       // Calculate Roth 401k percentage first
       const roth401kPercent = roth401kAmount / monthlySuggestedAfterTaxIncome;
-      // Then calculate Roth IRA: 5% total - Roth 401k percentage, capped at $583.33
-      return Math.min(monthlySuggestedAfterTaxIncome * (0.05 - roth401kPercent), 583.33);
+      // Then calculate Roth IRA: 5% total - Roth 401k percentage, capped at the monthly IRA limit
+      return Math.min(monthlySuggestedAfterTaxIncome * (0.05 - roth401kPercent), monthlyIraLimit);
     }
     return 0;
   };

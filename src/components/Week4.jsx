@@ -1,9 +1,11 @@
 import React, { useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
-import stateTaxData from '../data/stateTaxData';
+import { useAssumptions } from '../contexts/AssumptionsContext';
+import { calculateBracketBreakdown } from '../utils/taxEngine';
 
 const Week4 = () => {
   const { summaryCalculations, topInputs } = useBudget();
+  const { assumptions } = useAssumptions();
   
   // Auto-save function (without alert)
   const autoSaveWeek4 = () => {
@@ -36,7 +38,7 @@ const Week4 = () => {
     // C4: Pre-tax Income
     preTaxIncome: summaryCalculations.preTaxIncome || 0,
     
-    // C6: Standard Deduction (Single Filers 2025)
+    // C6: Standard Deduction (Single Filer)
     standardDeduction: summaryCalculations.standardDeduction || 0,
     
     // C7: Pre-Tax Expenses (Health Insurance, Tr. 401k, Tr. IRA) * 12 - SUGGESTED
@@ -65,90 +67,15 @@ const Week4 = () => {
   };
 
 
-  // Federal tax brackets for 2026 (matching BudgetContext)
-  const federalTaxBrackets = [
-    { rate: 0.10, over: 0, butNotOver: 12400 },
-    { rate: 0.12, over: 12400, butNotOver: 50400 },
-    { rate: 0.22, over: 50400, butNotOver: 105700 },
-    { rate: 0.24, over: 105700, butNotOver: 201775 },
-    { rate: 0.32, over: 201775, butNotOver: 256225 },
-    { rate: 0.35, over: 256225, butNotOver: 640600 },
-    { rate: 0.37, over: 640600, butNotOver: Infinity }
-  ];
+  // Both bracket breakdowns now come from the single shared taxEngine.js,
+  // driven by the admin-editable Assumptions table, instead of a locally
+  // hardcoded federal bracket table and a second, independent re-derivation
+  // from stateTaxData -- this display can no longer drift from the totals
+  // shown on the Summary tab above it. See
+  // docs/financial-audit-2026-08-11.md (four+ independent tax engines).
+  const federalBracketBreakdown = calculateBracketBreakdown(week4Data.taxableIncome, assumptions.federalOrdinaryBrackets);
+  const stateBracketBreakdown = calculateBracketBreakdown(week4Data.taxableIncome, assumptions.stateBrackets[topInputs.location] || []);
 
-  // Function to calculate taxes paid per bracket (matching Excel logic)
-  const calculateTaxesPaidPerBracket = (taxableIncome, bracket) => {
-    if (taxableIncome <= bracket.over) {
-      return 0; // No tax in this bracket
-    } else if (taxableIncome >= bracket.butNotOver) {
-      // Full bracket: (butNotOver - over) * rate
-      return (bracket.butNotOver - bracket.over) * bracket.rate;
-    } else {
-      // Partial bracket: (taxableIncome - over) * rate
-      return (taxableIncome - bracket.over) * bracket.rate;
-    }
-  };
-
-
-  // Function to filter state tax rates (matching Excel FILTER formula)
-  const getStateTaxRates = (selectedState) => {
-    // =FILTER('Week 1 B - State Tax'!C7:C167, 'Week 1 B - State Tax'!B7:B167=F16)
-    return stateTaxData
-      .filter(item => item.state === selectedState)
-      .map(item => item.rate);
-  };
-
-  // Function to filter state tax "Over" values (matching Excel FILTER formula)
-  const getStateTaxOverValues = (selectedState) => {
-    // =FILTER('Week 1 B - State Tax'!D7:D167, 'Week 1 B - State Tax'!B7:B167=F16)
-    return stateTaxData
-      .filter(item => item.state === selectedState)
-      .map(item => item.lowerBound);
-  };
-
-  // Function to get "But Not Over" values (matching Excel LET/VSTACK/DROP formula)
-  const getStateTaxButNotOverValues = (selectedState) => {
-    // =LET(x, FILTER('Week 1 B - State Tax'!$D$7:$D$167, 'Week 1 B - State Tax'!$B$7:$B$167=$F$16), VSTACK(DROP(x,1), "…"))
-    const overValues = getStateTaxOverValues(selectedState);
-    
-    if (overValues.length === 0) return [];
-    
-    // DROP(x,1) - remove first element, then add "…" at the end
-    const butNotOverValues = overValues.slice(1); // Remove first element
-    butNotOverValues.push("…"); // Add "…" at the end
-    
-    return butNotOverValues;
-  };
-
-  // Function to calculate "Taxes Paid Per Bracket" values (matching Excel FILTER formula)
-  const getStateTaxPaidPerBracket = (selectedState, taxableIncome) => {
-    // =FILTER('Week 1 B - State Tax'!H7:H167, 'Week 1 B - State Tax'!B7:B167=F16)
-    const stateBrackets = stateTaxData.filter(item => item.state === selectedState);
-    
-    return stateBrackets.map((bracket, index) => {
-      // Calculate taxes paid in this bracket
-      if (taxableIncome <= bracket.lowerBound) {
-        return 0; // No taxes in this bracket
-      }
-      
-      // Get the "but not over" value (next bracket's "lowerBound" value, or infinity for highest bracket)
-      const nextBracket = stateBrackets[index + 1];
-      const butNotOver = nextBracket ? nextBracket.lowerBound : Infinity;
-      
-      // Calculate taxable amount in this bracket
-      const taxableInBracket = Math.min(taxableIncome, butNotOver) - bracket.lowerBound;
-      
-      // Calculate taxes in this bracket
-      return Math.max(0, taxableInBracket * bracket.rate);
-    });
-  };
-
-  // Get dynamic state tax data based on Week 1 location (matching Excel FILTER formula)
-  const stateTaxRates = getStateTaxRates(topInputs.location);
-  const stateTaxOverValues = getStateTaxOverValues(topInputs.location);
-  const stateTaxButNotOverValues = getStateTaxButNotOverValues(topInputs.location);
-  const stateTaxPaidPerBracket = getStateTaxPaidPerBracket(topInputs.location, week4Data.taxableIncome);
-  
   // Get dynamic table title based on state
   const getStateTaxTableTitle = (state) => {
     const stateNames = {
@@ -428,7 +355,7 @@ const Week4 = () => {
             </div>
             
             <div style={styles.dataRow}>
-              <span style={styles.dataLabel}>Standard Deduction (Single Filers 2025)</span>
+              <span style={styles.dataLabel}>Standard Deduction (Single Filer)</span>
               <span style={styles.dataValue}>${week4Data.standardDeduction.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
             </div>
             
@@ -519,36 +446,33 @@ const Week4 = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {federalTaxBrackets.map((bracket, index) => {
-                    const taxesPaid = calculateTaxesPaidPerBracket(week4Data.taxableIncome, bracket);
-                    return (
-                      <tr 
-                        key={index}
-                        style={styles.tableRow}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 253, 231, 0.6)';
-                          Array.from(e.currentTarget.children).forEach(cell => {
-                            cell.style.backgroundColor = 'rgba(255, 253, 231, 0.6)';
-                          });
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = 'transparent';
-                          Array.from(e.currentTarget.children).forEach(cell => {
-                            cell.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
-                          });
-                        }}
-                      >
-                        <td style={styles.tableCell}>{(bracket.rate * 100).toFixed(1)}%</td>
-                        <td style={styles.tableCell}>${bracket.over.toLocaleString()}</td>
-                        <td style={styles.tableCell}>
-                          {bracket.butNotOver === Infinity ? '...' : `$${bracket.butNotOver.toLocaleString()}`}
-                        </td>
-                        <td style={styles.tableCell}>
-                          ${taxesPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {federalBracketBreakdown.map((bracket, index) => (
+                    <tr
+                      key={index}
+                      style={styles.tableRow}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 253, 231, 0.6)';
+                        Array.from(e.currentTarget.children).forEach(cell => {
+                          cell.style.backgroundColor = 'rgba(255, 253, 231, 0.6)';
+                        });
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        Array.from(e.currentTarget.children).forEach(cell => {
+                          cell.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                        });
+                      }}
+                    >
+                      <td style={styles.tableCell}>{(bracket.rate * 100).toFixed(1)}%</td>
+                      <td style={styles.tableCell}>${bracket.lower.toLocaleString()}</td>
+                      <td style={styles.tableCell}>
+                        {bracket.upper >= 1e12 ? '...' : `$${bracket.upper.toLocaleString()}`}
+                      </td>
+                      <td style={styles.tableCell}>
+                        ${bracket.taxInBracket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -568,8 +492,8 @@ const Week4 = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {stateTaxRates.map((rate, index) => (
-                    <tr 
+                  {stateBracketBreakdown.map((bracket, index) => (
+                    <tr
                       key={index}
                       style={styles.tableRow}
                       onMouseEnter={(e) => {
@@ -585,16 +509,13 @@ const Week4 = () => {
                         });
                       }}
                     >
-                      <td style={styles.tableCell}>{(rate * 100).toFixed(2)}%</td>
-                      <td style={styles.tableCell}>${stateTaxOverValues[index].toLocaleString()}</td>
+                      <td style={styles.tableCell}>{(bracket.rate * 100).toFixed(2)}%</td>
+                      <td style={styles.tableCell}>${bracket.lower.toLocaleString()}</td>
                       <td style={styles.tableCell}>
-                        {stateTaxButNotOverValues[index] === "…" ? 
-                          "…" : 
-                          `$${stateTaxButNotOverValues[index].toLocaleString()}`
-                        }
+                        {bracket.upper >= 1e12 ? '…' : `$${bracket.upper.toLocaleString()}`}
                       </td>
                       <td style={styles.tableCell}>
-                        ${stateTaxPaidPerBracket[index].toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        ${bracket.taxInBracket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                       </td>
                     </tr>
                   ))}
