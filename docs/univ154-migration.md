@@ -1090,3 +1090,80 @@ see Database schema above). Branch `feature/assumptions-consolidation`.
   Student" toggle) — user flagged the old red/green as "AI slop." Table
   gridlines (per-cell borders) removed in favor of a subtle bottom-only row
   divider, matching the glassmorphism card style used elsewhere in the app.
+
+### 2026-08-13 (later same day) — "Changes not showing" was a broken Netlify↔GitHub connection this time, not browser cache
+Same symptom as the 2026-08-11 incident (user hard-refreshed, still saw old UI)
+but a different root cause — don't assume it's always browser cache:
+- Content-fingerprinted the live bundle against a fresh local build (same
+  method as 2026-08-11): grepped both for strings unique to the pushed changes
+  (`"Open all weeks"`, `"Select All"`, `"You can only enter data..."`). Live
+  bundle had 0/1/8 of those respectively; local build had 1/0/0. Confirms the
+  live site is genuinely serving pre-`0cdb14a` code, not a caching artifact —
+  `curl` bypasses browser cache entirely, so this wasn't the user's browser.
+- Checked GitHub directly (`gh api repos/.../hooks`, `.../commits/<sha>/statuses`,
+  `.../commits/<sha>/check-runs`) — all empty. **Netlify was never notified of
+  the push at all.** This repo (`riceuniversityuniv-cmyk/univ154`) is a *fork*
+  (`"fork": true` in the repo API response). Forking doesn't carry over a
+  GitHub App's repo access grant — Netlify's GitHub integration has to be
+  explicitly pointed at / granted access to the fork, and that connection has
+  apparently been dropped or was never (re)established after the fork, even
+  though deploys worked as recently as 2026-08-11.
+- **Fix requires the user's Netlify dashboard access** (no CLI/API credentials
+  available in this session — `npx netlify status` → "Not logged in"): either
+  relink the site's "Linked repository" under Site configuration → Build &
+  deploy → Continuous deployment, or on GitHub's side add this repo to the
+  Netlify GitHub App's repository access list at
+  `github.com/settings/installations`.
+- **Takeaway**: the 2026-08-11 entry's method (fingerprint live vs. local
+  bundle content) is the right first move for *any* "I don't see my changes"
+  report — it tells you whether to chase browser cache, CDN cache, or (this
+  time) a dead CI/CD trigger. Don't assume the previous incident's specific
+  cause repeats; verify from scratch each time.
+
+### 2026-08-13 (later still) — Real root cause was Netlify credit exhaustion; added Cloudflare Pages as second host, now primary
+After fixing the GitHub↔Netlify connection above, deploys *still* didn't show
+up. Logged into Netlify's billing page directly (`app.netlify.com` → team
+`riceuniversityuniv-cmyk` → Billing) and found the actual cause: this is a
+personal/free-tier Netlify team, **300 credits/month**, production deploys
+cost ~15 credits each, billing cycle Aug 10 → Sep 9 2026. This session's own
+debugging (repeated redeploys while chasing the connection issue) burned
+20 deploys = 300.7/300 credits, i.e. hit the cap. The 29.8 "operational"
+credits left over keep the *already-published* site online but can't fund
+new deploys. No payment method on file and user does not want to pay. Netlify
+auto-resumes on **2026-09-09** with zero config changes needed — it's a
+billing-cycle reset, not a bug.
+
+Decision: rather than wait ~4 weeks with no way to ship changes, set up
+**Cloudflare Pages** (`pages.dev`) as a second free host for the same GitHub
+repo (`riceuniversityuniv-cmyk/univ154`), and made it the primary/canonical
+URL going forward (Netlify is not being actively used, but the connection is
+fixed and it will silently start deploying again on its own after Sep 9 —
+left as-is, not decommissioned).
+
+- **Live URL: `https://univ154.pages.dev`** — confirmed rendering the login
+  page correctly (proves Supabase env vars were baked into the build).
+- Setup gotcha #1 — stale GitHub App install: Cloudflare's "Connect GitHub"
+  kept bouncing to GitHub's existing app-installation settings page instead
+  of completing OAuth, because the "Cloudflare Workers and Pages" GitHub App
+  was already installed on `riceuniversityuniv-cmyk` from an earlier
+  abandoned attempt. Fix: uninstall at
+  `github.com/settings/installations/153510942`, then re-click "Connect
+  GitHub" from Cloudflare to trigger a fresh Install & Authorize flow.
+- Setup gotcha #2 — wrong Cloudflare product: the newer unified "Create a
+  Worker" flow deploys the site as a static-assets-only Worker, which
+  **cannot** have environment variables at all ("Variables cannot be added to
+  a Worker that only has static assets"). Since Vite needs `VITE_SUPABASE_URL`
+  / `VITE_SUPABASE_ANON_KEY` present *at build time* to bake them into the
+  bundle, this product path is a dead end for this app. Use the classic
+  Cloudflare **Pages** flow instead:
+  `dash.cloudflare.com/?to=/:account/pages/new/provider/github` — same repo,
+  React (Vite) preset, build command `npm run build`, output dir `dist`, and
+  the two `VITE_*` vars added under the Pages project's environment variables.
+- Cloudflare Pages free tier: 500 builds/month, 1 concurrent build,
+  unlimited bandwidth/requests, no credit-cost-per-deploy system like
+  Netlify's — normal push cadence for this project won't come close.
+- Supabase itself is unaffected by any of this — it's a separate service the
+  built site calls over the network regardless of which host serves the
+  static files, so switching hosts changes nothing about student data or
+  security (that's governed by Supabase RLS policies, not by which CDN
+  serves `index.html`).
