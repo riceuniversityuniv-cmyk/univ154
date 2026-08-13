@@ -69,6 +69,28 @@ const styles = {
     boxSizing: 'border-box',
     textAlign: 'right',
   },
+  inputGroup: {
+    position: 'relative',
+    width: '100%',
+  },
+  inputAffixLeft: {
+    position: 'absolute',
+    left: '10px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    fontSize: '13px',
+    pointerEvents: 'none',
+  },
+  inputAffixRight: {
+    position: 'absolute',
+    right: '10px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: '#9ca3af',
+    fontSize: '13px',
+    pointerEvents: 'none',
+  },
   primaryButton: {
     padding: '8px 16px',
     backgroundColor: '#002060',
@@ -120,8 +142,57 @@ const SCALAR_FIELDS = [
 ];
 const SCALAR_CATEGORIES = [...new Set(SCALAR_FIELDS.map((f) => f.category))];
 
-const formatBoundForInput = (num) => (num >= 1e12 ? '' : String(num));
-const parseBoundInput = (str) => (str === '' || str === undefined ? 1e12 : Number(str));
+// Rounds away floating-point noise (e.g. 6.2000000000000006 -> 6.2,
+// 7.649999999999999 -> 7.65) that shows up whenever a decimal rate is
+// multiplied by 100 for display. Purely cosmetic -- doesn't clamp precision
+// on what actually gets saved, just what's rendered while editing.
+const clean = (num, decimals = 3) => {
+  const n = Number(num);
+  if (Number.isNaN(n)) return 0;
+  const factor = 10 ** decimals;
+  return Math.round(n * factor) / factor;
+};
+
+const formatCurrencyDisplay = (num) => {
+  const n = Number(num);
+  if (num === '' || num === undefined || num === null || Number.isNaN(n)) return '';
+  return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};
+
+const formatBoundForInput = (num) => (num >= 1e12 ? '' : formatCurrencyDisplay(num));
+const parseBoundInput = (str) => (str === '' || str === undefined ? 1e12 : Number(String(str).replace(/,/g, '')));
+
+// Comma-formatted dollar input ($176,100 instead of a bare 176100). Keeps its
+// own local text while focused (so typing "1,200" doesn't fight the cursor),
+// and reformats with commas on blur / whenever the underlying value changes
+// while not focused. onChange always receives the comma-stripped raw string,
+// same shape a plain <input type="number"> onChange's e.target.value would
+// give a caller, so it drops into the existing draft-state handlers as-is.
+function CurrencyInput({ value, onChange, formatter = formatCurrencyDisplay, placeholder, disabled, style }) {
+  const [text, setText] = useState(() => formatter(value));
+  const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!focused) setText(formatter(value));
+  }, [value, focused]);
+
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      placeholder={placeholder}
+      style={style}
+      value={text}
+      disabled={disabled}
+      onFocus={() => setFocused(true)}
+      onChange={(e) => {
+        setText(e.target.value);
+        onChange(e.target.value.replace(/,/g, ''));
+      }}
+      onBlur={() => setFocused(false)}
+    />
+  );
+}
 
 // Reusable lower/upper/rate row editor, used for Federal Ordinary, Federal
 // LTCG, per-state, and NYC bracket tables -- built once instead of
@@ -172,30 +243,38 @@ function BracketTableEditor({ rows, onSave, isUpdating }) {
           {draft.map((row, index) => (
             <tr key={index}>
               <td style={styles.td}>
-                <input
-                  style={styles.input}
-                  type="number"
-                  value={row.lower}
-                  onChange={(e) => updateRow(index, 'lower', e.target.value)}
-                />
+                <div style={styles.inputGroup}>
+                  <span style={styles.inputAffixLeft}>$</span>
+                  <CurrencyInput
+                    style={{ ...styles.input, paddingLeft: '22px' }}
+                    value={row.lower}
+                    onChange={(v) => updateRow(index, 'lower', v)}
+                  />
+                </div>
               </td>
               <td style={styles.td}>
-                <input
-                  style={styles.input}
-                  type="number"
-                  placeholder="no limit"
-                  value={formatBoundForInput(row.upper)}
-                  onChange={(e) => updateRow(index, 'upper', e.target.value)}
-                />
+                <div style={styles.inputGroup}>
+                  <span style={styles.inputAffixLeft}>$</span>
+                  <CurrencyInput
+                    style={{ ...styles.input, paddingLeft: '22px' }}
+                    placeholder="no limit"
+                    formatter={formatBoundForInput}
+                    value={row.upper}
+                    onChange={(v) => updateRow(index, 'upper', v)}
+                  />
+                </div>
               </td>
               <td style={styles.td}>
-                <input
-                  style={styles.input}
-                  type="number"
-                  step="0.001"
-                  value={row.rate * 100}
-                  onChange={(e) => updateRow(index, 'rate', (Number(e.target.value) || 0) / 100)}
-                />
+                <div style={styles.inputGroup}>
+                  <input
+                    style={{ ...styles.input, paddingRight: '24px' }}
+                    type="number"
+                    step="0.001"
+                    value={clean(row.rate * 100)}
+                    onChange={(e) => updateRow(index, 'rate', (Number(e.target.value) || 0) / 100)}
+                  />
+                  <span style={styles.inputAffixRight}>%</span>
+                </div>
               </td>
               <td style={{ ...styles.td, textAlign: 'center' }}>
                 <button style={styles.dangerButton} onClick={() => removeRow(index)} disabled={isUpdating}>
@@ -345,23 +424,43 @@ export default function AssumptionsAdmin() {
                 <tr key={f.key}>
                   <td style={{ ...styles.td, textAlign: 'left' }}>{f.label}</td>
                   <td style={styles.td}>
-                    <input
-                      style={styles.input}
-                      type="number"
-                      step={f.type === 'rate' ? '0.001' : '1'}
-                      value={
-                        f.type === 'rate'
-                          ? (scalarDrafts[f.key] ?? 0) * 100
-                          : (scalarDrafts[f.key] ?? 0)
-                      }
-                      onChange={(e) => {
-                        const raw = Number(e.target.value) || 0;
-                        setScalarDrafts((prev) => ({
-                          ...prev,
-                          [f.key]: f.type === 'rate' ? raw / 100 : raw,
-                        }));
-                      }}
-                    />
+                    {f.type === 'currency' ? (
+                      <div style={styles.inputGroup}>
+                        <span style={styles.inputAffixLeft}>$</span>
+                        <CurrencyInput
+                          style={{ ...styles.input, paddingLeft: '22px' }}
+                          value={scalarDrafts[f.key] ?? 0}
+                          onChange={(v) =>
+                            setScalarDrafts((prev) => ({ ...prev, [f.key]: Number(v) || 0 }))
+                          }
+                        />
+                      </div>
+                    ) : f.type === 'rate' ? (
+                      <div style={styles.inputGroup}>
+                        <input
+                          style={{ ...styles.input, paddingRight: '24px' }}
+                          type="number"
+                          step="0.001"
+                          value={clean((scalarDrafts[f.key] ?? 0) * 100)}
+                          onChange={(e) => {
+                            const raw = Number(e.target.value) || 0;
+                            setScalarDrafts((prev) => ({ ...prev, [f.key]: raw / 100 }));
+                          }}
+                        />
+                        <span style={styles.inputAffixRight}>%</span>
+                      </div>
+                    ) : (
+                      <input
+                        style={styles.input}
+                        type="number"
+                        step="1"
+                        value={scalarDrafts[f.key] ?? 0}
+                        onChange={(e) => {
+                          const raw = Number(e.target.value) || 0;
+                          setScalarDrafts((prev) => ({ ...prev, [f.key]: raw }));
+                        }}
+                      />
+                    )}
                   </td>
                 </tr>
               ))}
@@ -418,7 +517,7 @@ export default function AssumptionsAdmin() {
                   <input style={styles.input} type="number" value={row.age} onChange={(e) => updateRmdRow(index, 'age', e.target.value)} />
                 </td>
                 <td style={styles.td}>
-                  <input style={styles.input} type="number" step="0.1" value={row.divisor} onChange={(e) => updateRmdRow(index, 'divisor', e.target.value)} />
+                  <input style={styles.input} type="number" step="0.1" value={clean(row.divisor, 1)} onChange={(e) => updateRmdRow(index, 'divisor', e.target.value)} />
                 </td>
                 <td style={{ ...styles.td, textAlign: 'center' }}>
                   <button style={styles.dangerButton} onClick={() => removeRmdRow(index)} disabled={isUpdating}>
