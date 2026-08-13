@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Bar } from 'react-chartjs-2';
+import { formatCurrency } from '../utils/formatters';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -1003,15 +1004,15 @@ const Week5 = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal</div>
-                  <div style={styles.summaryValue}>${calculations.regularPaymentForPrincipal.toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(calculations.regularPaymentForPrincipal)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest</div>
-                  <div style={styles.summaryValue}>${Math.ceil(calculations.regularPaymentForInterest).toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.regularPaymentForInterest))}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Spent</div>
-                  <div style={styles.summaryValue}>${Math.round(calculations.totalAmountSpentRegular).toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.round(calculations.totalAmountSpentRegular))}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Term (Years)</div>
@@ -1050,15 +1051,15 @@ const Week5 = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal</div>
-                  <div style={styles.summaryValue}>${calculations.biWeeklyPaymentForPrincipal.toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(calculations.biWeeklyPaymentForPrincipal)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest</div>
-                  <div style={styles.summaryValue}>${Math.ceil(calculations.totalBiWeeklyInterest).toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.totalBiWeeklyInterest))}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Spent</div>
-                  <div style={styles.summaryValue}>${Math.round((parseFloat(loanAmount) || 0) + calculations.totalBiWeeklyInterest).toLocaleString('en-US')}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.round((parseFloat(loanAmount) || 0) + calculations.totalBiWeeklyInterest))}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Term (Years)</div>
@@ -1099,23 +1100,23 @@ const Week5 = () => {
             <div style={styles.summaryTable}>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Monthly Mortgage Payment (Principal + Interest)</div>
-                <div style={styles.summaryValue}>${calculations.monthlyPayment.toFixed(2)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.monthlyPayment)}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Insurance</div>
-                <div style={styles.summaryValue}>${calculations.calculatedInsurance.toFixed(2)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedInsurance)}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Taxes</div>
-                <div style={styles.summaryValue}>${calculations.calculatedTaxes.toFixed(2)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedTaxes)}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Maintenance</div>
-                <div style={styles.summaryValue}>${calculations.calculatedMaintenance.toFixed(2)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedMaintenance)}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Total Costs</div>
-                <div style={styles.summaryValue}>${calculations.totalMonthlyCosts.toFixed(2)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.totalMonthlyCosts)}</div>
               </div>
             </div>
           </div>
@@ -1244,11 +1245,11 @@ const Week5 = () => {
                           backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
                         }}>
                           <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{row.month}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.loanAmount.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.payment.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.interest.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.principal.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.balance.toFixed(2)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance)}</td>
                         </tr>
                       ));
                     })()}
@@ -1349,11 +1350,11 @@ const Week5 = () => {
                           backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
                         }}>
                           <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{row.week}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.loanAmount.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.payment.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.interest.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.principal.toFixed(2)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>${row.balance.toFixed(2)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal)}</td>
+                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance)}</td>
                         </tr>
                       ));
                     })()}

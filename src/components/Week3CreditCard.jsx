@@ -10,6 +10,7 @@ import {
   Legend,
 } from 'chart.js';
 import { useBudget } from '../contexts/BudgetContext';
+import { formatCurrency } from '../utils/formatters';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -976,7 +977,7 @@ const Week3CreditCard = () => {
                 <div style={styles.inputRow}>
                   <div style={styles.inputLabel}>Minimum Payment</div>
                   <div style={styles.calculatedValue}>
-                    ${minimumPayment.toFixed(2)}
+                    {formatCurrency(minimumPayment)}
                   </div>
                 </div>
                 <div style={styles.inputRow}>
@@ -1047,7 +1048,7 @@ const Week3CreditCard = () => {
                       // Validation
                       if (value !== '' && !isNaN(numericValue) && numericValue >= 0) {
                         if (numericValue < minimumPayment) {
-                          alert(`User Input Payment must be at least the minimum payment amount of $${minimumPayment.toFixed(2)}`);
+                          alert(`User Input Payment must be at least the minimum payment amount of ${formatCurrency(minimumPayment)}`);
                           // Reset to minimum payment
                           setUserPayment(minimumPayment.toString());
                         }
@@ -1089,15 +1090,15 @@ const Week3CreditCard = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest Paid</div>
-                  <div style={styles.summaryValue}>${userPaymentData.summary.interestPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.interestPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal Paid</div>
-                  <div style={styles.summaryValue}>${userPaymentData.summary.principalPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.principalPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Paid</div>
-                  <div style={styles.summaryValue}>${userPaymentData.summary.totalAmountPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.totalAmountPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Months to Pay Off</div>
@@ -1128,15 +1129,15 @@ const Week3CreditCard = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest Paid</div>
-                  <div style={styles.summaryValue}>${minimumPaymentData.summary.interestPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.interestPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal Paid</div>
-                  <div style={styles.summaryValue}>${minimumPaymentData.summary.principalPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.principalPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Paid</div>
-                  <div style={styles.summaryValue}>${minimumPaymentData.summary.totalAmountPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.totalAmountPaid)}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Months to Pay Off</div>
@@ -1247,7 +1248,7 @@ const Week3CreditCard = () => {
                     displayColors: true,
                     callbacks: {
                       label: function(context) {
-                        return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                        return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
                       }
                     }
                   }
@@ -1269,7 +1270,7 @@ const Week3CreditCard = () => {
                     },
                     ticks: {
                       callback: function(value) {
-                        return '$' + value.toFixed(2);
+                        return formatCurrency(value);
                       }
                     }
                   }
@@ -1378,7 +1379,7 @@ const Week3CreditCard = () => {
                     displayColors: true,
                     callbacks: {
                       label: function(context) {
-                        return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                        return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
                       }
                     }
                   }
@@ -1400,7 +1401,7 @@ const Week3CreditCard = () => {
                     },
                     ticks: {
                       callback: function(value) {
-                        return '$' + value.toFixed(2);
+                        return formatCurrency(value);
                       }
                     }
                   }
@@ -1727,15 +1728,15 @@ const Week3CreditCard = () => {
             <div style={styles.paymentSummaryList}>
               <div style={styles.paymentSummaryItem}>
                 <span style={styles.paymentSummaryLabel}>Interest Paid</span>
-                <span style={styles.paymentSummaryValue}>${generalLoanData.summary.interestPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span style={styles.paymentSummaryValue}>{formatCurrency(generalLoanData.summary.interestPaid)}</span>
               </div>
               <div style={styles.paymentSummaryItem}>
                 <span style={styles.paymentSummaryLabel}>Principal Paid</span>
-                <span style={styles.paymentSummaryValue}>${generalLoanData.summary.principalPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span style={styles.paymentSummaryValue}>{formatCurrency(generalLoanData.summary.principalPaid)}</span>
               </div>
               <div style={styles.paymentSummaryItem}>
                 <span style={styles.paymentSummaryLabel}>Total Amount Paid</span>
-                <span style={styles.paymentSummaryValue}>${generalLoanData.summary.totalAmountPaid.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                <span style={styles.paymentSummaryValue}>{formatCurrency(generalLoanData.summary.totalAmountPaid)}</span>
             </div>
           </div>
         </div>
@@ -1837,7 +1838,7 @@ const Week3CreditCard = () => {
                       displayColors: true,
                       callbacks: {
                         label: function(context) {
-                          return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                          return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
                         }
                       }
                   }
@@ -1859,7 +1860,7 @@ const Week3CreditCard = () => {
                     },
                     ticks: {
                       callback: function(value) {
-                        return '$' + value.toFixed(2);
+                        return formatCurrency(value);
                       }
                     }
                   }
@@ -2087,7 +2088,7 @@ const Week3CreditCard = () => {
                       displayColors: true,
                       callbacks: {
                         label: function(context) {
-                          return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                          return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
                         }
                       }
                     }
@@ -2135,7 +2136,7 @@ const Week3CreditCard = () => {
                         },
                         padding: 12,
                         callback: function(value) {
-                          return '$' + value.toFixed(2);
+                          return formatCurrency(value);
                         }
                       }
                     }

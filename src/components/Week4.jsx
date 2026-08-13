@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown } from '../utils/taxEngine';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 
 const Week4 = () => {
   const { summaryCalculations, topInputs } = useBudget();
@@ -351,47 +352,47 @@ const Week4 = () => {
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Pre-tax Income</span>
-              <span style={styles.dataValue}>${week4Data.preTaxIncome.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxIncome)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Standard Deduction (Single Filer)</span>
-              <span style={styles.dataValue}>${week4Data.standardDeduction.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.standardDeduction)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Pre-Tax Expenses (Health Insurance, Tr. 401k, Tr. IRA)</span>
-              <span style={styles.dataValue}>${week4Data.preTaxExpenses.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxExpenses)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Taxable Income</span>
-              <span style={styles.dataValue}>${week4Data.taxableIncome.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.taxableIncome)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Income Tax Payment</span>
-              <span style={styles.dataValue}>${week4Data.federalIncomeTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalIncomeTax)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Social Security Tax Payment</span>
-              <span style={styles.dataValue}>${week4Data.federalSocialSecurityTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalSocialSecurityTax)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Medicare Tax Payment</span>
-              <span style={styles.dataValue}>${week4Data.federalMedicareTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalMedicareTax)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>State Income Tax Payment</span>
-              <span style={styles.dataValue}>${week4Data.stateIncomeTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.stateIncomeTax)}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>NY City Income Tax Payment</span>
-              <span style={styles.dataValue}>${week4Data.nyCityIncomeTax.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.nyCityIncomeTax)}</span>
             </div>
             
             <div style={styles.highlightRow}>
@@ -412,7 +413,7 @@ const Week4 = () => {
                 textAlign: 'right',
                 boxShadow: '0 2px 8px 0 rgba(13, 26, 75, 0.15)',
               }}>
-                ${week4Data.afterTaxIncome.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                {formatCurrency(week4Data.afterTaxIncome)}
               </span>
             </div>
           </div>
@@ -463,13 +464,13 @@ const Week4 = () => {
                         });
                       }}
                     >
-                      <td style={styles.tableCell}>{(bracket.rate * 100).toFixed(1)}%</td>
-                      <td style={styles.tableCell}>${bracket.lower.toLocaleString()}</td>
+                      <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
+                      <td style={styles.tableCell}>{formatCurrency(bracket.lower)}</td>
                       <td style={styles.tableCell}>
-                        {bracket.upper >= 1e12 ? '...' : `$${bracket.upper.toLocaleString()}`}
+                        {bracket.upper >= 1e12 ? '...' : `${formatCurrency(bracket.upper)}`}
                       </td>
                       <td style={styles.tableCell}>
-                        ${bracket.taxInBracket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        {formatCurrency(bracket.taxInBracket)}
                       </td>
                     </tr>
                   ))}
@@ -509,13 +510,13 @@ const Week4 = () => {
                         });
                       }}
                     >
-                      <td style={styles.tableCell}>{(bracket.rate * 100).toFixed(2)}%</td>
-                      <td style={styles.tableCell}>${bracket.lower.toLocaleString()}</td>
+                      <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
+                      <td style={styles.tableCell}>{formatCurrency(bracket.lower)}</td>
                       <td style={styles.tableCell}>
-                        {bracket.upper >= 1e12 ? '…' : `$${bracket.upper.toLocaleString()}`}
+                        {bracket.upper >= 1e12 ? '…' : `${formatCurrency(bracket.upper)}`}
                       </td>
                       <td style={styles.tableCell}>
-                        ${bracket.taxInBracket.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        {formatCurrency(bracket.taxInBracket)}
                       </td>
                     </tr>
                   ))}

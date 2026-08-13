@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateLTCGTax } from '../utils/taxEngine';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -338,7 +339,7 @@ const Week9 = () => {
         bodyFont: { size: 13 },
         callbacks: {
           title: (ctx) => (ctx[0] ? `Age ${ctx[0].label}` : ''),
-          label: (ctx) => `${ctx.dataset.label}: $${(ctx.raw ?? 0).toLocaleString()}`,
+          label: (ctx) => `${ctx.dataset.label}: ${formatCurrency((ctx.raw ?? 0))}`,
         },
       },
     },
@@ -647,7 +648,7 @@ const Week9 = () => {
     },
   };
 
-  const formatCurrency = (n) => (n == null ? '' : `$${Number(n).toLocaleString()}`);
+  // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
 
   return (
     <>
@@ -1103,7 +1104,7 @@ const Week9 = () => {
                           borderBottom: '1px solid rgba(229, 231, 235, 0.5)',
                         }}
                       >
-                        {blendedReturn1.toFixed(2)}%
+                        {formatPercent(blendedReturn1, { alreadyPercent: true })}
                       </td>
                       <td
                         style={{
@@ -1118,7 +1119,7 @@ const Week9 = () => {
                           borderBottom: '1px solid rgba(229, 231, 235, 0.5)',
                         }}
                       >
-                        {blendedReturn2.toFixed(2)}%
+                        {formatPercent(blendedReturn2, { alreadyPercent: true })}
                       </td>
                       <td
                         style={{
@@ -1134,7 +1135,7 @@ const Week9 = () => {
                           borderBottom: '1px solid rgba(229, 231, 235, 0.5)',
                         }}
                       >
-                        {blendedReturn3.toFixed(2)}%
+                        {formatPercent(blendedReturn3, { alreadyPercent: true })}
                       </td>
                     </tr>
                   </tbody>

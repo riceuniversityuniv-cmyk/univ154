@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { formatCurrency } from '../utils/formatters';
 
 const Week7 = () => {
   // State for insurance comparison
@@ -55,7 +56,7 @@ const Week7 = () => {
     return Number.isFinite(parsed) ? parsed : 0;
   };
 
-  const formatMoney = (value) => toNumber(value).toLocaleString();
+  // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
 
   // Definitions for tooltips
   const definitions = {
@@ -687,7 +688,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${hdhpPlan.annualPremiumRec.toLocaleString()}
+                          {formatCurrency(hdhpPlan.annualPremiumRec)}
                         </div>
                       </div>
                     </td>
@@ -703,7 +704,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${normalPlan.annualPremiumRec.toLocaleString()}
+                          {formatCurrency(normalPlan.annualPremiumRec)}
                         </div>
                       </div>
                     </td>
@@ -739,7 +740,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${hdhpPlan.deductibleRec.toLocaleString()}
+                          {formatCurrency(hdhpPlan.deductibleRec)}
                         </div>
                       </div>
                     </td>
@@ -755,7 +756,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${normalPlan.deductibleRec.toLocaleString()}
+                          {formatCurrency(normalPlan.deductibleRec)}
                         </div>
                       </div>
                     </td>
@@ -873,7 +874,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${hdhpPlan.maxOutOfPocketRec.toLocaleString()}
+                          {formatCurrency(hdhpPlan.maxOutOfPocketRec)}
                         </div>
                       </div>
                     </td>
@@ -889,7 +890,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${normalPlan.maxOutOfPocketRec.toLocaleString()}
+                          {formatCurrency(normalPlan.maxOutOfPocketRec)}
                         </div>
                       </div>
                     </td>
@@ -925,7 +926,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${hdhpPlan.employerHSARec.toLocaleString()}
+                          {formatCurrency(hdhpPlan.employerHSARec)}
                         </div>
                       </div>
                     </td>
@@ -941,7 +942,7 @@ const Week7 = () => {
                           style={styles.input}
                         />
                         <div style={styles.recommendationText}>
-                          ${normalPlan.employerHSARec.toLocaleString()}
+                          {formatCurrency(normalPlan.employerHSARec)}
                         </div>
                       </div>
                     </td>
@@ -968,27 +969,27 @@ const Week7 = () => {
                 <div style={styles.metricRow}>
                   <span>Out-of-Pocket Medical Costs:</span>
                   <span style={styles.metricValue}>
-                    ${formatMoney(hdhpCosts.outOfPocketCosts)}
+                    {formatCurrency(hdhpCosts.outOfPocketCosts)}
                   </span>
                 </div>
                 
                 <div style={styles.metricRow}>
                   <span>Less Employer HSA Contribution:</span>
                   <span style={{ ...styles.metricValue, color: '#16a34a' }}>
-                    (${formatMoney(hdhpPlan.employerHSA)})
+                    ({formatCurrency(hdhpPlan.employerHSA)})
                   </span>
                 </div>
                 
                 <div style={styles.metricRow}>
                   <span>Annual Premium:</span>
                   <span style={styles.metricValue}>
-                    ${formatMoney(hdhpPlan.annualPremium)}
+                    {formatCurrency(hdhpPlan.annualPremium)}
                   </span>
                 </div>
                 
                 <div style={styles.totalRow}>
                   <span>Total Annual Cost:</span>
-                  <span>${formatMoney(hdhpCosts.totalAnnualCost)}</span>
+                  <span>{formatCurrency(hdhpCosts.totalAnnualCost)}</span>
                 </div>
               </div>
 
@@ -1000,27 +1001,27 @@ const Week7 = () => {
                 <div style={styles.metricRow}>
                   <span>Out-of-Pocket Medical Costs:</span>
                   <span style={styles.metricValue}>
-                    ${formatMoney(normalCosts.outOfPocketCosts)}
+                    {formatCurrency(normalCosts.outOfPocketCosts)}
                   </span>
                 </div>
                 
                 <div style={styles.metricRow}>
                   <span>Less Employer HSA Contribution:</span>
                   <span style={{ ...styles.metricValue, color: '#16a34a' }}>
-                    (${formatMoney(normalPlan.employerHSA)})
+                    ({formatCurrency(normalPlan.employerHSA)})
                   </span>
                 </div>
                 
                 <div style={styles.metricRow}>
                   <span>Annual Premium:</span>
                   <span style={styles.metricValue}>
-                    ${formatMoney(normalPlan.annualPremium)}
+                    {formatCurrency(normalPlan.annualPremium)}
                   </span>
                 </div>
                 
                 <div style={styles.totalRow}>
                   <span>Total Annual Cost:</span>
-                  <span>${formatMoney(normalCosts.totalAnnualCost)}</span>
+                  <span>{formatCurrency(normalCosts.totalAnnualCost)}</span>
                 </div>
               </div>
             </div>
@@ -1042,7 +1043,7 @@ const Week7 = () => {
               fontSize: '15px',
               fontWeight: '600'
             }}>
-              {savings > 0 ? '' : '❌ '} {cheaperPlan} is cheaper by ${formatMoney(Math.abs(savings))}
+              {savings > 0 ? '' : '❌ '} {cheaperPlan} is cheaper by {formatCurrency(Math.abs(savings))}
             </div>
           </div>
 

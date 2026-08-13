@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
+import { formatCurrency } from '../utils/formatters';
 
 const styles = {
   container: {
@@ -83,8 +84,6 @@ const styles = {
 
 export default function Week1Summary() {
   const { topInputs, deductionChoices, financialCalculations, summaryCalculations, userInputs } = useBudget();
-  
-  const formatCurrency = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   return (
     <>

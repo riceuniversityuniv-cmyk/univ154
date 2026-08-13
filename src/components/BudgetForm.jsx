@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 
 // This data structure now includes all necessary info for rendering the exact layout
 const budgetConfig = {
@@ -469,9 +470,12 @@ const AnimatedNumber = ({ value, formatCurrency = false, formatCurrencyFn = null
   }, [value]);
 
   // Use provided formatCurrency function if available, otherwise use default formatting
+  // Note: the `formatCurrency` prop here is a boolean flag and shadows the
+  // module-level formatCurrency() import for the rest of this component --
+  // that's fine since actual formatting always goes through formatCurrencyFn.
   const formatValue = (val) => {
     if (formatCurrency && formatCurrencyFn) {
-      return `$${formatCurrencyFn(val)}`;
+      return formatCurrencyFn(val);
     } else if (formatCurrency) {
       return `$${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     } else {
@@ -750,7 +754,7 @@ export default function BudgetForm() {
             return; // Don't alert, just prevent negative input
           }
           if (numValue > monthlyPreTaxIncome) {
-            alert(`⚠️ Must be <= Monthly Pre-Tax Income ($${formatCurrency(monthlyPreTaxIncome)})`);
+            alert(`⚠️ Must be <= Monthly Pre-Tax Income (${formatCurrency(monthlyPreTaxIncome)})`);
             return;
           }
           
@@ -760,19 +764,19 @@ export default function BudgetForm() {
           // SavingsForm.jsx's annual 23500/7000. See
           // docs/financial-audit-2026-08-11.md finding #14.
           if (id === 'traditional_401k' && numValue > monthly401kLimit) {
-            alert(`Traditional 401(k) maximum contribution is $${monthly401kLimit.toFixed(2)} monthly`);
+            alert(`Traditional 401(k) maximum contribution is ${formatCurrency(monthly401kLimit)} monthly`);
             return;
           }
           if (id === 'traditional_ira' && numValue > monthlyIraLimit) {
-            alert(`Traditional IRA maximum contribution is $${monthlyIraLimit.toFixed(2)} monthly`);
+            alert(`Traditional IRA maximum contribution is ${formatCurrency(monthlyIraLimit)} monthly`);
             return;
           }
           if (id === 'roth_401k' && numValue > monthly401kLimit) {
-            alert(`Roth 401(k) maximum contribution is $${monthly401kLimit.toFixed(2)} monthly`);
+            alert(`Roth 401(k) maximum contribution is ${formatCurrency(monthly401kLimit)} monthly`);
             return;
           }
           if (id === 'roth_ira' && numValue > monthlyIraLimit) {
-            alert(`Roth IRA maximum contribution is $${monthlyIraLimit.toFixed(2)} monthly`);
+            alert(`Roth IRA maximum contribution is ${formatCurrency(monthlyIraLimit)} monthly`);
             return;
           }
         }
@@ -848,9 +852,8 @@ export default function BudgetForm() {
     
     // Note: handleDeductionChange removed as deductionChoices is not available in current context
 
-    const formatCurrency = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const formatPercent = (num) => (num * 100).toFixed(2) + '%';
-    
+    // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
+
     // Format number for input display (with commas, preserve decimals for cents)
     const formatNumberForInput = (num) => {
       if (!num || num === '') return '';
@@ -1327,9 +1330,9 @@ export default function BudgetForm() {
       const difference = monthlyIncome - totalExpenses;
       
       if (difference > 0) {
-        return `Under Budget by $${formatCurrency(difference)}`;
+        return `Under Budget by ${formatCurrency(difference)}`;
       } else if (difference < 0) {
-        return `Over Budget by $${formatCurrency(Math.abs(difference))}`;
+        return `Over Budget by ${formatCurrency(Math.abs(difference))}`;
       } else {
         return `Exactly on Budget`;
       }
@@ -1549,7 +1552,7 @@ export default function BudgetForm() {
             {/* Monthly Pre-Tax Income - Row 14 equivalent */}
             <div className="week1-user-input-summary" style={{...styles.afterTaxRow, marginTop: '10px', backgroundColor: '#e8f5e9'}}>
               <span>Monthly Pre-Tax Income</span>
-              <span>${formatCurrency(parseFloat(topInputs.preTaxIncome || 0) / 12)}</span>
+              <span>{formatCurrency(parseFloat(topInputs.preTaxIncome || 0) / 12)}</span>
             </div>
             
             {/* Note: Standard Deduction Choices section removed as deductionChoices is not available in current context */}
@@ -1655,7 +1658,7 @@ export default function BudgetForm() {
                                   borderRadius: '6px',
                                   border: '1px solid rgba(229, 231, 235, 0.5)'
                                 }}>
-                                  {itemsWithValues.length} items • Entered: ${formatCurrency(totalEntered)} 
+                                  {itemsWithValues.length} items • Entered: {formatCurrency(totalEntered)}
                                 </span>
                               );
                             }
@@ -1728,7 +1731,7 @@ export default function BudgetForm() {
                                           backgroundColor: 'rgba(243, 244, 246, 0.5)',
                                           borderRadius: '4px'
                                         }}>
-                                          {itemsWithValues.length} items • ${formatCurrency(totalEntered)}
+                                          {itemsWithValues.length} items • {formatCurrency(totalEntered)}
                                         </span>
                                       );
                                     }
@@ -1976,36 +1979,26 @@ export default function BudgetForm() {
                             <td style={{...styles.td, fontWeight: 'bold', paddingLeft: '40px'}}>Total</td>
                             <td style={styles.td}></td>
                             <td style={styles.td}>
-                              <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                                <span>$</span>
-                                <span>
-                                  {(() => {
-                                    const itemsToSum = subsection.title === 'Other Miscellaneous Expenses' 
-                                      ? customExpenseItems 
-                                      : subsection.items;
-                                    const total = itemsToSum
-                                      .filter(item => item.id)
-                                      .reduce((sum, item) => sum + (parseFloat(userInputs[item.id]) || 0), 0);
-                                    return total > 0 ? formatCurrency(total) : '-';
-                                  })()}
-                                </span>
-                              </div>
+                              {(() => {
+                                const itemsToSum = subsection.title === 'Other Miscellaneous Expenses'
+                                  ? customExpenseItems
+                                  : subsection.items;
+                                const total = itemsToSum
+                                  .filter(item => item.id)
+                                  .reduce((sum, item) => sum + (parseFloat(userInputs[item.id]) || 0), 0);
+                                return total > 0 ? formatCurrency(total) : '-';
+                              })()}
                             </td>
                             <td style={styles.td}>
-                              <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                                <span>$</span>
-                                <span>
-                                  {(() => {
-                                    const itemsToSum = subsection.title === 'Other Miscellaneous Expenses' 
-                                      ? customExpenseItems 
-                                      : subsection.items;
-                                    const totalRecommended = itemsToSum
-                                      .filter(item => item.id)
-                                      .reduce((sum, item) => sum + calculateRecommendedAmount(item), 0);
-                                    return totalRecommended > 0 ? formatCurrency(totalRecommended) : '-';
-                                  })()}
-                                </span>
-                              </div>
+                              {(() => {
+                                const itemsToSum = subsection.title === 'Other Miscellaneous Expenses'
+                                  ? customExpenseItems
+                                  : subsection.items;
+                                const totalRecommended = itemsToSum
+                                  .filter(item => item.id)
+                                  .reduce((sum, item) => sum + calculateRecommendedAmount(item), 0);
+                                return totalRecommended > 0 ? formatCurrency(totalRecommended) : '-';
+                              })()}
                             </td>
                             <td style={{...styles.td, ...styles.readOnly}}>
                               {(() => {
@@ -2037,16 +2030,10 @@ export default function BudgetForm() {
                         </td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}></td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <span>$</span>
-                            <span>{formatCurrency(summaryCalculations.userAfterTaxIncome / 12)}</span>
-                          </div>
+                          {formatCurrency(summaryCalculations.userAfterTaxIncome / 12)}
                         </td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
-                          <div style={{display: 'flex', justifyContent: 'space-between'}}>
-                            <span>$</span>
-                            <span>{formatCurrency(summaryCalculations.suggestedAfterTaxIncome / 12)}</span>
-                          </div>
+                          {formatCurrency(summaryCalculations.suggestedAfterTaxIncome / 12)}
                         </td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}></td>
                       </tr>
@@ -2114,7 +2101,7 @@ export default function BudgetForm() {
                   marginBottom: '8px',
                   lineHeight: '1.5'
                 }}>
-                  {isUnder ? `+$${formatCurrency(difference)}` : isOver ? `-$${formatCurrency(Math.abs(difference))}` : '$0.00'}
+                  {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
                 </div>
                 <div style={{fontSize: '11px', color: '#6b7280', fontWeight: '500', letterSpacing: '0.01em', marginBottom: '10px'}}>Budget Status</div>
                 <ProgressBar 
@@ -2266,7 +2253,7 @@ export default function BudgetForm() {
                         color: isUnder ? '#16a34a' : isOver ? '#dc2626' : '#0d1a4b', 
                         marginBottom: '8px'
                       }}>
-                        {isUnder ? `+$${formatCurrency(difference)}` : isOver ? `-$${formatCurrency(Math.abs(difference))}` : '$0.00'}
+                        {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
                       </div>
                       <div style={{fontSize: '14px', color: '#6b7280', fontWeight: '500', marginBottom: '12px'}}>Budget Status</div>
                       <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(229, 231, 235, 0.5)' }}>

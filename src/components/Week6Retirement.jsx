@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -2400,8 +2401,7 @@ export default function Week6Retirement() {
     }
   };
 
-  // Helper to format currency
-  const formatCurrency = (num) => Number(num || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
 
 
   // Section header style for all section titles
@@ -2588,7 +2588,7 @@ export default function Week6Retirement() {
                 fontWeight: '700',
                 color: '#0d1a4b'
               }}>
-                ${formatCurrency(monthlyPreTaxIncome)}
+                {formatCurrency(monthlyPreTaxIncome)}
               </div>
             </div>
             <div style={{
@@ -2625,7 +2625,7 @@ export default function Week6Retirement() {
                 fontWeight: '700',
                 color: '#0d1a4b'
               }}>
-                ${formatCurrency(monthlyUserAfterTaxIncome)}
+                {formatCurrency(monthlyUserAfterTaxIncome)}
               </div>
             </div>
           </div>
@@ -2730,7 +2730,7 @@ export default function Week6Retirement() {
                     fontSize: '14px',
                     fontWeight: '600'
                   }}>
-                    ${formatCurrency(getRetirementInput('retirement_traditional_401k'))}
+                    {formatCurrency(getRetirementInput('retirement_traditional_401k'))}
                   </div>
                 </td>
                 <td style={styles.td}>
@@ -2739,7 +2739,7 @@ export default function Week6Retirement() {
                     fontWeight: '700',
                     textAlign: 'center'
                   }}>
-                    ${formatCurrency(parseFloat(retirementBudgetedAmounts.traditional_401k) || getDefaultBudgetedAmount('traditional_401k'))}
+                    {formatCurrency(parseFloat(retirementBudgetedAmounts.traditional_401k) || getDefaultBudgetedAmount('traditional_401k'))}
                   </div>
                   <div style={{
                     fontSize: '11px',
@@ -2785,12 +2785,12 @@ export default function Week6Retirement() {
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600'}}>
-                  ${formatCurrency(getRetirementInput('retirement_roth_401k'))}
+                  {formatCurrency(getRetirementInput('retirement_roth_401k'))}
                 </div>
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '700', textAlign: 'center'}}>
-                  ${formatCurrency(parseFloat(retirementBudgetedAmounts.roth_401k) || getDefaultBudgetedAmount('roth_401k'))}
+                  {formatCurrency(parseFloat(retirementBudgetedAmounts.roth_401k) || getDefaultBudgetedAmount('roth_401k'))}
                 </div>
                 <div style={{fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'center'}}>
                   {(() => {
@@ -2801,7 +2801,7 @@ export default function Week6Retirement() {
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600', color: '#666'}}>
-                  ${formatCurrency(calculateRecommendedRoth401k())}
+                  {formatCurrency(calculateRecommendedRoth401k())}
                 </div>
               </td>
               <td style={styles.td}>
@@ -2823,12 +2823,12 @@ export default function Week6Retirement() {
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600'}}>
-                  ${formatCurrency(getRetirementInput('retirement_traditional_ira'))}
+                  {formatCurrency(getRetirementInput('retirement_traditional_ira'))}
               </div>
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '700', textAlign: 'center'}}>
-                  ${formatCurrency(parseFloat(retirementBudgetedAmounts.traditional_ira) || getDefaultBudgetedAmount('traditional_ira'))}
+                  {formatCurrency(parseFloat(retirementBudgetedAmounts.traditional_ira) || getDefaultBudgetedAmount('traditional_ira'))}
                 </div>
                 <div style={{fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'center'}}>
                   {(() => {
@@ -2857,12 +2857,12 @@ export default function Week6Retirement() {
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600'}}>
-                  ${formatCurrency(getRetirementInput('retirement_roth_ira'))}
+                  {formatCurrency(getRetirementInput('retirement_roth_ira'))}
               </div>
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '700', textAlign: 'center'}}>
-                  ${formatCurrency(parseFloat(retirementBudgetedAmounts.roth_ira) || getDefaultBudgetedAmount('roth_ira'))}
+                  {formatCurrency(parseFloat(retirementBudgetedAmounts.roth_ira) || getDefaultBudgetedAmount('roth_ira'))}
                 </div>
                 <div style={{fontSize: '11px', color: '#888', marginTop: '4px', textAlign: 'center'}}>
                   {(() => {
@@ -2873,7 +2873,7 @@ export default function Week6Retirement() {
                   </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600', color: '#666'}}>
-                  ${formatCurrency(calculateRecommendedRothIRA())}
+                  {formatCurrency(calculateRecommendedRothIRA())}
               </div>
               </td>
               <td style={styles.td}>
@@ -2889,13 +2889,13 @@ export default function Week6Retirement() {
                 <b>Total</b>
               </td>
               <td style={{...styles.td, background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)', color: '#fff', fontWeight: '700', fontSize: '14px'}}>
-                ${formatCurrency(totalUserInput)}
+                {formatCurrency(totalUserInput)}
               </td>
               <td style={{...styles.td, background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)', color: '#fff', fontWeight: '700', fontSize: '14px'}}>
-                ${formatCurrency(totalBudgetedAmount)}
+                {formatCurrency(totalBudgetedAmount)}
               </td>
               <td style={{...styles.td, background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)', color: '#fff', fontWeight: '700', fontSize: '14px'}}>
-                ${formatCurrency(totalRecommendedAmount)}
+                {formatCurrency(totalRecommendedAmount)}
               </td>
               <td style={{...styles.td, background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)', color: '#fff', fontWeight: '700', fontSize: '14px'}}>
                 {totalRecommendedPercent.toFixed(2)}%
@@ -3026,7 +3026,7 @@ export default function Week6Retirement() {
                     fontWeight: '600',
                     color: '#002060'
                   }}>
-                    ${formatCurrency(calculateDeferralAmount())}
+                    {formatCurrency(calculateDeferralAmount())}
               </div>
                 </td>
               </tr>
@@ -3355,7 +3355,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', fontWeight: '500' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_401k_a !== '' && monthlyPayments.traditional_401k_a != null ? `$${formatCurrency(monthlyPayments.traditional_401k_a)}` : ''}
+                  value={monthlyPayments.traditional_401k_a !== '' && monthlyPayments.traditional_401k_a != null ? `${formatCurrency(monthlyPayments.traditional_401k_a)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_401k_a', e.target.value)}
                   style={{
                     ...styles.input,
@@ -3431,7 +3431,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', fontWeight: '500' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_401k_b !== '' && monthlyPayments.traditional_401k_b != null ? `$${formatCurrency(monthlyPayments.traditional_401k_b)}` : ''}
+                  value={monthlyPayments.traditional_401k_b !== '' && monthlyPayments.traditional_401k_b != null ? `${formatCurrency(monthlyPayments.traditional_401k_b)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_401k_b', e.target.value)}
                   style={{
                     ...styles.input,
@@ -3507,7 +3507,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', fontWeight: '500' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_401k_c !== '' && monthlyPayments.traditional_401k_c != null ? `$${formatCurrency(monthlyPayments.traditional_401k_c)}` : ''}
+                  value={monthlyPayments.traditional_401k_c !== '' && monthlyPayments.traditional_401k_c != null ? `${formatCurrency(monthlyPayments.traditional_401k_c)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_401k_c', e.target.value)}
                   style={{
                     ...styles.input,
@@ -3621,7 +3621,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -3726,10 +3726,10 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.accountBalance)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesAData.accumulationData.length > 20 && (
@@ -3839,7 +3839,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditional401kSeriesA().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesA().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3848,7 +3848,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditional401kSeriesB().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesB().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3857,7 +3857,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditional401kSeriesC().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesC().finalBalance)}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -3877,7 +3877,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditional401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3886,7 +3886,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditional401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3895,7 +3895,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditional401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                   </tr>
                 </tbody>
               </table>
@@ -3976,8 +3976,8 @@ export default function Week6Retirement() {
                           {seriesAData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.accountBalance)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesAData.withdrawalData.length > 20 && (
@@ -4023,8 +4023,8 @@ export default function Week6Retirement() {
                           {seriesBData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.accountBalance)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesBData.withdrawalData.length > 20 && (
@@ -4070,8 +4070,8 @@ export default function Week6Retirement() {
                           {seriesCData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.accountBalance)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesCData.withdrawalData.length > 20 && (
@@ -4283,7 +4283,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeA}
               </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditional401kPV('A'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('A'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -4413,7 +4413,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeB}
               </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditional401kPV('B'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('B'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -4543,7 +4543,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeC}
             </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditional401kPV('C'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('C'))}</div>
             </div>
           </div>
 
@@ -4580,10 +4580,10 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>${formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>${formatCurrency(row.accountBalance)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesBData.accumulationData.length > 20 && (
@@ -4679,7 +4679,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -5084,7 +5084,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_401k_a !== '' && monthlyPayments.roth_401k_a != null ? `$${formatCurrency(monthlyPayments.roth_401k_a)}` : ''}
+                  value={monthlyPayments.roth_401k_a !== '' && monthlyPayments.roth_401k_a != null ? `${formatCurrency(monthlyPayments.roth_401k_a)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_401k_a', e.target.value)}
                   style={{
                     ...styles.input,
@@ -5158,7 +5158,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_401k_b !== '' && monthlyPayments.roth_401k_b != null ? `$${formatCurrency(monthlyPayments.roth_401k_b)}` : ''}
+                  value={monthlyPayments.roth_401k_b !== '' && monthlyPayments.roth_401k_b != null ? `${formatCurrency(monthlyPayments.roth_401k_b)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_401k_b', e.target.value)}
                   style={{
                     ...styles.input,
@@ -5232,7 +5232,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_401k_c !== '' && monthlyPayments.roth_401k_c != null ? `$${formatCurrency(monthlyPayments.roth_401k_c)}` : ''}
+                  value={monthlyPayments.roth_401k_c !== '' && monthlyPayments.roth_401k_c != null ? `${formatCurrency(monthlyPayments.roth_401k_c)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_401k_c', e.target.value)}
                   style={{
                     ...styles.input,
@@ -5344,7 +5344,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -5449,10 +5449,10 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.employerMatch.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.totalContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5495,10 +5495,10 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.employerMatch.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.totalContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5541,10 +5541,10 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.employerMatch.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.totalContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5647,7 +5647,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRoth401kSeriesA().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesA().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5656,7 +5656,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRoth401kSeriesB().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesB().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5665,7 +5665,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRoth401kSeriesC().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesC().finalBalance)}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -5685,7 +5685,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRoth401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5694,7 +5694,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRoth401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5703,7 +5703,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRoth401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                   </tr>
             </tbody>
           </table>
@@ -5950,7 +5950,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRoth401kPV('A'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('A'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -6080,7 +6080,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRoth401kPV('B'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('B'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -6210,7 +6210,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRoth401kPV('C'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('C'))}</div>
               </div>
       </div>
 
@@ -6291,7 +6291,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -6698,7 +6698,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_ira_a !== '' && monthlyPayments.traditional_ira_a != null ? `$${formatCurrency(monthlyPayments.traditional_ira_a)}` : ''}
+                  value={monthlyPayments.traditional_ira_a !== '' && monthlyPayments.traditional_ira_a != null ? `${formatCurrency(monthlyPayments.traditional_ira_a)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_ira_a', e.target.value)}
                   style={{
                     ...styles.input,
@@ -6772,7 +6772,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_ira_b !== '' && monthlyPayments.traditional_ira_b != null ? `$${formatCurrency(monthlyPayments.traditional_ira_b)}` : ''}
+                  value={monthlyPayments.traditional_ira_b !== '' && monthlyPayments.traditional_ira_b != null ? `${formatCurrency(monthlyPayments.traditional_ira_b)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_ira_b', e.target.value)}
                   style={{
                     ...styles.input,
@@ -6846,7 +6846,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.traditional_ira_c !== '' && monthlyPayments.traditional_ira_c != null ? `$${formatCurrency(monthlyPayments.traditional_ira_c)}` : ''}
+                  value={monthlyPayments.traditional_ira_c !== '' && monthlyPayments.traditional_ira_c != null ? `${formatCurrency(monthlyPayments.traditional_ira_c)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('traditional_ira_c', e.target.value)}
                   style={{
                     ...styles.input,
@@ -6958,7 +6958,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -7059,8 +7059,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7100,8 +7100,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7141,8 +7141,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7244,7 +7244,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditionalIRASeriesA().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesA().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7253,7 +7253,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditionalIRASeriesB().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesB().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7262,7 +7262,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateTraditionalIRASeriesC().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesC().finalBalance)}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -7282,7 +7282,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditionalIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7291,7 +7291,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditionalIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7300,7 +7300,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateTraditionalIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                   </tr>
             </tbody>
           </table>
@@ -7547,7 +7547,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditionalIRAPV('A'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('A'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -7677,7 +7677,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditionalIRAPV('B'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('B'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -7807,7 +7807,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateTraditionalIRAPV('C'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('C'))}</div>
               </div>
       </div>
 
@@ -7889,7 +7889,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -8296,7 +8296,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_ira_a !== '' && monthlyPayments.roth_ira_a != null ? `$${formatCurrency(monthlyPayments.roth_ira_a)}` : ''}
+                  value={monthlyPayments.roth_ira_a !== '' && monthlyPayments.roth_ira_a != null ? `${formatCurrency(monthlyPayments.roth_ira_a)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_ira_a', e.target.value)}
                   style={{
                     ...styles.input,
@@ -8370,7 +8370,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_ira_b !== '' && monthlyPayments.roth_ira_b != null ? `$${formatCurrency(monthlyPayments.roth_ira_b)}` : ''}
+                  value={monthlyPayments.roth_ira_b !== '' && monthlyPayments.roth_ira_b != null ? `${formatCurrency(monthlyPayments.roth_ira_b)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_ira_b', e.target.value)}
                   style={{
                     ...styles.input,
@@ -8444,7 +8444,7 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
                 <input
                   type="text"
-                  value={monthlyPayments.roth_ira_c !== '' && monthlyPayments.roth_ira_c != null ? `$${formatCurrency(monthlyPayments.roth_ira_c)}` : ''}
+                  value={monthlyPayments.roth_ira_c !== '' && monthlyPayments.roth_ira_c != null ? `${formatCurrency(monthlyPayments.roth_ira_c)}` : ''}
                   onChange={(e) => handleMonthlyPaymentChange('roth_ira_c', e.target.value)}
                   style={{
                     ...styles.input,
@@ -8556,7 +8556,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );
@@ -8658,8 +8658,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8699,8 +8699,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8740,8 +8740,8 @@ export default function Week6Retirement() {
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.annualContribution.toLocaleString()}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>${row.accountBalance.toLocaleString()}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8844,7 +8844,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRothIRASeriesA().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesA().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8853,7 +8853,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRothIRASeriesB().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesB().finalBalance)}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8862,7 +8862,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculateRothIRASeriesC().finalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesC().finalBalance)}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -8882,7 +8882,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRothIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8891,7 +8891,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRothIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8900,7 +8900,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>${calculatePresentValue(calculateRothIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
                   </tr>
           </tbody>
         </table>
@@ -9147,7 +9147,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRothIRAPV('A'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('A'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -9277,7 +9277,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRothIRAPV('B'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('B'))}</div>
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
@@ -9407,7 +9407,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: ${formatCurrency(calculateRothIRAPV('C'))}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('C'))}</div>
               </div>
       </div>
 
@@ -9489,7 +9489,7 @@ export default function Week6Retirement() {
                               fill="#666"
                               textAnchor="end"
                             >
-                              ${Math.round(value).toLocaleString()}
+                              {formatCurrency(Math.round(value))}
                             </text>
                           </g>
                         );

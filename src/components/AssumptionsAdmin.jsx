@@ -73,15 +73,6 @@ const styles = {
     position: 'relative',
     width: '100%',
   },
-  inputAffixLeft: {
-    position: 'absolute',
-    left: '10px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: '#9ca3af',
-    fontSize: '13px',
-    pointerEvents: 'none',
-  },
   inputAffixRight: {
     position: 'absolute',
     right: '10px',
@@ -153,22 +144,35 @@ const clean = (num, decimals = 3) => {
   return Math.round(n * factor) / factor;
 };
 
+// Bakes the $ into the formatted string itself ("$176,100") rather than
+// pinning it as a fixed-position decoration next to a right-aligned input --
+// the latter is Excel's *Accounting* format (symbol flush left, digits flush
+// right, gap between for anything shorter than the widest row). This is
+// Excel's *Currency* format instead: symbol sits directly against the first
+// digit, and the whole "$176,100" string is what's right-aligned as one unit.
 const formatCurrencyDisplay = (num) => {
   const n = Number(num);
   if (num === '' || num === undefined || num === null || Number.isNaN(n)) return '';
-  return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  return `$${n.toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 };
 
 const formatBoundForInput = (num) => (num >= 1e12 ? '' : formatCurrencyDisplay(num));
-const parseBoundInput = (str) => (str === '' || str === undefined ? 1e12 : Number(String(str).replace(/,/g, '')));
+const parseBoundInput = (str) => (str === '' || str === undefined ? 1e12 : Number(String(str).replace(/[$,]/g, '')));
+// What to show while the field is focused: the plain unformatted number, no
+// $ and no commas, so the cursor isn't fighting formatting characters --
+// matches Excel's own behavior of showing the raw value while editing a
+// currency-formatted cell, only reformatting once you move off it.
+const toRawInput = (value) => String(value ?? '').replace(/[$,]/g, '');
+const toRawBoundInput = (value) => (Number(value) >= 1e12 ? '' : toRawInput(value));
 
-// Comma-formatted dollar input ($176,100 instead of a bare 176100). Keeps its
-// own local text while focused (so typing "1,200" doesn't fight the cursor),
-// and reformats with commas on blur / whenever the underlying value changes
-// while not focused. onChange always receives the comma-stripped raw string,
-// same shape a plain <input type="number"> onChange's e.target.value would
-// give a caller, so it drops into the existing draft-state handlers as-is.
-function CurrencyInput({ value, onChange, formatter = formatCurrencyDisplay, placeholder, disabled, style }) {
+// Dollar input that displays "$176,100" (Currency format, symbol glued to
+// the number) when blurred, and the plain "176100" while focused/being
+// typed into. Keeps its own local text while focused so typing "1,200"
+// doesn't fight the cursor. onChange always receives the $/comma-stripped
+// raw string, same shape a plain <input type="number"> onChange's
+// e.target.value would give a caller, so it drops into the existing
+// draft-state handlers as-is.
+function CurrencyInput({ value, onChange, formatter = formatCurrencyDisplay, toRaw = toRawInput, placeholder, disabled, style }) {
   const [text, setText] = useState(() => formatter(value));
   const [focused, setFocused] = useState(false);
 
@@ -184,10 +188,14 @@ function CurrencyInput({ value, onChange, formatter = formatCurrencyDisplay, pla
       style={style}
       value={text}
       disabled={disabled}
-      onFocus={() => setFocused(true)}
+      onFocus={(e) => {
+        setFocused(true);
+        setText(toRaw(value));
+        e.target.select();
+      }}
       onChange={(e) => {
         setText(e.target.value);
-        onChange(e.target.value.replace(/,/g, ''));
+        onChange(e.target.value.replace(/[$,]/g, ''));
       }}
       onBlur={() => setFocused(false)}
     />
@@ -243,26 +251,21 @@ function BracketTableEditor({ rows, onSave, isUpdating }) {
           {draft.map((row, index) => (
             <tr key={index}>
               <td style={styles.td}>
-                <div style={styles.inputGroup}>
-                  <span style={styles.inputAffixLeft}>$</span>
-                  <CurrencyInput
-                    style={{ ...styles.input, paddingLeft: '22px' }}
-                    value={row.lower}
-                    onChange={(v) => updateRow(index, 'lower', v)}
-                  />
-                </div>
+                <CurrencyInput
+                  style={styles.input}
+                  value={row.lower}
+                  onChange={(v) => updateRow(index, 'lower', v)}
+                />
               </td>
               <td style={styles.td}>
-                <div style={styles.inputGroup}>
-                  <span style={styles.inputAffixLeft}>$</span>
-                  <CurrencyInput
-                    style={{ ...styles.input, paddingLeft: '22px' }}
-                    placeholder="no limit"
-                    formatter={formatBoundForInput}
-                    value={row.upper}
-                    onChange={(v) => updateRow(index, 'upper', v)}
-                  />
-                </div>
+                <CurrencyInput
+                  style={styles.input}
+                  placeholder="no limit"
+                  formatter={formatBoundForInput}
+                  toRaw={toRawBoundInput}
+                  value={row.upper}
+                  onChange={(v) => updateRow(index, 'upper', v)}
+                />
               </td>
               <td style={styles.td}>
                 <div style={styles.inputGroup}>
@@ -425,16 +428,13 @@ export default function AssumptionsAdmin() {
                   <td style={{ ...styles.td, textAlign: 'left' }}>{f.label}</td>
                   <td style={styles.td}>
                     {f.type === 'currency' ? (
-                      <div style={styles.inputGroup}>
-                        <span style={styles.inputAffixLeft}>$</span>
-                        <CurrencyInput
-                          style={{ ...styles.input, paddingLeft: '22px' }}
-                          value={scalarDrafts[f.key] ?? 0}
-                          onChange={(v) =>
-                            setScalarDrafts((prev) => ({ ...prev, [f.key]: Number(v) || 0 }))
-                          }
-                        />
-                      </div>
+                      <CurrencyInput
+                        style={styles.input}
+                        value={scalarDrafts[f.key] ?? 0}
+                        onChange={(v) =>
+                          setScalarDrafts((prev) => ({ ...prev, [f.key]: Number(v) || 0 }))
+                        }
+                      />
                     ) : f.type === 'rate' ? (
                       <div style={styles.inputGroup}>
                         <input

@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown, calculateFICA } from '../utils/taxEngine';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 
 const styles = {
   container: {
@@ -105,9 +106,6 @@ export default function Week1FederalTax() {
   // cell) -- fixes the pre-consolidation bug where this tab applied FICA
   // to taxable income instead of gross income. See taxEngine.js.
   const { socialSecurityTax, medicareTax, additionalMedicareTax } = calculateFICA(preTaxIncome, assumptions);
-
-  const formatCurrency = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const formatPercent = (num) => (num * 100).toFixed(1) + '%';
 
   return (
     <>

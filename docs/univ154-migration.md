@@ -196,6 +196,58 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
 
 ## § Working log (append-only)
 
+### 2026-08-13 — App-wide currency/percent formatting: new `src/utils/formatters.js`, fixed an accounting-format bug
+User asked for two things: (1) `AssumptionsAdmin.jsx`'s currency inputs read as
+Excel's *Accounting* format (a fixed-position `$` decoration next to a
+right-aligned input — big gap before short numbers) instead of Excel's
+*Currency* format (`$` glued to the first digit, whole thing right-aligned as
+one unit); (2) `$`/`%` formatting was inconsistent across the student-facing
+modules (Week1–12, Budget, Savings) — some screens showed no `$` at all
+(`Week1FederalTax.jsx`, `Week1Summary.jsx` never had a currency symbol),
+`BudgetForm.jsx` had four genuine accounting-format spots
+(`<span>$</span>` + `<span>{amount}</span>` inside a `justifyContent:
+'space-between'` div), and a dozen components each hand-rolled their own
+`formatCurrency`/`formatPercent` with disagreeing decimal precision (1 vs 2
+decimals) and inconsistent `$`-baking (some functions returned `"1,234.56"`
+and made the caller splice on `$`, others returned `"$1,234.56"` already).
+- **New `src/utils/formatters.js`**: single `formatCurrency(value, {decimals=2})`
+  (always bakes in `$`, always 2 decimals, comma-grouped, `-$X` for
+  negatives) and `formatPercent(value, {decimals=1, alreadyPercent=false})`
+  (expects a fraction by default — 0.062 → "6.2%" — since that's the
+  app-wide convention for stored rates; pass `alreadyPercent: true` for the
+  handful of call sites that already carry a *100 value, e.g. Week9's
+  blended-return calcs).
+- Swept onto the shared functions: `BudgetForm.jsx`, `SavingsForm.jsx`,
+  `Week1FederalTax.jsx`, `Week1StateTax.jsx`, `Week1Summary.jsx`, `Week4.jsx`,
+  `Week5.jsx`, `Week6Retirement.jsx` (9600+ lines, ~110 call sites),
+  `Week7.jsx`, `Week9.jsx`, `Week12.jsx`, `Week3CreditCard.jsx`. Left local
+  helpers alone only where they serve a genuinely different job than display
+  formatting (e.g. Week12's `formatCurrencyInput`/`formatPercent`, which echo
+  back a partially-typed raw input string, not a computed value).
+- **`AssumptionsAdmin.jsx`'s `CurrencyInput`**: previously overlaid a
+  decorative `$` at a fixed `left: 10px` next to a `textAlign: 'right'`
+  input — classic Accounting format. Fixed by baking `$` into the formatted
+  *text itself* (`formatCurrencyDisplay` now returns `"$176,100"`), and
+  showing the plain unformatted number only while the field is focused (via
+  a new `toRaw` prop), reformatting back to `"$176,100"` on blur — same
+  behavior Excel itself uses (raw value while editing a cell, formatted
+  display once you move off it). Removed the now-unused `inputAffixLeft`
+  style/spans.
+- Did **not** touch plain editable text inputs that already show `$` glued
+  directly to typed digits (e.g. `` `$${formatNumberForInput(x)}` `` in
+  Week5/Week7/Week3CreditCard/SavingsForm) — those aren't the accounting-format
+  bug, just simpler un-comma-grouped `$` inputs; left as scope-limited since
+  the user's complaint was specifically about format (symbol position), not
+  every remaining inconsistency.
+- Bulk mechanical edits (Week6Retirement's ~110 call sites) were done via
+  small Node regex scripts rather than hand-editing, ordered carefully
+  (double-`$` template-literal cases before single-`$` JSX-text cases) to
+  avoid a first-pass bug where the single-`$` cleanup step re-matched and
+  corrupted the double-`$` cases it had just fixed — caught by re-grepping
+  every `formatCurrency(` call site before moving on, not by the build (Vite
+  happily compiled the corrupted `` `{formatCurrency(x)}` `` — a literal,
+  never-evaluated template string — with no error).
+
 ### 2026-08-10 — Migration to Rice's own GitHub/Supabase (prior session)
 Forked `beyzaispiir/univ154` to `riceuniversityuniv-cmyk/univ154`, stood up a fresh
 Supabase project (`zyznmhbtpniluhkyowbb`) and pointed Netlify (`riceuniv154.netlify.app`)

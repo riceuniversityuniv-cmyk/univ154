@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 
 // Number counting animation hook
 const useCountUp = (end, duration = 1000, decimals = 0) => {
@@ -941,11 +942,11 @@ export default function SavingsForm() {
           // and Week12.jsx's 24500/7500. See
           // docs/financial-audit-2026-08-11.md finding #14.
           if (id === 'retirement_roth_401k' && numValue > assumptions.scalars.limit_401k) {
-            alert(`Roth 401(k) maximum contribution is $${assumptions.scalars.limit_401k.toLocaleString()} annually`);
+            alert(`Roth 401(k) maximum contribution is ${formatCurrency(assumptions.scalars.limit_401k)} annually`);
             return;
           }
           if (id === 'retirement_roth_ira' && numValue > assumptions.scalars.limit_ira) {
-            alert(`Roth IRA maximum contribution is $${assumptions.scalars.limit_ira.toLocaleString()} annually`);
+            alert(`Roth IRA maximum contribution is ${formatCurrency(assumptions.scalars.limit_ira)} annually`);
             return;
           }
         }
@@ -960,9 +961,8 @@ export default function SavingsForm() {
         triggerUpdate(); // Force re-render to update calculations
     };
 
-    const formatCurrency = (num) => num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    const formatPercent = (num) => (num * 100).toFixed(2) + '%';
-    
+    // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
+
     // Format number for input display (with commas, preserve decimals for cents)
     const formatNumberForInput = (num) => {
       if (!num || num === '') return '';
@@ -1197,7 +1197,7 @@ export default function SavingsForm() {
                 marginTop: '48px',
               }}>
                 <span>Monthly Income (After Taxes & Pre-Tax Expense Items)</span>
-                <span>${formatCurrency(summaryCalculations.userAfterTaxIncome / 12)}</span>
+                <span>{formatCurrency(summaryCalculations.userAfterTaxIncome / 12)}</span>
               </div>
             )}
         
@@ -1320,7 +1320,7 @@ export default function SavingsForm() {
                         />
                       </div>
                       <div style={styles.percentageInfo}>
-                        {details1.percentage > 0 ? details1.percentage.toFixed(2) : '0.00'}% of Monthly After Tax Income
+                        {formatPercent(details1.percentage, { alreadyPercent: true })} of Monthly After Tax Income
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
@@ -1386,11 +1386,11 @@ export default function SavingsForm() {
                       <label style={styles.label}>Monthly Savings Amount</label>
                       <ReadOnlyWithAnimation
                         value={details2.monthlySavings}
-                        format={(val, formatCurrencyFn) => `$${formatCurrencyFn(val)}`}
+                        format={(val, formatCurrencyFn) => formatCurrencyFn(val)}
                         fieldId={`${section2.id}_monthlySavings`}
                       />
                       <div style={styles.percentageInfo}>
-                        {details2.percentage > 0 ? details2.percentage.toFixed(2) : '0.00'}% of Monthly After Tax Income
+                        {formatPercent(details2.percentage, { alreadyPercent: true })} of Monthly After Tax Income
                       </div>
                     </div>
                   </div>

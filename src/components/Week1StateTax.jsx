@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown } from '../utils/taxEngine';
+import { formatCurrency, formatPercent } from '../utils/formatters';
 
 export default function Week1StateTax() {
   const { topInputs, financialCalculations } = useBudget();
@@ -33,8 +34,6 @@ export default function Week1StateTax() {
   }, [taxableIncome, assumptions.nycBrackets, selectedState, residenceInNYC]);
   const totalNycTax = nycBracketBreakdown.reduce((sum, b) => sum + b.taxInBracket, 0);
 
-  const formatCurrency = (num) => num.toLocaleString('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const formatPercent = (num) => (num * 100).toFixed(2) + '%';
   const formatBound = (num) => (num >= 1e12 ? '∞' : formatCurrency(num));
 
   return (

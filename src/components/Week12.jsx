@@ -13,6 +13,7 @@ import {
 } from 'chart.js';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
+import { formatCurrency } from '../utils/formatters';
 import { calculateProgressiveTax, getRMDDivisor } from '../utils/taxEngine';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
@@ -327,8 +328,7 @@ const sanitizePercent = (value) => {
 };
 const sanitizeState = (value) => value.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 2);
 
-const formatCurrency = (value) =>
-  `$${Number(value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+// formatCurrency now comes from src/utils/formatters.js (module import above).
 const formatCurrencyInput = (value) => {
   const clean = sanitizeCurrency(String(value ?? ''));
   if (!clean) return '';
