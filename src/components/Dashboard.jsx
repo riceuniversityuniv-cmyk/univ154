@@ -332,7 +332,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         className="fixed z-40 flex items-center justify-center"
         style={{
           top: '28px',
-          left: showSidebar ? '280px' : '18px',
+          left: showSidebar ? '320px' : '18px',
           transform: 'translateX(-50%)',
           width: '36px',
           height: '36px',

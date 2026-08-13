@@ -1033,3 +1033,26 @@ see Database schema above). Branch `feature/assumptions-consolidation`.
 - **Declined as infeasible**: renaming the Supabase project ref prefix
   (`zyznmhbtpniluhkyowbb`) while keeping the `supabase.co` suffix — project refs are
   permanent; only alternative is a paid custom domain. User chose to leave it as-is.
+
+### 2026-08-13 — Week 1 Budgeting layout cleanup + sidebar marquee removal
+- `BudgetForm.jsx`'s floating "Budget Status" indicator (fixed, right-of-screen,
+  mid-page) and the bottom "Budget Summary" card were two separate widgets showing
+  overlapping data (total expenses, over/under amount, utilization %). Merged into
+  one `Budget Status Banner` rendered once, directly under the "Budget Planning"
+  header — a 3-column grid (Total Expenses | Budget Status + badge | Utilization +
+  progress bar). Both old blocks were deleted outright, not hidden.
+- The "User Inputted Data" top inputs (`styles.topInput`, `styles.selectInput`) now
+  render right-aligned text (`textAlign: 'right'`, plus `textAlignLast: 'right'` on
+  the `<select>`s) to match the rest of the table's right-aligned number inputs —
+  previously left-aligned, inconsistent with everything below it.
+- Removed the "You can only enter data in the open (yellow) fields." floating badge
+  from `Week1Budgeting.jsx` entirely (was the component's only purpose — file now
+  just renders `BudgetForm` directly).
+- Sidebar (`sidebar-variants/Option3_Minimalist.jsx`): removed the marquee/rotating
+  hover-scroll effect on module labels (`.module-text-marquee-*` classes + the
+  `sidebar-module-marquee` keyframe animation in `src/index.css`) — labels now just
+  wrap onto a second line (`white-space: normal`) instead of scrolling on hover.
+  Sidebar width bumped 280px → 320px so full module names (e.g. "Module 9 – Real
+  Estate & Homeownership") have room without needing the marquee. The toggle
+  button's `left` offset in `Dashboard.jsx` (follows the sidebar's right edge) was
+  updated to match, `280px` → `320px`.

@@ -25,7 +25,7 @@ export const MinimalistSidebar = ({
     <div 
       className="sidebar-modern"
       style={{
-        width: '280px',
+        width: '320px',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -256,10 +256,7 @@ export const MinimalistSidebar = ({
                     className="module-text-marquee-wrap flex-1 min-w-0"
                     style={{ fontSize: '13px', marginLeft: '5px' }}
                   >
-                    <span className="module-text-marquee-inner">
-                      {moduleTextBlock}
-                      <span className="module-text-marquee-second">{moduleTextBlock}</span>
-                    </span>
+                    {moduleTextBlock}
                   </span>
                 </span>
               );

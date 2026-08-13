@@ -202,35 +202,38 @@ const styles = {
     color: '#111827',
     letterSpacing: '-0.01em',
   },
-  topInput: { 
-    border: '2px solid #d1d5db', 
+  topInput: {
+    border: '2px solid #d1d5db',
     backgroundColor: '#fffde7',
-    padding: '10px 14px', 
-    width: '220px', 
+    padding: '10px 14px',
+    width: '220px',
     borderRadius: '8px',
     boxSizing: 'border-box',
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     fontSize: '14px',
     outline: 'none',
     fontWeight: '500',
+    textAlign: 'right',
   },
   topInputFocus: {
     borderColor: '#0d1a4b',
     boxShadow: '0 0 0 3px rgba(13, 26, 75, 0.12)',
     backgroundColor: '#fffef0',
   },
-  selectInput: { 
-    border: '2px solid #d1d5db', 
-    backgroundColor: 'white', 
-    padding: '10px 14px', 
-    width: '220px', 
-    borderRadius: '8px', 
+  selectInput: {
+    border: '2px solid #d1d5db',
+    backgroundColor: 'white',
+    padding: '10px 14px',
+    width: '220px',
+    borderRadius: '8px',
     boxSizing: 'border-box',
     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
     fontSize: '14px',
     outline: 'none',
     cursor: 'pointer',
     fontWeight: '500',
+    textAlign: 'right',
+    textAlignLast: 'right',
   },
   selectInputFocus: {
     borderColor: '#0d1a4b',
@@ -1459,6 +1462,82 @@ export default function BudgetForm() {
             <div style={styles.enhancedHeader}>
               <span style={{ fontSize: '26px', letterSpacing: '-0.02em' }}>Budget Planning</span>
             </div>
+
+            {/* Budget Status Banner - combines the former floating "Budget Status"
+                indicator and the bottom "Budget Summary" card into a single
+                top banner: total expenses, over/under status, and utilization. */}
+            {(() => {
+              const monthlyIncome = summaryCalculations.userAfterTaxIncome / 12;
+              const totalExpenses = calculateTotalExpenses();
+              const difference = monthlyIncome - totalExpenses;
+              const utilizationPercent = monthlyIncome > 0 ? (totalExpenses / monthlyIncome) * 100 : 0;
+              const isUnder = difference > 0;
+              const isOver = difference < 0;
+              const statusText = calculateBudgetChecker();
+
+              return (
+                <div style={{
+                  width: '100%',
+                  maxWidth: '1200px',
+                  margin: '0 auto 24px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  backdropFilter: 'blur(10px)',
+                  WebkitBackdropFilter: 'blur(10px)',
+                  borderRadius: '16px',
+                  padding: '24px 32px',
+                  boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr 1.3fr',
+                  gap: '32px',
+                  alignItems: 'center',
+                }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{fontSize: '22px', fontWeight: '700', color: '#16a34a', marginBottom: '4px'}}>
+                      <AnimatedNumber value={totalExpenses} formatCurrency={true} formatCurrencyFn={formatCurrency} />
+                    </div>
+                    <div style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Total Expenses</div>
+                  </div>
+
+                  <div style={{
+                    textAlign: 'center',
+                    borderLeft: '1px solid rgba(229, 231, 235, 0.6)',
+                    borderRight: '1px solid rgba(229, 231, 235, 0.6)',
+                    padding: '0 16px',
+                  }}>
+                    <div style={{
+                      fontSize: '22px',
+                      fontWeight: '700',
+                      color: isUnder ? '#16a34a' : isOver ? '#dc2626' : '#0d1a4b',
+                      marginBottom: '4px',
+                    }}>
+                      {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
+                    </div>
+                    <div style={{fontSize: '13px', color: '#6b7280', fontWeight: '500', marginBottom: '8px'}}>Budget Status</div>
+                    <StatusBadge
+                      status={statusText.replace('Under Budget by $', '').replace('Over Budget by $', '').replace('Exactly on Budget', 'On Track')}
+                      variant={isUnder ? 'success' : isOver ? 'error' : 'info'}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '8px' }}>
+                      <span style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Budget Utilization</span>
+                      <span style={{fontSize: '18px', fontWeight: '700', color: utilizationPercent > 100 ? '#dc2626' : '#111827'}}>
+                        <AnimatedNumber value={utilizationPercent} />%
+                      </span>
+                    </div>
+                    <ProgressBar
+                      percentage={utilizationPercent}
+                      color={utilizationPercent > 100 ? '#dc2626' : utilizationPercent > 90 ? '#ca8a04' : '#16a34a'}
+                      height="10px"
+                      showLabel={false}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
             <div
               className="week1-user-input-card"
               style={{
@@ -2054,220 +2133,6 @@ export default function BudgetForm() {
         </div>
         
         {/* Close sectionContainer */}
-        </div>
-        
-        {/* Sticky Budget Status Indicator - Glassmorphism style */}
-        <div style={{
-          position: 'fixed',
-          top: '50%',
-          right: '24px',
-          transform: 'translateY(-50%)',
-          zIndex: 1000,
-          backgroundColor: 'rgba(255, 255, 255, 0.7)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          borderRadius: '16px',
-          padding: '20px 24px',
-          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.15), 0 4px 16px 0 rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(255, 255, 255, 0.3)',
-          minWidth: '220px',
-          maxWidth: '260px',
-          textAlign: 'center',
-          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
-          e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
-          e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
-        }}
-        >
-          {(() => {
-            const monthlyIncome = summaryCalculations.userAfterTaxIncome / 12;
-            const totalExpenses = calculateTotalExpenses();
-            const difference = monthlyIncome - totalExpenses;
-            const utilizationPercent = monthlyIncome > 0 ? (totalExpenses / monthlyIncome) * 100 : 0;
-            const isUnder = difference > 0;
-            const isOver = difference < 0;
-            
-            return (
-              <>
-                <div style={{
-                  fontSize: '18px',
-                  fontWeight: '700',
-                  color: isUnder ? '#16a34a' : isOver ? '#dc2626' : '#0d1a4b',
-                  marginBottom: '8px',
-                  lineHeight: '1.5'
-                }}>
-                  {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
-                </div>
-                <div style={{fontSize: '11px', color: '#6b7280', fontWeight: '500', letterSpacing: '0.01em', marginBottom: '10px'}}>Budget Status</div>
-                <ProgressBar 
-                  percentage={utilizationPercent} 
-                  color={utilizationPercent > 100 ? '#dc2626' : utilizationPercent > 90 ? '#ca8a04' : '#16a34a'}
-                  height="6px"
-                  showLabel={false}
-                />
-                <div style={{fontSize: '10px', color: '#9ca3af', marginTop: '8px', textAlign: 'center'}}>
-                  {utilizationPercent.toFixed(1)}% utilized
-                </div>
-              </>
-            );
-          })()}
-        </div>
-
-        {/* Summary Section - Glassmorphism card style */}
-        <div style={{marginTop: '32px', display: 'flex', justifyContent: 'center', marginBottom: '100px'}}>
-          <div style={{
-            width: '100%',
-            maxWidth: '1200px',
-            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
-            border: '1px solid rgba(255, 255, 255, 0.3)'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '24px',
-              paddingBottom: '16px',
-              borderBottom: '1px solid #e5e7eb'
-            }}>
-              <h3 style={{ margin: '0', color: '#111827', fontSize: '20px', fontWeight: '600' }}>Budget Summary</h3>
-            </div>
-            {/* Budget Utilization Progress Bar */}
-            {(() => {
-              const monthlyIncome = summaryCalculations.userAfterTaxIncome / 12;
-              const totalExpenses = calculateTotalExpenses();
-              const utilizationPercent = monthlyIncome > 0 ? (totalExpenses / monthlyIncome) * 100 : 0;
-              const remaining = monthlyIncome - totalExpenses;
-              
-              return (
-                <div style={{
-                  marginBottom: '32px',
-                  padding: '24px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.5)',
-                  backdropFilter: 'blur(8px)',
-                  WebkitBackdropFilter: 'blur(8px)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.08)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div>
-                      <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: '500', marginBottom: '4px' }}>Budget Utilization</div>
-                      <div style={{ fontSize: '24px', fontWeight: '700', color: utilizationPercent > 100 ? '#dc2626' : '#111827' }}>
-                        <AnimatedNumber value={utilizationPercent} />%
-                      </div>
-                    </div>
-                    {(utilizationPercent > 100 || utilizationPercent > 90) && (
-                      <StatusBadge 
-                        status={utilizationPercent > 100 ? 'Over Budget' : 'Near Limit'} 
-                        variant={utilizationPercent > 100 ? 'error' : 'warning'} 
-                      />
-                    )}
-                  </div>
-                  <ProgressBar 
-                    percentage={utilizationPercent} 
-                    color={utilizationPercent > 100 ? '#dc2626' : utilizationPercent > 90 ? '#ca8a04' : '#16a34a'}
-                    height="12px"
-                    showLabel={false}
-                  />
-                </div>
-              );
-            })()}
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-              <div style={{
-                textAlign: 'center',
-                padding: '24px',
-                backgroundColor: 'rgba(250, 250, 250, 0.6)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(250, 250, 250, 0.8)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px 0 rgba(0, 0, 0, 0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(250, 250, 250, 0.6)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-              }}
-              >
-                <div style={{fontSize: '20px', fontWeight: '700', color: '#16a34a', marginBottom: '8px'}}>
-                  <AnimatedNumber value={calculateTotalExpenses()} formatCurrency={true} formatCurrencyFn={formatCurrency} />
-                </div>
-                <div style={{fontSize: '14px', color: '#6b7280', fontWeight: '500'}}>Total Expenses</div>
-              </div>
-              <div style={{
-                textAlign: 'center',
-                padding: '24px',
-                backgroundColor: 'rgba(250, 250, 250, 0.6)',
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                borderRadius: '12px',
-                border: '1px solid rgba(255, 255, 255, 0.3)',
-                boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.08)',
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(250, 250, 250, 0.8)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-                e.currentTarget.style.boxShadow = '0 8px 24px 0 rgba(0, 0, 0, 0.12)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(250, 250, 250, 0.6)';
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-              }}
-              >
-                {(() => {
-                  const monthlyIncome = summaryCalculations.userAfterTaxIncome / 12;
-                  const totalExpenses = calculateTotalExpenses();
-                  const difference = monthlyIncome - totalExpenses;
-                  const statusText = calculateBudgetChecker();
-                  const isUnder = difference > 0;
-                  const isOver = difference < 0;
-                  
-                  return (
-                    <>
-                      <div style={{
-                        fontSize: '20px', 
-                        fontWeight: '700', 
-                        color: isUnder ? '#16a34a' : isOver ? '#dc2626' : '#0d1a4b', 
-                        marginBottom: '8px'
-                      }}>
-                        {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
-                      </div>
-                      <div style={{fontSize: '14px', color: '#6b7280', fontWeight: '500', marginBottom: '12px'}}>Budget Status</div>
-                      <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(229, 231, 235, 0.5)' }}>
-                        <StatusBadge 
-                          status={statusText.replace('Under Budget by $', '').replace('Over Budget by $', '').replace('Exactly on Budget', 'On Track')} 
-                          variant={isUnder ? 'success' : isOver ? 'error' : 'info'} 
-                        />
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          </div>
         </div>
         
         </div>
