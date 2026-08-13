@@ -1,73 +1,63 @@
 import React, { useState } from 'react';
-import { useWeekAccess } from '../contexts/WeekAccessContext';
-import { MdPublic, MdCheckCircle, MdCancel, MdWarning } from 'react-icons/md';
+import { useWeekAccess, SUPPORTED_WEEK_IDS, WEEK_TOPIC_LABELS } from '../contexts/WeekAccessContext';
+import { MdCheckCircle, MdCancel, MdWarning } from 'react-icons/md';
 
-// Import the same styles from Week1Budgeting
+// Course-week label ("Week 5 - Real Estate & Homeownership") is derived
+// from the weekId + the shared topic map -- keeps this in sync with the
+// sidebar's topic names instead of duplicating them.
+const courseWeekLabel = (weekId) => `Week ${weekId.replace('week-', '')} - ${WEEK_TOPIC_LABELS[weekId] || ''}`;
+
 const styles = {
-  // Main table
-  table: { 
-    width: '100%', 
-    borderCollapse: 'separate',
-    borderSpacing: 0,
-    marginTop: 20, 
-    borderRadius: '12px',
-    overflow: 'hidden',
-    border: '1px solid #e0e0e0'
-  },
-  th: { 
-    backgroundColor: '#002060',
-    color: 'white', 
-    padding: '12px', 
-    borderBottom: '1px solid #e0e0e0',
-    textAlign: 'center', 
-    fontWeight: '600' 
-  },
-  td: { 
-    border: '1px solid #e0e0e0',
-    padding: '10px 12px', 
-    verticalAlign: 'middle' 
-  },
-  
-  // Table row types
-  sectionHeader: { 
-    fontWeight: '600',
-    backgroundColor: '#f5f5f5',
-    color: '#333'
-  },
-  totalRow: { 
-    backgroundColor: '#f5f5f5',
-    fontWeight: '600' 
-  },
-
-  // Main container
-  container: { 
+  container: {
     fontSize: '14px',
-    maxWidth: 900, 
-    margin: '0 auto', 
-    padding: 24, 
-    backgroundColor: '#fdfdfd',
-    color: '#333'
+    maxWidth: 900,
+    margin: '0 auto',
+    padding: 24,
+    color: '#111827',
   },
-  
-  // Header
-  header: { 
-    fontSize: '14px', 
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    padding: '8px 8px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.08), 0 4px 16px 0 rgba(0, 0, 0, 0.06)',
+    border: '1px solid rgba(255, 255, 255, 0.4)',
+    overflow: 'hidden',
+  },
+  table: {
+    width: '100%',
+    borderCollapse: 'collapse',
+  },
+  th: {
+    background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)',
+    color: 'white',
+    padding: '14px 16px',
+    textAlign: 'left',
     fontWeight: '600',
-    margin: '20px 0 10px 0', 
-    color: '#333' 
-  }
+    fontSize: '13px',
+    letterSpacing: '0.01em',
+    border: 'none',
+  },
+  td: {
+    padding: '14px 16px',
+    verticalAlign: 'middle',
+    border: 'none',
+    borderBottom: '1px solid rgba(17, 24, 39, 0.06)',
+  },
 };
 
 export default function WeekAccessAdmin() {
-  const { 
+  const {
     globalWeekSettings,
+    getOrderedWeekIds,
     updateGlobalWeekSettings,
     bulkUpdateGlobalWeekSettings,
+    bulkUpdateWeekOrder,
     isAdmin,
-    isLoading 
+    isLoading
   } = useWeekAccess();
-  
-  const [selectedWeeks, setSelectedWeeks] = useState([]);
+
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState('');
@@ -85,55 +75,15 @@ export default function WeekAccessAdmin() {
     );
   }
 
-  const weekLabels = {
-    'week-1': 'Week 1 - Budgeting',
-    'week-2': 'Week 2 - Savings & Emergency Funds',
-    'week-3': 'Week 3 - Credit & Debt Management',
-    'week-4': 'Week 4 - Income & Taxes',
-    'week-5': 'Week 5 - Real Estate & Homeownership',
-    'week-6': 'Week 6 - Retirement Planning',
-    'week-7': 'Week 7 - Insurance',
-    'week-9': 'Week 9 - Markets & Investing',
-    'week-12': 'Week 12 - Constructing The Goal'
-  };
+  const orderedWeekIds = getOrderedWeekIds();
 
-  const handleWeekToggle = (weekId) => {
-    setSelectedWeeks(prev => 
-      prev.includes(weekId) 
-        ? prev.filter(id => id !== weekId)
-        : [...prev, weekId]
-    );
-  };
-
-  const handleSelectAll = () => {
-    setSelectedWeeks(Object.keys(weekLabels));
-  };
-
-  const handleDeselectAll = () => {
-    setSelectedWeeks([]);
-  };
-
-  const handleGlobalBulkUpdate = async (isAvailable) => {
-    if (selectedWeeks.length === 0) {
-      setMessage('Please select at least one week.');
-      setMessageType('error');
-      return;
-    }
-
+  const handleToggle = async (weekId, nextAvailable) => {
     setIsUpdating(true);
     setMessage('');
-
     try {
-      const updates = {};
-      selectedWeeks.forEach(weekId => {
-        updates[weekId] = isAvailable;
-      });
-
-      await bulkUpdateGlobalWeekSettings(updates);
-      
-      setMessage(`Successfully ${isAvailable ? 'enabled' : 'disabled'} access for ${selectedWeeks.length} week(s) for all users.`);
+      await updateGlobalWeekSettings(weekId, nextAvailable);
+      setMessage(`${courseWeekLabel(weekId)} is now ${nextAvailable ? 'open' : 'closed'} to students.`);
       setMessageType('success');
-      setSelectedWeeks([]);
     } catch (error) {
       setMessage(`Error updating week settings: ${error.message}`);
       setMessageType('error');
@@ -142,16 +92,59 @@ export default function WeekAccessAdmin() {
     }
   };
 
-  const handleGlobalIndividualUpdate = async (weekId, isAvailable) => {
+  const handleEnableAll = async () => {
     setIsUpdating(true);
     setMessage('');
-
     try {
-      await updateGlobalWeekSettings(weekId, isAvailable);
-      setMessage(`Successfully ${isAvailable ? 'enabled' : 'disabled'} access for ${weekLabels[weekId]} for all users.`);
+      const updates = Object.fromEntries(SUPPORTED_WEEK_IDS.map(id => [id, true]));
+      await bulkUpdateGlobalWeekSettings(updates);
+      setMessage('Opened all weeks to students.');
       setMessageType('success');
     } catch (error) {
       setMessage(`Error updating week settings: ${error.message}`);
+      setMessageType('error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleDisableAll = async () => {
+    setIsUpdating(true);
+    setMessage('');
+    try {
+      const updates = Object.fromEntries(SUPPORTED_WEEK_IDS.map(id => [id, false]));
+      await bulkUpdateGlobalWeekSettings(updates);
+      setMessage('Closed all weeks to students.');
+      setMessageType('success');
+    } catch (error) {
+      setMessage(`Error updating week settings: ${error.message}`);
+      setMessageType('error');
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  // Move a week to a new 1-indexed module position; everything between
+  // its old and new slot shifts, and the whole list is renumbered 1..n
+  // in a single write so positions never collide or gap.
+  const handleOrderChange = async (weekId, rawPosition) => {
+    const count = orderedWeekIds.length;
+    const targetPosition = Math.max(1, Math.min(Math.round(rawPosition) || 1, count));
+    const currentIndex = orderedWeekIds.indexOf(weekId);
+    if (currentIndex === -1 || targetPosition - 1 === currentIndex) return;
+
+    const reordered = orderedWeekIds.filter(id => id !== weekId);
+    reordered.splice(targetPosition - 1, 0, weekId);
+    const orderMap = Object.fromEntries(reordered.map((id, idx) => [id, idx + 1]));
+
+    setIsUpdating(true);
+    setMessage('');
+    try {
+      await bulkUpdateWeekOrder(orderMap);
+      setMessage(`Moved ${courseWeekLabel(weekId)} to Module ${targetPosition}.`);
+      setMessageType('success');
+    } catch (error) {
+      setMessage(`Error updating module order: ${error.message}`);
       setMessageType('error');
     } finally {
       setIsUpdating(false);
@@ -162,12 +155,12 @@ export default function WeekAccessAdmin() {
     return (
       <div style={styles.container}>
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <div style={{ 
+          <div style={{
             display: 'inline-block',
-            width: '48px', 
-            height: '48px', 
+            width: '48px',
+            height: '48px',
             border: '4px solid #f3f3f3',
-            borderTop: '4px solid #002060',
+            borderTop: '4px solid #0d1a4b',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             marginBottom: '16px'
@@ -182,210 +175,162 @@ export default function WeekAccessAdmin() {
     <div style={styles.container}>
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Week Access</h1>
-        </div>
+        <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0d1a4b', margin: 0 }}>Week Access</h1>
+        <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
+          Order sets the module position students see in the sidebar.
+        </p>
       </div>
 
       {/* Message Display */}
       {message && (
         <div style={{
           padding: '12px 16px',
-          borderRadius: '8px',
+          borderRadius: '10px',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
           marginBottom: '20px',
-          ...(messageType === 'success' 
-            ? { backgroundColor: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' }
-            : { backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }
+          ...(messageType === 'success'
+            ? { backgroundColor: 'rgba(13, 26, 75, 0.05)', color: '#0d1a4b', border: '1px solid rgba(13, 26, 75, 0.15)' }
+            : { backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }
           )
         }}>
-          {messageType === 'success' ? <MdCheckCircle style={{ fontSize: '20px' }} /> : <MdCancel style={{ fontSize: '20px' }} />}
-          <span style={{ fontSize: '14px' }}>{message}</span>
+          {messageType === 'success' ? <MdCheckCircle style={{ fontSize: '18px' }} /> : <MdCancel style={{ fontSize: '18px' }} />}
+          <span style={{ fontSize: '13px' }}>{message}</span>
         </div>
       )}
 
-      {/* Week Availability Management */}
-      <div>
-        {/* Bulk Actions */}
-        <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '12px', 
-          justifyContent: 'center',
-          marginBottom: '20px'
-        }}>
-          <button
-            onClick={handleSelectAll}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#002060',
-              color: 'white',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#001a4d'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#002060'}
-          >
-            Select All
-          </button>
-          <button
-            onClick={handleDeselectAll}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#6b7280',
-              color: 'white',
-              borderRadius: '6px',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500',
-              transition: 'background-color 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#4b5563'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#6b7280'}
-          >
-            Deselect All
-          </button>
-          
-          {selectedWeeks.length > 0 && (
-            <>
-              <button
-                onClick={() => handleGlobalBulkUpdate(true)}
-                disabled={isUpdating}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#059669',
-                  color: 'white',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  opacity: isUpdating ? 0.5 : 1,
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => !isUpdating && (e.target.style.backgroundColor = '#047857')}
-                onMouseOut={(e) => !isUpdating && (e.target.style.backgroundColor = '#059669')}
-              >
-                {isUpdating ? 'Updating...' : `Enable Access (${selectedWeeks.length})`}
-              </button>
-              <button
-                onClick={() => handleGlobalBulkUpdate(false)}
-                disabled={isUpdating}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#dc2626',
-                  color: 'white',
-                  borderRadius: '6px',
-                  border: 'none',
-                  cursor: isUpdating ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  opacity: isUpdating ? 0.5 : 1,
-                  transition: 'background-color 0.2s'
-                }}
-                onMouseOver={(e) => !isUpdating && (e.target.style.backgroundColor = '#b91c1c')}
-                onMouseOut={(e) => !isUpdating && (e.target.style.backgroundColor = '#dc2626')}
-              >
-                {isUpdating ? 'Updating...' : `Disable Access (${selectedWeeks.length})`}
-              </button>
-            </>
-          )}
-        </div>
+      {/* Bulk actions -- operate on every week directly, no selection needed */}
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+        <button
+          onClick={handleEnableAll}
+          disabled={isUpdating}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: 'transparent',
+            color: '#0d1a4b',
+            borderRadius: '8px',
+            border: '1px solid rgba(13, 26, 75, 0.25)',
+            cursor: isUpdating ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+            opacity: isUpdating ? 0.5 : 1,
+            transition: 'background-color 0.2s',
+          }}
+          onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(13, 26, 75, 0.06)')}
+          onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          Open all weeks
+        </button>
+        <button
+          onClick={handleDisableAll}
+          disabled={isUpdating}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: 'transparent',
+            color: '#6b7280',
+            borderRadius: '8px',
+            border: '1px solid rgba(107, 114, 128, 0.3)',
+            cursor: isUpdating ? 'not-allowed' : 'pointer',
+            fontSize: '13px',
+            fontWeight: '500',
+            opacity: isUpdating ? 0.5 : 1,
+            transition: 'background-color 0.2s',
+          }}
+          onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.08)')}
+          onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
+        >
+          Close all weeks
+        </button>
+      </div>
 
-        {/* Week Table */}
+      {/* Week Table */}
+      <div style={styles.card}>
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={{...styles.th, width: '50px'}}>Select</th>
-              <th style={{...styles.th, textAlign: 'left'}}>Week</th>
-              <th style={{...styles.th, width: '150px'}}>Status</th>
-              <th style={{...styles.th, width: '200px'}}>Actions</th>
+              <th style={{ ...styles.th, width: '70px', textAlign: 'center' }}>Order</th>
+              <th style={styles.th}>Week</th>
+              <th style={{ ...styles.th, width: '190px', textAlign: 'center' }}>Open to Students</th>
             </tr>
           </thead>
           <tbody>
-            {Object.entries(weekLabels).map(([weekId, label]) => {
+            {orderedWeekIds.map((weekId, index) => {
               const isGloballyAvailable = globalWeekSettings[weekId]?.isAvailable ?? false;
+              const position = index + 1;
               return (
                 <tr key={weekId}>
-                  <td style={{...styles.td, textAlign: 'center'}}>
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
                     <input
-                      type="checkbox"
-                      checked={selectedWeeks.includes(weekId)}
-                      onChange={() => handleWeekToggle(weekId)}
+                      key={`${weekId}-${position}`}
+                      type="number"
+                      min={1}
+                      max={orderedWeekIds.length}
+                      defaultValue={position}
+                      disabled={isUpdating}
+                      onBlur={(e) => handleOrderChange(weekId, parseInt(e.target.value, 10))}
+                      onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                       style={{
-                        width: '16px',
-                        height: '16px',
-                        accentColor: '#002060'
+                        width: '52px',
+                        padding: '6px 8px',
+                        textAlign: 'center',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        color: '#0d1a4b',
+                        outline: 'none',
                       }}
+                      onFocus={(e) => { e.target.style.borderColor = '#0d1a4b'; e.target.style.boxShadow = '0 0 0 2px rgba(13, 26, 75, 0.12)'; }}
                     />
                   </td>
-                  <td style={{...styles.td, textAlign: 'left'}}>
-                    <div style={{ fontWeight: '500', color: '#002060' }}>{label}</div>
+                  <td style={styles.td}>
+                    <div style={{ fontWeight: '500', color: '#111827' }}>{courseWeekLabel(weekId)}</div>
                   </td>
-                  <td style={{...styles.td, textAlign: 'center'}}>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      ...(isGloballyAvailable
-                        ? { backgroundColor: '#dcfce7', color: '#166534' }
-                        : { backgroundColor: '#fee2e2', color: '#dc2626' }
-                      )
-                    }}>
-                      {isGloballyAvailable ? 'Access Enabled' : 'Access Disabled'}
-                    </span>
-                  </td>
-                  <td style={{...styles.td, textAlign: 'center'}}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                    <label
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', cursor: isUpdating ? 'not-allowed' : 'pointer', userSelect: 'none' }}
+                    >
                       <button
-                        onClick={() => handleGlobalIndividualUpdate(weekId, true)}
-                        disabled={isUpdating || isGloballyAvailable}
+                        type="button"
+                        onClick={() => handleToggle(weekId, !isGloballyAvailable)}
+                        disabled={isUpdating}
+                        role="switch"
+                        aria-checked={isGloballyAvailable}
+                        aria-label={`Toggle access for ${courseWeekLabel(weekId)}`}
                         style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#059669',
-                          color: 'white',
-                          borderRadius: '4px',
+                          position: 'relative',
+                          display: 'inline-block',
+                          width: '42px',
+                          height: '23px',
+                          borderRadius: '999px',
+                          background: isGloballyAvailable ? '#0d1a4b' : '#d1d5db',
                           border: 'none',
-                          cursor: (isUpdating || isGloballyAvailable) ? 'not-allowed' : 'pointer',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          opacity: (isUpdating || isGloballyAvailable) ? 0.5 : 1,
-                          transition: 'background-color 0.2s'
+                          padding: 0,
+                          cursor: isUpdating ? 'not-allowed' : 'pointer',
+                          opacity: isUpdating ? 0.6 : 1,
+                          transition: 'background 0.2s ease-in-out',
+                          flexShrink: 0,
                         }}
-                        onMouseOver={(e) => !(isUpdating || isGloballyAvailable) && (e.target.style.backgroundColor = '#047857')}
-                        onMouseOut={(e) => !(isUpdating || isGloballyAvailable) && (e.target.style.backgroundColor = '#059669')}
                       >
-                        Enable
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '3px',
+                            left: isGloballyAvailable ? '22px' : '3px',
+                            width: '17px',
+                            height: '17px',
+                            borderRadius: '50%',
+                            background: '#ffffff',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.2)',
+                            transition: 'left 0.2s ease-in-out',
+                          }}
+                        />
                       </button>
-                      <button
-                        onClick={() => handleGlobalIndividualUpdate(weekId, false)}
-                        disabled={isUpdating || !isGloballyAvailable}
-                        style={{
-                          padding: '6px 12px',
-                          backgroundColor: '#dc2626',
-                          color: 'white',
-                          borderRadius: '4px',
-                          border: 'none',
-                          cursor: (isUpdating || !isGloballyAvailable) ? 'not-allowed' : 'pointer',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          opacity: (isUpdating || !isGloballyAvailable) ? 0.5 : 1,
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseOver={(e) => !(isUpdating || !isGloballyAvailable) && (e.target.style.backgroundColor = '#b91c1c')}
-                        onMouseOut={(e) => !(isUpdating || !isGloballyAvailable) && (e.target.style.backgroundColor = '#dc2626')}
-                      >
-                        Disable
-                      </button>
-                    </div>
+                      <span style={{ fontSize: '12px', fontWeight: '500', color: isGloballyAvailable ? '#0d1a4b' : '#9ca3af', minWidth: '38px', textAlign: 'left' }}>
+                        {isGloballyAvailable ? 'Open' : 'Closed'}
+                      </span>
+                    </label>
                   </td>
                 </tr>
               );

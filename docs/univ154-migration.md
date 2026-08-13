@@ -1056,3 +1056,37 @@ see Database schema above). Branch `feature/assumptions-consolidation`.
   Estate & Homeownership") have room without needing the marquee. The toggle
   button's `left` offset in `Dashboard.jsx` (follows the sidebar's right edge) was
   updated to match, `280px` → `320px`.
+
+### 2026-08-13 — Week Access admin: editable module order, drop Select column, de-slop status UI
+- Sidebar "Module N" order used to be a hardcoded array in
+  `Option3_Minimalist.jsx` (`weekIds = ['week-1', ..., 'week-5']`), unrelated to
+  each week's `week-N` id. Made it admin-editable: new `display_order` int
+  column on `global_week_settings` (migration
+  `20260813000000_add_display_order_to_global_week_settings.sql`, backfilled to
+  match the old hardcoded order so this is a no-op until an admin changes it).
+  **Not yet applied to the live DB** — no service-role/CLI credentials in this
+  session; user needs to paste the migration into the Supabase SQL Editor (same
+  flow as `APPLY_MIGRATION.md`) before the Order column in `WeekAccessAdmin.jsx`
+  will actually persist across reloads.
+- `WeekAccessContext.jsx` now exports `SUPPORTED_WEEK_IDS` and
+  `WEEK_TOPIC_LABELS` (single source of truth for the topic name per weekId —
+  was duplicated between `WeekAccessAdmin.jsx`'s `weekLabels` and
+  `Option3_Minimalist.jsx`'s `topicLabels`) and adds `getOrderedWeekIds()` +
+  `bulkUpdateWeekOrder(orderMap)`. Editing one row's order in the admin table
+  renumbers the whole list 1..n in a single bulk upsert — never duplicate or
+  gapped positions. `Dashboard.jsx` passes `getOrderedWeekIds()` down as the
+  sidebar's `weekIds` prop instead of the sidebar hardcoding its own order.
+- Fixed a bug this surfaced: `updateGlobalWeekSettings`/
+  `bulkUpdateGlobalWeekSettings`'s local-state updates were replacing each
+  week's whole settings object (dropping `order`) instead of merging — every
+  Enable/Disable click would silently reset that week's in-memory order back to
+  the default until the next page reload. Now merges (`...prev[weekId]`).
+- `WeekAccessAdmin.jsx` rewrite: removed the checkbox "Select" column and the
+  selection-dependent bulk toolbar (Select All / Deselect All / Enable(N) /
+  Disable(N)) — replaced with plain "Open all weeks" / "Close all weeks"
+  buttons that act on every week directly, no selection state needed. Replaced
+  the bright green/red status pill + separate Enable/Disable buttons with one
+  toggle switch per row (navy/gray, matches the sidebar's existing "Preview as
+  Student" toggle) — user flagged the old red/green as "AI slop." Table
+  gridlines (per-cell borders) removed in favor of a subtle bottom-only row
+  divider, matching the glassmorphism card style used elsewhere in the app.

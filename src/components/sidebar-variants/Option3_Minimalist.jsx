@@ -1,6 +1,12 @@
 // OPTION 3: MINIMALIST MODERN SIDEBAR
 // Clean, minimal tasarım ile perfect spacing
 
+import { WEEK_TOPIC_LABELS } from '../../contexts/WeekAccessContext';
+
+// Fallback if the ordered list isn't passed in yet -- same default order
+// WeekAccessContext.getOrderedWeekIds() falls back to.
+const DEFAULT_WEEK_IDS = ['week-1', 'week-2', 'week-3', 'week-4', 'week-6', 'week-9', 'week-12', 'week-7', 'week-5'];
+
 export const MinimalistSidebar = ({
   sidebarCollapsed,
   toggleSidebar,
@@ -11,6 +17,7 @@ export const MinimalistSidebar = ({
   logo,
   SidebarLink,
   isWeekAccessible,
+  weekIds: orderedWeekIds = DEFAULT_WEEK_IDS,
   MdChevronLeft,
   MdChevronRight,
   FaUserShield,
@@ -201,23 +208,14 @@ export const MinimalistSidebar = ({
         >
           <div className="flex flex-col gap-5">
             {(() => {
-              const topicLabels = [
-                'Budgeting',
-                'Savings & Emergency Funds',
-                'Credit & Debt Management',
-                'Income & Taxes',
-                'Retirement Planning',
-                'Markets & Investing',
-                'Constructing The Goal',
-                'Insurance',
-                'Real Estate & Homeownership',
-              ];
-              const weekIds = ['week-1', 'week-2', 'week-3', 'week-4', 'week-6', 'week-9', 'week-12', 'week-7', 'week-5'];
+              // Module order (position i+1) is admin-editable via the Week
+              // Access panel -- orderedWeekIds already reflects that order.
+              const weekIds = orderedWeekIds;
               return weekIds.map((_, i) => {
               const weekId = weekIds[i];
-              
+
               const isAccessible = isWeekAccessible(weekId);
-              const topic = topicLabels[i];
+              const topic = WEEK_TOPIC_LABELS[weekId] || weekId;
               const weekLabel = `Module ${i+1} - ${topic}`;
               
               const moduleIconColor = isAccessible ? '#0d1a4b' : '#9ca3af';

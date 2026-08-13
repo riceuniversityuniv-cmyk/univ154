@@ -239,7 +239,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
     }
   })
   // Use week access context
-  const { isWeekAccessible } = useWeekAccess()
+  const { isWeekAccessible, getOrderedWeekIds } = useWeekAccess()
 
   const handleSidebarFixedChange = (fixed) => {
     setSidebarFixed(fixed)
@@ -307,6 +307,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
           riceLogo={riceLogo}
           SidebarLink={SidebarLink}
           isWeekAccessible={isWeekAccessible}
+          weekIds={getOrderedWeekIds()}
           MdChevronLeft={MdChevronLeft}
           MdChevronRight={MdChevronRight}
           FaUserShield={FaUserShield}
