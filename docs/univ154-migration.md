@@ -5,15 +5,65 @@ Beyza Ispir under her personal accounts; being consolidated onto Rice's own
 GitHub/Supabase/Netlify so the course doesn't depend on a former student's
 personal accounts.
 
+## 🔴 ACTIVE — pick up here next session
+
+Two open issues found 2026-08-13 evening, not yet fixed. User is switching Claude
+accounts (low on usage) — this section exists so a fresh session has everything
+needed without re-deriving it. See working log entry "Google OAuth redirects to
+dead Netlify 404 + login-card layout regression" (bottom of this doc, dated
+2026-08-13 evening) for full detail. Short version:
+
+1. **Google sign-in on the live Cloudflare site (`univ154.pages.dev`) redirects to
+   a Netlify "Site not found" page** (Netlify Internal ID
+   `01KZY9T1YTZ39MSE6C6R26S4MH`), tried both email and Google login. The frontend
+   code is NOT hardcoded to Netlify — `AuthContext.jsx:257` builds `redirectTo` from
+   `window.location.origin` dynamically. **Prime suspect: Supabase project
+   `zyznmhbtpniluhkyowbb` → Authentication → URL Configuration** — the "Site URL"
+   and/or "Redirect URLs" allow-list is likely still set to
+   `https://riceuniv154.netlify.app` from the original Netlify setup and was never
+   updated to `https://univ154.pages.dev` when Cloudflare became primary (see the
+   2026-08-13 "later same day" entry below about this exact allow-list needing
+   updates once before, for the Netlify→Netlify migration — this looks like the
+   same class of bug, one hop later). Fix: add `https://univ154.pages.dev/*` (and
+   set Site URL to `https://univ154.pages.dev`) in that Supabase screen; also check
+   the Google Cloud Console OAuth client's Authorized redirect URIs includes the
+   Supabase callback (`https://zyznmhbtpniluhkyowbb.supabase.co/auth/v1/callback`)
+   — that part is host-agnostic and was already fixed once, probably still fine.
+2. **Login/onboarding card layout looks visually broken** — user's screenshots show
+   the sign-in card. Prime suspect: `src/components/Login.jsx` — the gradient logo
+   card has `padding: '20px 110px'` (~line 197) sitting inside a `max-w-[400px]`
+   outer container (~line 171), leaving only ~180px of horizontal room for a
+   145px-tall logo (~line 206) plus the "Financial Literacy for Life" heading. That
+   padding value is suspicious regardless of hosting — needs a visual QA pass in a
+   browser (not just a code read) to confirm what's actually rendering wrong before
+   changing it.
+
 ## Current architecture (as of 2026-08-13)
+
+> **The live site students use is `https://univ154.pages.dev` (Cloudflare Pages). Full stop.**
+> Netlify (`riceuniv154.netlify.app`) is a dormant leftover from before the Cloudflare
+> switch — still connected to the repo, but not in use and not what anyone should be
+> checking or worrying about day to day. If a future session (me or otherwise) starts
+> talking about Netlify credits/billing as if it's the active deploy target, that's
+> wrong — point back to this line.
 
 | Layer | Where | Notes |
 |---|---|---|
 | Code | `github.com/riceuniversityuniv-cmyk/univ154` | Fork of `beyzaispiir/univ154`. `riceuniversityuniv-cmyk` has admin/push access. Fork relationship is cosmetic only (GitHub "forked from" label) — no functional impact, not worth detaching (needs a GitHub Support ticket). |
-| Hosting (**primary**) | Cloudflare Pages → `https://univ154.pages.dev` | Auto-deploys from `main` on push, ~1-2 min build. This is the canonical URL as of 2026-08-13 — see working log entry below for why. |
-| Hosting (legacy, unused) | Netlify site → `https://riceuniv154.netlify.app` | Still connected and auto-deploys from `main`, but not the URL given to students. Sat paused Aug 13 – Sep 9 2026 due to free-tier credit exhaustion; left as-is rather than decommissioned. |
+| Hosting (**primary, live**) | Cloudflare Pages → `https://univ154.pages.dev` | Auto-deploys from `main` on push, ~1-2 min build. **This is the URL to give students.** Canonical since 2026-08-13 — see working log entry below for why. |
+| Hosting (legacy, dormant, not in use) | Netlify site → `https://riceuniv154.netlify.app` | Still connected and would auto-deploy from `main`, but nobody is pointed at this URL and it doesn't need monitoring. Was paused Aug 13 – Sep 9 2026 due to free-tier credit exhaustion (the reason we moved off it); left connected rather than decommissioned since there's no cost to leaving it. |
 | Backend | Supabase project ref `zyznmhbtpniluhkyowbb` (`https://zyznmhbtpniluhkyowbb.supabase.co`) | The live, correct backend. Fresh project created during the migration — **not** the same project the app originally used. Shared by both hosting targets above — switching hosts doesn't touch this. |
 | Local dev | `.env.local` (gitignored) with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` pointed at the project above | Anon/publishable key extracted from the live bundle (`sb_publishable_...` format) since it's safe for client-side use. |
+
+### Deployment limits (Cloudflare Pages — the one that matters now)
+- **500 builds/month**, 1 concurrent build, unlimited bandwidth/requests — flat cap,
+  no credit-per-deploy spend-down like Netlify had. Normal push cadence for this
+  project won't come close.
+- Check current usage: `dash.cloudflare.com` → account → **Workers & Pages** → the
+  `univ154` Pages project → **Deployments** tab (each row is one build) or the
+  account-level Usage/Overview page for the month-to-date build count.
+- Netlify's old 300-credits/month (~15 credits/deploy) limit is **not relevant**
+  anymore — it only applied to the dormant Netlify host above, not to Cloudflare.
 
 ### Dead legacy site — do not spend time on this
 `https://univ154.netlify.app` (the URL in this repo's own README) still resolves and
@@ -196,6 +246,63 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-13 (evening) — Google OAuth redirects to dead Netlify 404 + login-card layout regression; handed off mid-investigation
+User tried logging into the live site both ways (email/password wasn't mentioned as
+failing, but Google sign-in specifically) and landed on Netlify's stock "Site not
+found" error page (Netlify Internal ID `01KZY9T1YTZ39MSE6C6R26S4MH`), not the app.
+User also flagged that the login/onboarding card's logo sizing and spacing looks
+"screwed up" compared to before, and attributed both to the Cloudflare switch.
+User is switching Claude accounts (session running low on usage) before this could
+be fixed, so this is a handoff entry, not a resolution — see the "🔴 ACTIVE" section
+at the top of this doc for the condensed version a fresh session should read first.
+
+- **Google redirect bug, not yet confirmed root cause.** Checked
+  `AuthContext.jsx:257` — `redirectTo: \`${window.location.origin}/\`` — this is
+  dynamic, not a hardcoded Netlify URL, so the frontend code itself isn't the bug.
+  That points at Supabase's Auth → URL Configuration screen (Site URL / Redirect
+  URLs allow-list) for project `zyznmhbtpniluhkyowbb` still being pointed at
+  `https://riceuniv154.netlify.app` from before the Cloudflare cutover — Supabase
+  falls back to the configured Site URL when the requested `redirectTo` isn't on
+  its allow-list, which would explain landing on a Netlify URL from a Cloudflare
+  page. This is the same *category* of bug as the 2026-08-13 "later same day" entry
+  below (`uri_allow_list` pointed at a stale Netlify URL that time too) — not
+  independently confirmed yet, just the strongest lead. Nobody has opened the
+  Supabase dashboard to check this screen this session.
+- **Login card layout, not yet confirmed root cause.** Read `Login.jsx` — the
+  gradient card wrapping the UNIV154 logo has `padding: '20px 110px'` (110px each
+  side) inside a `max-w-[400px]` container, which only leaves ~180px for a
+  145px-tall logo image plus heading text. This is suspicious on its face but
+  wasn't visually verified in a browser (no screenshot of the *current broken*
+  render was diffed against this code path in this session — the two screenshots
+  the user provided show the card readable but noticeably narrow/cramped with a
+  lot of dead gray gutter space on either side, consistent with the max-width
+  container being much narrower than the viewport, which is expected responsive
+  behavior — whether that counts as "screwed up" vs. always-was-this-way wasn't
+  resolved). Needs a live browser check, not just a code read, before touching CSS.
+- **Not yet done**: opening Supabase dashboard, opening Google Cloud Console,
+  opening the live site in a browser to reproduce either issue directly. This
+  entry exists purely so those next steps aren't lost across the account switch.
+
+### 2026-08-13 (latest) — Clarified doc to prevent future "are we still on Netlify?" confusion
+User asked how to track Cloudflare deploy limits; the assistant's answer led with
+Netlify's billing page (technically accurate — Netlify is still connected — but
+worded in a way that read as if Netlify were the active host), which understandably
+confused the user since the whole point of the prior session was moving *off*
+Netlify. No architecture actually changed; this was a documentation clarity fix.
+- Added a blunt callout at the top of the architecture table stating the live URL
+  in one sentence, explicitly flagging that Netlify-as-active-host is a wrong
+  conclusion if any future session drifts toward it.
+- Added a **Deployment limits** section right under the architecture table with
+  Cloudflare's actual numbers (500 builds/month flat, no credit system) and where
+  to check usage (`dash.cloudflare.com` → Workers & Pages → `univ154` → Deployments),
+  since that's the only limit that matters going forward — Netlify's 300-credit
+  system only applies to the dormant host and shouldn't be part of the answer to
+  "how do I avoid running into this again."
+- **Takeaway**: when a repo has a dormant-but-still-connected legacy service (like
+  Netlify here), lead answers with the live/primary system first and only mention
+  the dormant one if directly relevant — don't present them as parallel options,
+  even when both are technically "connected."
 
 ### 2026-08-13 — App-wide currency/percent formatting: new `src/utils/formatters.js`, fixed an accounting-format bug
 User asked for two things: (1) `AssumptionsAdmin.jsx`'s currency inputs read as
