@@ -22,18 +22,18 @@ const tabs = [
 
 const tabBarStyle = {
   display: 'flex',
-  gap: '4px',
+  gap: '8px',
   justifyContent: 'center',
   borderBottom: '2px solid #e0e0e0',
-  marginBottom: '24px',
+  marginBottom: '32px',
 };
 
 const tabStyle = ({ isActive }) => ({
-  padding: '12px 24px',
-  fontSize: '14px',
-  fontWeight: '600',
+  padding: '18px 36px',
+  fontSize: '20px',
+  fontWeight: '700',
   color: isActive ? '#002060' : '#6b7280',
-  borderBottom: isActive ? '3px solid #002060' : '3px solid transparent',
+  borderBottom: isActive ? '4px solid #002060' : '4px solid transparent',
   marginBottom: '-2px',
   textDecoration: 'none',
   transition: 'color 0.2s',
