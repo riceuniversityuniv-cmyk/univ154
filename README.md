@@ -4,7 +4,7 @@ A comprehensive web-based financial education application built for Rice Univers
 
 ## 🚀 Live Application
 
-**Production URL:** [https://univ154.netlify.app](https://univ154.netlify.app)
+**Production URL:** [https://univ154.pages.dev](https://univ154.pages.dev)
 
 ## 📋 Table of Contents
 
@@ -175,7 +175,7 @@ UNIV154/
 ├── vite.config.js           # Vite configuration
 ├── tailwind.config.js        # Tailwind CSS configuration
 ├── eslint.config.js          # ESLint configuration
-├── netlify.toml             # Netlify deployment config
+├── netlify.toml             # Legacy Netlify config (not the active deploy target -- see Deployment)
 └── README.md                # This file
 ```
 
@@ -303,7 +303,7 @@ Controls global availability of weekly modules.
 - Node.js 18+ 
 - npm or yarn
 - Supabase account
-- Netlify account (for deployment)
+- Cloudflare account (for deployment)
 
 ### Local Development Setup
 
@@ -385,31 +385,39 @@ npm run lint
 
 ## 🚀 Deployment
 
-### Netlify Deployment
+### Cloudflare Pages Deployment (current)
 
-The application is configured for automatic deployment via Netlify:
+The application is configured for automatic deployment via Cloudflare Pages,
+connected to this GitHub repo. Live at
+[https://univ154.pages.dev](https://univ154.pages.dev).
 
 1. **Connect Repository**
-   - Link your GitHub repository to Netlify
-   - Enable automatic deployments
+   - Project is linked to `riceuniversityuniv-cmyk/univ154` in the Cloudflare
+     dashboard (Workers & Pages → univ154) via the classic **Pages** flow --
+     not the newer "Create a Worker" flow, which doesn't support environment
+     variables. See `docs/univ154-migration.md` for the setup gotchas.
+   - Automatic deployments enabled on `main`
 
 2. **Build Configuration**
-   ```toml
-   [build]
-     publish = "dist"
-     command = "npm run build"
-   
-   [build.environment]
-     NODE_VERSION = "18"
-   ```
+   - Framework preset: React (Vite)
+   - Build command: `npm run build`
+   - Output directory: `dist`
 
 3. **Environment Variables**
-   - Add Supabase credentials in Netlify dashboard
-   - Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`
+   - Set under the Pages project's Settings → Environment variables
+   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` (must be present at
+     build time -- Vite bakes them into the bundle statically)
 
 4. **Deploy**
-   - Push to main branch triggers automatic deployment
-   - Preview deployments for pull requests
+   - Push to `main` triggers automatic deployment, live within ~1-2 minutes
+
+### Netlify Deployment (legacy, currently unused)
+
+`netlify.toml` is still present and the Netlify project is still linked, but
+it is not the active deploy target as of 2026-08-13 (see working log in
+`docs/univ154-migration.md` for why). It could be re-adopted in the future
+with no code changes -- both hosts build the same static site from the same
+repo and env vars.
 
 ### Manual Deployment
 

@@ -5,13 +5,14 @@ Beyza Ispir under her personal accounts; being consolidated onto Rice's own
 GitHub/Supabase/Netlify so the course doesn't depend on a former student's
 personal accounts.
 
-## Current architecture (as of 2026-08-11)
+## Current architecture (as of 2026-08-13)
 
 | Layer | Where | Notes |
 |---|---|---|
 | Code | `github.com/riceuniversityuniv-cmyk/univ154` | Fork of `beyzaispiir/univ154`. `riceuniversityuniv-cmyk` has admin/push access. Fork relationship is cosmetic only (GitHub "forked from" label) — no functional impact, not worth detaching (needs a GitHub Support ticket). |
-| Hosting | Netlify site → `https://riceuniv154.netlify.app` | Auto-deploys from `main` on push. Confirmed live (bundle contains the current admin email string). |
-| Backend | Supabase project ref `zyznmhbtpniluhkyowbb` (`https://zyznmhbtpniluhkyowbb.supabase.co`) | The live, correct backend. Fresh project created during the migration — **not** the same project the app originally used. |
+| Hosting (**primary**) | Cloudflare Pages → `https://univ154.pages.dev` | Auto-deploys from `main` on push, ~1-2 min build. This is the canonical URL as of 2026-08-13 — see working log entry below for why. |
+| Hosting (legacy, unused) | Netlify site → `https://riceuniv154.netlify.app` | Still connected and auto-deploys from `main`, but not the URL given to students. Sat paused Aug 13 – Sep 9 2026 due to free-tier credit exhaustion; left as-is rather than decommissioned. |
+| Backend | Supabase project ref `zyznmhbtpniluhkyowbb` (`https://zyznmhbtpniluhkyowbb.supabase.co`) | The live, correct backend. Fresh project created during the migration — **not** the same project the app originally used. Shared by both hosting targets above — switching hosts doesn't touch this. |
 | Local dev | `.env.local` (gitignored) with `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` pointed at the project above | Anon/publishable key extracted from the live bundle (`sb_publishable_...` format) since it's safe for client-side use. |
 
 ### Dead legacy site — do not spend time on this
