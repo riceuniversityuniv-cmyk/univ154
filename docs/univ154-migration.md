@@ -7,12 +7,9 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-One open item as of 2026-08-14, waiting on the user (not code): confirm the
-Supabase Auth → URL Configuration change described in the 2026-08-14 working
-log entry below has actually been made and that Google sign-in on
-`univ154.pages.dev` no longer 404s to Netlify. The login-card layout item from
-2026-08-13 evening is code-fixed and pushed (same 2026-08-14 entry) — no
-longer active.
+Nothing active. Both 2026-08-13/14 items (OAuth 404, login-card layout) are
+confirmed fixed and verified live as of 2026-08-14 — see working log entry
+below.
 
 ## Current architecture (as of 2026-08-13)
 
@@ -256,18 +253,17 @@ this time instead of a code-only read.
     deploying" for this repo going forward — no separate preview
     infrastructure needed, the pieces already existed.
   - `npm run build` clean.
-- **Google OAuth 404 — diagnosed, not yet confirmed fixed; fix handed to the
-  user as a Supabase dashboard change, not code.** No tool in this session had
-  Supabase Management API access (no stored PAT, no MCP server for it), and
-  the user opted to make the change themselves rather than generate a new PAT.
-  Gave the user the exact values: Supabase project `zyznmhbtpniluhkyowbb` →
-  Authentication → URL Configuration → Site URL = `https://univ154.pages.dev`,
-  Redirect URLs allow-list += `https://univ154.pages.dev/**` (Supabase's
-  allow-list uses `**` glob syntax). This exactly matches the 2026-08-13
-  evening handoff's prime suspect. **Still needs a next-session (or later this
-  session) confirmation that the user actually made the change and that
-  Google sign-in works live** — nobody has clicked "Continue with Google" on
-  the live site since this fix was described.
+- **Google OAuth 404 — fixed, confirmed live.** No tool in this session had
+  Supabase Management API access (no stored PAT, no MCP server for it), so the
+  user made the change themselves rather than generate a new PAT: Supabase
+  project `zyznmhbtpniluhkyowbb` → Authentication → URL Configuration → Site
+  URL = `https://univ154.pages.dev`, Redirect URLs allow-list +=
+  `https://univ154.pages.dev/**` (Supabase's allow-list uses `**` glob
+  syntax, typed literally). This exactly matched the 2026-08-13 evening
+  handoff's prime suspect. Verified live with Playwright: clicking "Continue
+  with Google" on `univ154.pages.dev` now lands on Google's account chooser
+  with `redirect_to=https://univ154.pages.dev/` in the URL, instead of
+  bouncing to the dead Netlify 404.
 - Takeaway reinforcing the 2026-08-13 "latest" entry: the OAuth allow-list has
   now broken exactly this way twice across two different hosting migrations
   (Netlify→Netlify rename, then Netlify→Cloudflare) — worth remembering that
