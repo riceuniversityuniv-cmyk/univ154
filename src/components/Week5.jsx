@@ -297,16 +297,20 @@ const Week5 = () => {
     console.log(`Bi-weekly Verification: Bi-weekly Principal Payments Array Length: ${biWeeklyPrincipalPayments.length} (should be ${biWeeklyPayments})`);
     console.log(`Bi-weekly Verification: First 5 Bi-weekly Principal Payments:`, biWeeklyPrincipalPayments.slice(0, 5).map(p => p.toFixed(2)));
     
-    // Chart data for monthly payment breakdown
+    // Chart data for monthly payment breakdown. Labels are bare numbers --
+    // the x-axis title already says "Month Number", so "Month 1, Month 2..."
+    // ticks were redundant.
     const monthlyChartData = {
-      labels: Array.from({ length: monthlyPrincipalPayments.length }, (_, i) => `Month ${i + 1}`),
+      labels: Array.from({ length: monthlyPrincipalPayments.length }, (_, i) => i + 1),
       datasets: [
         {
           label: 'Principal Payment',
           data: monthlyPrincipalPayments.map(p => Math.round(p)),
-          backgroundColor: 'rgba(0, 32, 96, 0.8)',
-          borderColor: 'rgba(0, 32, 96, 1)',
-          borderWidth: 1,
+          backgroundColor: '#0d1a4b',
+          borderColor: '#0a1440',
+          borderWidth: 0,
+          borderRadius: 4,
+          stack: 'stack1',
         },
         {
           label: 'Interest Payment',
@@ -314,34 +318,40 @@ const Week5 = () => {
             const interestPayment = (safeLoanAmount - (i > 0 ? monthlyPrincipalPayments.slice(0, i).reduce((sum, p) => sum + p, 0) : 0)) * monthlyRate;
             return Math.round(interestPayment);
           }),
-          backgroundColor: 'rgba(255, 149, 0, 0.8)',
-          borderColor: 'rgba(255, 149, 0, 1)',
-          borderWidth: 1,
+          backgroundColor: 'rgba(139, 157, 196, 0.45)',
+          borderColor: 'rgba(107, 127, 168, 0.4)',
+          borderWidth: 0,
+          borderRadius: 4,
+          stack: 'stack1',
         },
       ],
     };
 
-    // Chart data for bi-weekly payment breakdown
+    // Chart data for bi-weekly payment breakdown. Same bare-number label
+    // treatment -- axis title says "Week Number" already.
     const biWeeklyChartData = {
-      labels: Array.from({ length: biWeeklyPrincipalPayments.length }, (_, i) => `Week ${2 + i * 2}`),
+      labels: Array.from({ length: biWeeklyPrincipalPayments.length }, (_, i) => 2 + i * 2),
       datasets: [
         {
           label: 'Principal Payment',
           data: biWeeklyPrincipalPayments.map(p => Math.round(p)),
-          backgroundColor: 'rgba(0, 32, 96, 0.8)',
-          borderColor: 'rgba(0, 32, 96, 1)',
-          borderWidth: 1,
+          backgroundColor: '#0d1a4b',
+          borderColor: '#0a1440',
+          borderWidth: 0,
+          borderRadius: 4,
+          stack: 'stack1',
         },
         {
           label: 'Interest Payment',
           data: Array.from({ length: biWeeklyPrincipalPayments.length }, (_, i) => {
-            const weekNumber = 2 + i * 2;
             const interestPayment = (safeLoanAmount - (i > 0 ? biWeeklyPrincipalPayments.slice(0, i).reduce((sum, p) => sum + p, 0) : 0)) * biWeeklyRate;
             return Math.round(interestPayment);
           }),
-          backgroundColor: 'rgba(255, 149, 0, 0.8)',
-          borderColor: 'rgba(255, 149, 0, 1)',
-          borderWidth: 1,
+          backgroundColor: 'rgba(139, 157, 196, 0.45)',
+          borderColor: 'rgba(107, 127, 168, 0.4)',
+          borderWidth: 0,
+          borderRadius: 4,
+          stack: 'stack1',
         },
       ],
     };
@@ -349,55 +359,65 @@ const Week5 = () => {
     const monthlyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index',
+      },
       plugins: {
         title: {
           display: false,
         },
         legend: {
-          position: 'bottom',
+          position: 'top',
+        },
+        tooltip: {
+          animation: { duration: 0 },
+          position: 'nearest',
+          backgroundColor: 'rgba(13, 26, 75, 0.95)',
+          padding: 12,
+          titleFont: { size: 14, weight: '600' },
+          bodyFont: { size: 13 },
+          borderColor: 'rgba(255, 255, 255, 0.2)',
+          borderWidth: 1,
+          cornerRadius: 8,
+          displayColors: true,
+          callbacks: {
+            label: (context) => `${context.dataset.label}: ${formatCurrency(context.parsed.y, { decimals: 0 })}`,
+          },
         },
       },
       scales: {
         y: {
           beginAtZero: true,
           stacked: true,
+          grid: { display: false },
           title: {
             display: true,
             text: 'Payment Amount ($)'
-          }
+          },
+          ticks: {
+            callback: (value) => formatCurrency(value, { decimals: 0 }),
+          },
         },
         x: {
           stacked: true,
+          grid: { display: false },
           title: {
             display: true,
             text: 'Month Number'
           }
         },
       },
+      animation: { duration: 0 },
     };
 
     const biWeeklyChartOptions = {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        title: {
-          display: false,
-        },
-        legend: {
-          position: 'bottom',
-        },
-      },
+      ...monthlyChartOptions,
       scales: {
-        y: {
-          beginAtZero: true,
-          stacked: true,
-          title: {
-            display: true,
-            text: 'Payment Amount ($)'
-          }
-        },
+        ...monthlyChartOptions.scales,
         x: {
           stacked: true,
+          grid: { display: false },
           title: {
             display: true,
             text: 'Week Number'
@@ -486,7 +506,7 @@ const Week5 = () => {
       minHeight: '100vh',
       backgroundColor: '#f8f9fa',
       padding: '20px',
-      maxWidth: '1200px',
+      maxWidth: '1520px',
       margin: '0 auto'
     },
     sectionContainer: {
@@ -705,7 +725,7 @@ const Week5 = () => {
       color: '#002060'
     },
     chartContainer: {
-      height: '350px',
+      height: '420px',
       backgroundColor: '#f8f9fa',
       border: '1px solid #e9ecef',
       borderRadius: '6px',
@@ -757,7 +777,7 @@ const Week5 = () => {
           <div style={styles.sectionContainer}>
             {/* Enhanced Header */}
             <div style={styles.enhancedHeader}>
-              <span style={{ fontSize: '26px', letterSpacing: '-0.02em' }}>Real Estate & Investment Planning</span>
+              <span style={{ fontSize: '26px', letterSpacing: '-0.02em' }}>Real Estate & Homeownership</span>
             </div>
 
           {/* Reminder Note */}
@@ -986,13 +1006,6 @@ const Week5 = () => {
                 paddingBottom: '12px',
                 borderBottom: '2px solid #f1f3f4'
               }}>
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  marginRight: '8px',
-                  color: '#002060',
-                  fontSize: '20px'
-                }}>🏠</div>
                 <h3 style={{
                   fontSize: '14px',
                   fontWeight: '600',
@@ -1004,15 +1017,15 @@ const Week5 = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal</div>
-                  <div style={styles.summaryValue}>{formatCurrency(calculations.regularPaymentForPrincipal)}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(calculations.regularPaymentForPrincipal, { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest</div>
-                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.regularPaymentForInterest))}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.regularPaymentForInterest), { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Spent</div>
-                  <div style={styles.summaryValue}>{formatCurrency(Math.round(calculations.totalAmountSpentRegular))}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.round(calculations.totalAmountSpentRegular), { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Term (Years)</div>
@@ -1051,15 +1064,15 @@ const Week5 = () => {
               <div style={styles.summaryTable}>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Principal</div>
-                  <div style={styles.summaryValue}>{formatCurrency(calculations.biWeeklyPaymentForPrincipal)}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(calculations.biWeeklyPaymentForPrincipal, { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Interest</div>
-                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.totalBiWeeklyInterest))}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.ceil(calculations.totalBiWeeklyInterest), { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Total Amount Spent</div>
-                  <div style={styles.summaryValue}>{formatCurrency(Math.round((parseFloat(loanAmount) || 0) + calculations.totalBiWeeklyInterest))}</div>
+                  <div style={styles.summaryValue}>{formatCurrency(Math.round((parseFloat(loanAmount) || 0) + calculations.totalBiWeeklyInterest), { decimals: 0 })}</div>
                 </div>
                 <div style={styles.summaryRow}>
                   <div style={styles.summaryLabel}>Term (Years)</div>
@@ -1100,23 +1113,23 @@ const Week5 = () => {
             <div style={styles.summaryTable}>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Monthly Mortgage Payment (Principal + Interest)</div>
-                <div style={styles.summaryValue}>{formatCurrency(calculations.monthlyPayment)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.monthlyPayment, { decimals: 0 })}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Insurance</div>
-                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedInsurance)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedInsurance, { decimals: 0 })}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Taxes</div>
-                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedTaxes)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedTaxes, { decimals: 0 })}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Maintenance</div>
-                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedMaintenance)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.calculatedMaintenance, { decimals: 0 })}</div>
               </div>
               <div style={styles.summaryRow}>
                 <div style={styles.summaryLabel}>Total Costs</div>
-                <div style={styles.summaryValue}>{formatCurrency(calculations.totalMonthlyCosts)}</div>
+                <div style={styles.summaryValue}>{formatCurrency(calculations.totalMonthlyCosts, { decimals: 0 })}</div>
               </div>
             </div>
           </div>
@@ -1170,13 +1183,6 @@ const Week5 = () => {
                 paddingBottom: '12px',
                 borderBottom: '2px solid #f1f3f4'
               }}>
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  marginRight: '8px',
-                  color: '#002060',
-                  fontSize: '20px'
-                }}>📋</div>
                 <h3 style={{
                   fontSize: '16px',
                   fontWeight: '600',
@@ -1274,13 +1280,6 @@ const Week5 = () => {
                 paddingBottom: '12px',
                 borderBottom: '2px solid #f1f3f4'
               }}>
-                <div style={{
-                  width: '24px',
-                  height: '24px',
-                  marginRight: '8px',
-                  color: '#002060',
-                  fontSize: '20px'
-                }}>📋</div>
                 <h3 style={{
                   fontSize: '16px',
                   fontWeight: '600',
@@ -1380,10 +1379,6 @@ const Week5 = () => {
           }}>
           </div>
 
-        {/* Note */}
-        <div style={styles.note}>
-          Note: Adjust Week 1 Budget based on this week's insights
-        </div>
       </div>
     </>
   );

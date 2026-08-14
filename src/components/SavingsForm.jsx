@@ -256,7 +256,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.3)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1520px',
     marginLeft: 'auto',
     marginRight: 'auto',
   },
@@ -420,7 +420,7 @@ const styles = {
   // Summary section - matching Week 1 styling
   summaryContainer: {
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1520px',
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',

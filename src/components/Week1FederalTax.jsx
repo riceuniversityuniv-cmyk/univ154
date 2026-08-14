@@ -3,6 +3,7 @@ import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown, calculateFICA } from '../utils/taxEngine';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 const styles = {
   container: {
@@ -32,12 +33,9 @@ const styles = {
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   },
   th: {
-    background: '#0d1a4b',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '16px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     textAlign: 'center',
-    fontWeight: '600',
     fontSize: '13px',
     letterSpacing: '0.01em',
   },
@@ -73,13 +71,12 @@ const styles = {
     color: '#166534',
   },
   sectionTitle: {
-    background: '#0d1a4b',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '16px',
     textAlign: 'center',
-    fontWeight: '600',
     fontSize: '16px',
     letterSpacing: '0.01em',
+    borderRadius: '10px 10px 0 0',
   }
 };
 
@@ -210,13 +207,13 @@ export default function Week1FederalTax() {
               >
                 <td style={styles.td}>{formatPercent(calc.rate)}</td>
                 <td style={styles.td}>
-                  {formatCurrency(calc.lower)} &ndash; {calc.upper >= 1e12 ? '∞' : formatCurrency(calc.upper)}
+                  {formatCurrency(calc.lower, { decimals: 0 })} &ndash; {calc.upper >= 1e12 ? '∞' : formatCurrency(calc.upper, { decimals: 0 })}
                 </td>
                 <td style={{...styles.td, ...styles.calculatedCell}} className="calculated">
-                  {formatCurrency(calc.taxableInBracket)}
+                  {formatCurrency(calc.taxableInBracket, { decimals: 0 })}
                 </td>
                 <td style={{...styles.td, ...styles.calculatedCell}} className="calculated">
-                  {formatCurrency(calc.taxInBracket)}
+                  {formatCurrency(calc.taxInBracket, { decimals: 0 })}
                 </td>
               </tr>
             ))}
@@ -245,7 +242,7 @@ export default function Week1FederalTax() {
           }} className="week1f-metric-card">
             <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Total Federal Income Tax</div>
             <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
-              {formatCurrency(totalFederalIncomeTax)}
+              {formatCurrency(totalFederalIncomeTax, { decimals: 0 })}
             </div>
           </div>
           <div style={{
@@ -258,7 +255,7 @@ export default function Week1FederalTax() {
           }} className="week1f-metric-card">
             <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Social Security Tax Payment</div>
             <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
-              {formatCurrency(socialSecurityTax)}
+              {formatCurrency(socialSecurityTax, { decimals: 0 })}
             </div>
           </div>
           <div style={{
@@ -271,7 +268,7 @@ export default function Week1FederalTax() {
           }} className="week1f-metric-card">
             <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Medicare Tax Payment</div>
             <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
-              {formatCurrency(medicareTax)}
+              {formatCurrency(medicareTax, { decimals: 0 })}
             </div>
           </div>
           {additionalMedicareTax > 0 && (
@@ -285,7 +282,7 @@ export default function Week1FederalTax() {
             }} className="week1f-metric-card">
               <div style={{ fontSize: '14px', fontWeight: '500', marginBottom: '8px', color: '#6b7280' }}>Additional Medicare Tax</div>
               <div style={{ fontSize: '28px', fontWeight: '600', color: '#0d1a4b' }}>
-                {formatCurrency(additionalMedicareTax)}
+                {formatCurrency(additionalMedicareTax, { decimals: 0 })}
               </div>
             </div>
           )}
@@ -300,10 +297,10 @@ export default function Week1FederalTax() {
         }} className="week1f-metric-card">
           <h4 style={{ marginBottom: '12px', color: '#1e40af', fontSize: '16px', fontWeight: '600' }}>Assumptions used</h4>
           <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.8' }}>
-            <div>Social Security wage base: {formatCurrency(assumptions.scalars.ss_wage_base)}</div>
+            <div>Social Security wage base: {formatCurrency(assumptions.scalars.ss_wage_base, { decimals: 0 })}</div>
             <div>Social Security rate: {formatPercent(assumptions.scalars.ss_rate)}</div>
             <div>Medicare rate: {formatPercent(assumptions.scalars.medicare_rate)}</div>
-            <div>Standard deduction: {formatCurrency(assumptions.scalars.std_deduction_single)}</div>
+            <div>Standard deduction: {formatCurrency(assumptions.scalars.std_deduction_single, { decimals: 0 })}</div>
             <div style={{ marginTop: '8px', fontStyle: 'italic' }}>
               Editable by admins in the Assumptions tab.
             </div>

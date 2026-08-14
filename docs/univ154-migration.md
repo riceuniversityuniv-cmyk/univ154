@@ -7,9 +7,27 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-Nothing active. Both 2026-08-13/14 items (OAuth 404, login-card layout) are
-confirmed fixed and verified live as of 2026-08-14 — see working log entry
-below.
+**Large UI/UX pass sitting locally, committed but NOT pushed — do not push
+to `main` / deploy until the user explicitly says go.** User is still
+planning more changes before shipping. Run `git log origin/main..HEAD
+--oneline` to see exactly what's ahead of the live site. See the
+2026-08-14 "Big UI/UX + spacing pass" working log entry below for the full
+list of what changed (three rounds: initial ~15-item pass, a refinement
+round, then a page-width/negative-space pass).
+
+Two things a future session needs to know before touching this further:
+- A new migration, `supabase/migrations/20260814000000_add_display_week_number_to_global_week_settings.sql`,
+  has **not been applied** by the user yet (same manual
+  Supabase Dashboard → SQL Editor process as always — nothing here
+  auto-applies migrations). Until it's run, the admin "Week #" field in
+  Week Access works in the UI but silently doesn't persist — it falls back
+  to the value derived from `weekId`.
+- Local dev server workflow for previewing without spending a Cloudflare
+  build: `npm run dev` (already wired to live Supabase via `.env.local`),
+  then have the user check `http://localhost:5173` themselves, or use
+  Playwright MCP screenshots if credentials aren't available in-session.
+  This is now the standard "preview before deploy" answer for this repo —
+  see the 2026-08-14 login-card entry for precedent.
 
 ## Current architecture (as of 2026-08-13)
 
@@ -219,6 +237,100 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-14 — Big UI/UX + spacing pass across ~17 files (three rounds, all local-only, not pushed)
+User did a full pass through the live tool and flagged a large batch of
+layout/polish/correctness issues, then two further refinement rounds after
+reviewing locally each time. Every round was implemented, verified with
+`npm run build` (clean each time) + `npm run lint` (diffed against a
+git-stash baseline of ~163 pre-existing errors to confirm zero new
+regressions), and previewed by the user on `npm run dev` at
+`localhost:5173` before deciding whether to continue — **nothing from any
+of the three rounds has been pushed to `main` or deployed.** Committed
+locally only, per the user's explicit "save but don't deploy, I'm not done
+yet" request.
+
+**Round 1** (~15 items): sticky Budget Status banner in Module 1; widened
+sidebar 320px→360px so "Real Estate & Homeownership" doesn't clip; new
+`src/styles/tableHeaderStyle.js` shared soft-tint header style, replacing
+each file's own solid-navy "blue box" `th`/`sectionTitle` (BudgetForm,
+Week1FederalTax, Week1Summary, Week1StateTax, Week6Retirement, Week7,
+Week9, WeekAccessAdmin, AdminSettingsPanel); new editable "Week #" field in
+Week Access admin (separate from sidebar Order), backed by a new
+`display_week_number` column — see the ACTIVE section above, migration not
+yet applied; Manage Admins role badges redesigned to text + left accent
+bar (bar later removed in round 2, kept color-coded text); fixed Module 3
+(Week3CreditCard) default credit-card payment starting below the computed
+minimum — was hardcoded `'290'`, now lazily derived from
+`computeMinimumPayment` against the same default balance/rate so it can
+never start below minimum again; chart elegance pass on Week5 (Real
+Estate) and Week6Retirement's hand-rolled SVG charts; Retirement Planning
+summary-table border cleanup + split into a tab bar (Summary / Traditional
+401k / Roth 401k / Traditional IRA / Roth IRA) — one 9,600-line component,
+kept as a single file with `activeTab` state gating each section rather
+than splitting into separate components, to avoid prop-drilling shared
+calculations; global number-input spinner-arrow removal via `index.css`;
+Goal tab (Week12) goal-emphasis card + "when you reach it" timeline
+sentence, results shown as whole dollars; removed the copy-pasted "Note:
+Adjust Week 1 Budget based on this week's insights" boilerplate (found
+duplicated across 5 files, not just Module 8 — removed from all 5); Module
+1 table Total $ right-aligned, "% of Monthly Income" column widened;
+Real Estate module emoji removal + banner text fixed to "Real Estate &
+Homeownership" (was inconsistently "& Investment Planning" in one spot).
+
+**Round 2** (refinements after local review caught things round 1 missed):
+Order input in Week Access admin made yellow to match the input
+convention (was still plain gray); admin role badges lost the left accent
+bar per user feedback, kept only the color-coded text; AssumptionsAdmin
+tab brought up to the yellow-input/soft-header convention (missed
+entirely in round 1); "Clear All" button added to Module 1 budgeting
+table; charts resized bigger across the board (Week3CreditCard chart
+containers 200px→300px height; Week6Retirement SVG charts widened
+500→760/250→400 with larger fonts; Goal tab chart containers ~270px→360px
+and 305px→400px); Module 4 (Week1FederalTax/Week1StateTax/Week1Summary)
+cents removed from all dollar figures, plus two header styles round 1 had
+missed (Week1FederalTax's `sectionTitle`, Week1StateTax's separate NYC
+bracket table); Retirement Planning Summary tab's cramped 12px gray
+per-account description text replaced with a real "Account Types at a
+Glance" comparison table, plus a hover tooltip on the word "Deferral" in
+the Monthly Deferral Calculator title (styled like Week7's tooltip but
+gold text, no "Recommendation" content); Module 8 (Week7 Insurance) lost
+its "Recommendation" row entirely, gained comma-formatted dollar inputs
+via the existing-but-underused `formatNumberForInput` helper, and lost
+cents in the Total Annual Cost Calculation section; Goal tab (Week12)
+cents removed from salary field + chart axis ticks; Module 9 (Week5 Real
+Estate) cents removed everywhere **except** the amortization tables, which
+keep full precision by design.
+
+**Round 3** (negative-space/spacing pass, prompted by a screenshot showing
+large empty gutters around Module 1): `Dashboard.jsx`'s outer content
+wrapper widened `max-w-[1400px]` → `max-w-[1760px]`; the `maxWidth:
+'1200px'` page-container cap that 11 files each defined independently
+(BudgetForm, SavingsForm, Week3CreditCard, Week4, Week5, Week6Retirement,
+Week7, Week9, Week10, Week11, Week12) bumped consistently to `1520px`
+(all occurrences per file, including secondary banner/button-row/table
+maxWidths in BudgetForm, so nothing misaligns within a page); Module 1's
+"User Inputted Data" card widened `450px`→`680px` to fill the void that
+used to sit empty beside it (its rows already use `justifyContent:
+space-between`, so this needed no other markup changes). Two `1100px`
+maxWidths inside Week6Retirement (the new Account Types table and the
+Retirement Account Budgeting table) were deliberately left alone — those
+were purpose-tuned narrower in round 2, not instances of the generic
+1200px page cap. Sidebar width (360px, set in round 1) intentionally left
+untouched per the user's request.
+
+- Design decisions during round 1 were confirmed via `AskUserQuestion`
+  before implementing: soft-tint headers over pill/gradient alternatives,
+  text+accent-bar badges over icon pills, doing the retirement tab-split
+  in the same batch rather than a follow-up, one combined deploy instead
+  of shipping each item separately.
+- Round 3's specific fix for Module 1's empty-card problem (widen the card
+  vs. center it vs. add a new companion panel) was also confirmed via
+  `AskUserQuestion` — user picked "widen the card," explicitly ruling out
+  adding new content just to fill space.
+- `Week3CreditCard.jsx.backup` (a stray uncommitted backup file already
+  sitting in the repo) was deliberately left untouched throughout — not
+  the live component, out of scope.
 
 ### 2026-08-14 — Widened login card (no more dead gutters) + OAuth 404 fix handed to user as a dashboard-only change
 Picked up the 2026-08-13 evening handoff (Google OAuth → dead Netlify 404,

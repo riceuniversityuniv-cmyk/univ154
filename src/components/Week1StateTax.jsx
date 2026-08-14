@@ -3,6 +3,7 @@ import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown } from '../utils/taxEngine';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 export default function Week1StateTax() {
   const { topInputs, financialCalculations } = useBudget();
@@ -34,7 +35,7 @@ export default function Week1StateTax() {
   }, [taxableIncome, assumptions.nycBrackets, selectedState, residenceInNYC]);
   const totalNycTax = nycBracketBreakdown.reduce((sum, b) => sum + b.taxInBracket, 0);
 
-  const formatBound = (num) => (num >= 1e12 ? '∞' : formatCurrency(num));
+  const formatBound = (num) => (num >= 1e12 ? '∞' : formatCurrency(num, { decimals: 0 }));
 
   return (
     <>
@@ -72,7 +73,7 @@ export default function Week1StateTax() {
       }} className="week1st-surface">
         <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Taxable Income</h3>
         <p style={{ margin: '0', color: '#495057' }}>
-          <strong>Value:</strong> {formatCurrency(taxableIncome)}
+          <strong>Value:</strong> {formatCurrency(taxableIncome, { decimals: 0 })}
         </p>
         <p style={{ margin: '5px 0 0 0', color: '#6c757d' }}>
           <strong>State:</strong> {selectedState}
@@ -93,11 +94,11 @@ export default function Week1StateTax() {
               border: '1px solid #ddd'
             }}>
               <thead>
-                <tr style={{ backgroundColor: '#007bff', color: 'white' }}>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>Rate</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>Bracket Range</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>Taxable Amount in Bracket</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>Tax in Bracket</th>
+                <tr>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'center' }}>Rate</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'center' }}>Bracket Range</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'right' }}>Taxable Amount in Bracket</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'right' }}>Tax in Bracket</th>
                 </tr>
               </thead>
               <tbody>
@@ -110,10 +111,10 @@ export default function Week1StateTax() {
                       {formatBound(calc.lower)} &ndash; {formatBound(calc.upper)}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'right' }}>
-                      {formatCurrency(calc.taxableInBracket)}
+                      {formatCurrency(calc.taxableInBracket, { decimals: 0 })}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'right' }}>
-                      {formatCurrency(calc.taxInBracket)}
+                      {formatCurrency(calc.taxInBracket, { decimals: 0 })}
                     </td>
                   </tr>
                 ))}
@@ -134,7 +135,7 @@ export default function Week1StateTax() {
         }} className="week1st-surface">
           <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Total {selectedState} State Tax</h4>
           <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#28a745' }}>
-            {formatCurrency(totalStateTax)}
+            {formatCurrency(totalStateTax, { decimals: 0 })}
           </p>
         </div>
       </div>
@@ -151,11 +152,11 @@ export default function Week1StateTax() {
               border: '1px solid #ddd'
             }}>
               <thead>
-                <tr style={{ backgroundColor: '#6f42c1', color: 'white' }}>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>Rate</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'center' }}>Bracket Range</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>Taxable Amount in Bracket</th>
-                  <th style={{ padding: '8px', border: '1px solid #ddd', textAlign: 'right' }}>Tax in Bracket</th>
+                <tr>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'center' }}>Rate</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'center' }}>Bracket Range</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'right' }}>Taxable Amount in Bracket</th>
+                  <th style={{ ...tableHeaderStyle, padding: '8px', textAlign: 'right' }}>Tax in Bracket</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,10 +169,10 @@ export default function Week1StateTax() {
                       {formatBound(calc.lower)} &ndash; {formatBound(calc.upper)}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'right' }}>
-                      {formatCurrency(calc.taxableInBracket)}
+                      {formatCurrency(calc.taxableInBracket, { decimals: 0 })}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'right' }}>
-                      {formatCurrency(calc.taxInBracket)}
+                      {formatCurrency(calc.taxInBracket, { decimals: 0 })}
                     </td>
                   </tr>
                 ))}
@@ -187,7 +188,7 @@ export default function Week1StateTax() {
           }}>
             <h4 style={{ margin: '0 0 10px 0', color: '#495057' }}>Total NYC City Tax</h4>
             <p style={{ margin: '0', fontSize: '20px', fontWeight: 'bold', color: '#6f42c1' }}>
-              {formatCurrency(totalNycTax)}
+              {formatCurrency(totalNycTax, { decimals: 0 })}
             </p>
           </div>
         </div>

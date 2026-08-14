@@ -14,15 +14,39 @@ import { formatCurrency } from '../utils/formatters';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
+// Minimum payment formula: interest owed this period + 1% of the current
+// balance, floored at $25, never exceeding what's actually owed (balance +
+// interest). Matches Excel's real formula (`Week 3.1 B - AM Table!N4`:
+// MIN(MAX(interest + 1%*balance, 25), balance+interest)) -- recalculated
+// against the LIVE balance every month in the amortization loop below, not
+// frozen at the original balance the way this used to be computed (which
+// made "minimum payment" mathematically identical to interest-only and the
+// debt could never amortize). See docs/financial-audit-2026-08-11.md
+// finding #2. Defined at module scope so it can also seed the default
+// `userPayment` below without duplicating the formula.
+const computeMinimumPayment = (balance, interestForPeriod) =>
+  Math.min(Math.max(interestForPeriod + 0.01 * balance, 25), balance + interestForPeriod);
+
+const DEFAULT_DEBT_AMOUNT = '10000';
+const DEFAULT_ANNUAL_INTEREST_RATE = '24.35';
+
 const Week3CreditCard = () => {
   // Get save/load functions from context
   const { saveBudgetData, loadBudgetData } = useBudget();
-  
+
   // State for user inputs (yellow cells) - Default values from Excel
-  const [debtAmount, setDebtAmount] = useState('10000');
-  const [annualInterestRate, setAnnualInterestRate] = useState('24.35');
-  const [userPayment, setUserPayment] = useState('290');
-  
+  const [debtAmount, setDebtAmount] = useState(DEFAULT_DEBT_AMOUNT);
+  const [annualInterestRate, setAnnualInterestRate] = useState(DEFAULT_ANNUAL_INTEREST_RATE);
+  // Default payment must start at/above the computed minimum payment for the
+  // defaults above, or the field opens in an invalid state before the user
+  // ever touches it. Was previously a hardcoded '290', which is below the
+  // ~$302.92 minimum for the default $10,000 balance / 24.35% APR.
+  const [userPayment, setUserPayment] = useState(() => {
+    const debt = parseFloat(DEFAULT_DEBT_AMOUNT) || 0;
+    const rate = (parseFloat(DEFAULT_ANNUAL_INTEREST_RATE) || 0) / 100 / 12;
+    return String(Math.round(computeMinimumPayment(debt, debt * rate) * 100) / 100);
+  });
+
   // State for General Loans section
   const [generalLoanAmount, setGeneralLoanAmount] = useState('50000');
   const [generalAnnualRate, setGeneralAnnualRate] = useState('0.08');
@@ -67,18 +91,8 @@ const Week3CreditCard = () => {
 
   // Calculated values
   const monthlyRate = (parseFloat(annualInterestRate) || 0) / 100 / 12;
-
-  // Minimum payment formula: interest owed this period + 1% of the current
-  // balance, floored at $25, never exceeding what's actually owed (balance
-  // + interest). Matches Excel's real formula (`Week 3.1 B - AM Table!N4`:
-  // MIN(MAX(interest + 1%*balance, 25), balance+interest)) -- recalculated
-  // against the LIVE balance every month in the amortization loop below,
-  // not frozen at the original balance the way this used to be computed
-  // (which made "minimum payment" mathematically identical to interest-only
-  // and the debt could never amortize). See
-  // docs/financial-audit-2026-08-11.md finding #2.
-  const computeMinimumPayment = (balance, interestForPeriod) =>
-    Math.min(Math.max(interestForPeriod + 0.01 * balance, 25), balance + interestForPeriod);
+  // computeMinimumPayment is defined at module scope above (also used to
+  // seed the default userPayment).
 
   const debtAmountNum = parseFloat(debtAmount) || 0;
   const minimumPayment = Math.round(computeMinimumPayment(debtAmountNum, debtAmountNum * monthlyRate) * 100) / 100;
@@ -374,7 +388,7 @@ const Week3CreditCard = () => {
       border: '1px solid rgba(255, 255, 255, 0.3)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       width: '100%',
-      maxWidth: '1200px',
+      maxWidth: '1520px',
       marginLeft: 'auto',
       marginRight: 'auto',
     },
@@ -613,7 +627,7 @@ const Week3CreditCard = () => {
       color: '#0d1a4b'
     },
     chartContainer: {
-      height: '200px',
+      height: '300px',
       backgroundColor: 'rgba(249, 250, 251, 0.6)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
@@ -1279,7 +1293,7 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '200px' }}
+              style={{ height: '300px' }}
             />
           </div>
         </div>
@@ -1410,7 +1424,7 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '200px' }}
+              style={{ height: '300px' }}
             />
           </div>
           </div>
@@ -1869,16 +1883,11 @@ const Week3CreditCard = () => {
                     duration: 0
                 }
               }}
-              style={{ height: '200px' }}
+              style={{ height: '300px' }}
             />
           </div>
         </div>
       </div>
-      </div>
-
-      {/* Note */}
-      <div style={{ ...styles.note, marginTop: '24px' }}>
-        Note: Adjust Week 1 Budget based on this week's insights
       </div>
 
       {/* Chart Modal */}

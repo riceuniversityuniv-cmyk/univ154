@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 // This data structure now includes all necessary info for rendering the exact layout
 const budgetConfig = {
@@ -168,7 +169,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.3)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1520px',
     marginLeft: 'auto',
     marginRight: 'auto',
   },
@@ -260,9 +261,9 @@ const styles = {
   },
 
   // Main table - Modern Shadcn/ui table style
-  table: { 
-    width: '100%', 
-    maxWidth: '1200px',
+  table: {
+    width: '100%',
+    maxWidth: '1520px',
     borderCollapse: 'separate',
     borderSpacing: 0,
     marginTop: 32, 
@@ -278,27 +279,25 @@ const styles = {
     WebkitBackdropFilter: 'blur(10px)',
     display: 'table',
   },
-  th: { 
-    background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    color: 'white', 
-    padding: '16px', 
-    borderBottom: 'none',
+  th: {
+    ...tableHeaderStyle,
+    padding: '16px',
     borderRight: 'none',
-    textAlign: 'center', 
-    fontWeight: '600',
+    textAlign: 'center',
     fontSize: '17px',
     letterSpacing: '0.01em',
     position: 'sticky',
     top: 0,
     zIndex: 10,
-    boxShadow: 'inset 0 -1px 0 rgba(255, 255, 255, 0.1)',
   },
   thExpense: { width: '200px' },
   thBudgeted: { width: '180px' },
   thRecommended: { width: '240px' },
   thPercent: { width: '120px' },
+  // Separate, wider width for the "% of Monthly Income" header -- it used
+  // to share thPercent with "Recommended Spend $", which was too narrow and
+  // made the longer header text wrap/scrunch.
+  thPercentIncome: { width: '170px' },
   td: { 
     borderBottom: '1px solid rgba(243, 244, 246, 0.3)',
     borderRight: 'none',
@@ -1243,6 +1242,19 @@ export default function BudgetForm() {
   const [customExpenseNames, setCustomExpenseNames] = useState({});
   const [nextItemId, setNextItemId] = useState(1);
 
+  // Resets every entered budget line item (standard + custom) back to
+  // blank -- does not touch topInputs (income/state/filing status etc),
+  // since those represent the student's profile, not a budget entry.
+  const handleClearAllBudget = () => {
+    if (!window.confirm('Clear all entered budget amounts? This cannot be undone.')) return;
+    setUserInputs(
+      budgetConfig.sections.flatMap(s => s.items).flatMap(subsection => subsection.items).reduce((acc, item) => ({ ...acc, [item.id]: '' }), {})
+    );
+    setCustomExpenseItems([]);
+    setCustomExpenseNames({});
+    setNextItemId(1);
+  };
+
   // Add a new custom expense item
   const addCustomExpenseItem = () => {
     const newId = `user_input_${nextItemId}`;
@@ -1478,9 +1490,9 @@ export default function BudgetForm() {
               return (
                 <div style={{
                   width: '100%',
-                  maxWidth: '1200px',
+                  maxWidth: '1520px',
                   margin: '0 auto 24px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                  backgroundColor: 'rgba(255, 255, 255, 0.92)',
                   backdropFilter: 'blur(10px)',
                   WebkitBackdropFilter: 'blur(10px)',
                   borderRadius: '16px',
@@ -1491,6 +1503,9 @@ export default function BudgetForm() {
                   gridTemplateColumns: '1fr 1fr 1.3fr',
                   gap: '32px',
                   alignItems: 'center',
+                  position: 'sticky',
+                  top: '16px',
+                  zIndex: 30,
                 }}>
                   <div style={{ textAlign: 'center' }}>
                     <div style={{fontSize: '22px', fontWeight: '700', color: '#16a34a', marginBottom: '4px'}}>
@@ -1541,7 +1556,7 @@ export default function BudgetForm() {
             <div
               className="week1-user-input-card"
               style={{
-                width: '450px',
+                width: '680px',
                 marginBottom: '20px',
                 padding: '8px 10px 14px',
                 borderRadius: '12px',
@@ -1637,6 +1652,28 @@ export default function BudgetForm() {
             {/* Note: Standard Deduction Choices section removed as deductionChoices is not available in current context */}
         </div>
         
+        <div style={{ width: '100%', maxWidth: '1520px', margin: '0 auto', display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={handleClearAllBudget}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              color: '#dc2626',
+              borderRadius: '8px',
+              border: '1px solid rgba(220, 38, 38, 0.35)',
+              cursor: 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.06)')}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Clear All
+          </button>
+        </div>
+
         <div style={{width: '100%', overflowX: 'auto', display: 'flex', justifyContent: 'center'}}>
         <table style={styles.table}>
             <thead>
@@ -1664,8 +1701,8 @@ export default function BudgetForm() {
                   borderRight: '1px solid rgba(255, 255, 255, 0.08)'
                 }}>Recommended Spend $</th>
                 <th style={{
-                  ...styles.th, 
-                  ...styles.thPercent,
+                  ...styles.th,
+                  ...styles.thPercentIncome,
                   borderTopRightRadius: '12px',
                   borderBottomRightRadius: '12px',
                   borderRight: 'none'
@@ -2057,7 +2094,7 @@ export default function BudgetForm() {
                           <tr style={styles.totalRow}>
                             <td style={{...styles.td, fontWeight: 'bold', paddingLeft: '40px'}}>Total</td>
                             <td style={styles.td}></td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, ...styles.readOnly}}>
                               {(() => {
                                 const itemsToSum = subsection.title === 'Other Miscellaneous Expenses'
                                   ? customExpenseItems
@@ -2068,7 +2105,7 @@ export default function BudgetForm() {
                                 return total > 0 ? formatCurrency(total) : '-';
                               })()}
                             </td>
-                            <td style={styles.td}>
+                            <td style={{...styles.td, ...styles.readOnly}}>
                               {(() => {
                                 const itemsToSum = subsection.title === 'Other Miscellaneous Expenses'
                                   ? customExpenseItems

@@ -43,7 +43,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.3)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1520px',
     marginLeft: 'auto',
     marginRight: 'auto',
   },
@@ -706,6 +706,8 @@ const Week12 = () => {
       totalRetirementIncomeToday,
       goalToday: resultsCells.C25,
       gapVsGoalToday,
+      currentAge,
+      retirementAge,
       totalInvestmentBalanceAtRetirement,
       yearly401kContribution:
         contribution401kPct * assumptions.scalars.limit_401k,
@@ -835,7 +837,7 @@ const Week12 = () => {
         beginAtZero: true,
         grid: { display: false },
         ticks: {
-          callback: (value) => formatCurrency(value),
+          callback: (value) => formatCurrency(value, { decimals: 0 }),
           font: { size: 11 },
         },
       },
@@ -867,7 +869,7 @@ const Week12 = () => {
         beginAtZero: true,
         grid: { display: false },
         ticks: {
-          callback: (value) => formatCurrency(value),
+          callback: (value) => formatCurrency(value, { decimals: 0 }),
           font: { size: 11 },
         },
       },
@@ -919,16 +921,18 @@ const Week12 = () => {
     },
   ];
 
+  // Whole dollars here, not cents -- these are big-picture summary figures,
+  // and $1,234.56-style precision read as noise against the goal card above.
   const resultRows = [
-    { label: 'Total retirement income (after tax, in today\'s dollars)', value: formatCurrency(model.totalRetirementIncomeToday) },
-    { label: 'After-tax income from advanced sources', value: formatCurrency(model.outsideIncomeToday) },
-    { label: 'Portfolio income', value: formatCurrency(model.afterTaxInvestmentIncomeToday) },
-    { label: 'Gap vs your goal (positive = extra, negative = shortfall)', value: formatCurrency(model.gapVsGoalToday) },
-    { label: 'Retirement portfolio balance', value: formatCurrency(model.totalInvestmentBalanceAtRetirement) },
+    { label: 'Total retirement income (after tax, in today\'s dollars)', value: formatCurrency(model.totalRetirementIncomeToday, { decimals: 0 }) },
+    { label: 'After-tax income from advanced sources', value: formatCurrency(model.outsideIncomeToday, { decimals: 0 }) },
+    { label: 'Portfolio income', value: formatCurrency(model.afterTaxInvestmentIncomeToday, { decimals: 0 }) },
+    { label: 'Gap vs your goal (positive = extra, negative = shortfall)', value: formatCurrency(model.gapVsGoalToday, { decimals: 0 }) },
+    { label: 'Retirement portfolio balance', value: formatCurrency(model.totalInvestmentBalanceAtRetirement, { decimals: 0 }) },
   ];
 
   const getFieldValue = (key, type) => {
-    if (key === 'salaryBeforeTax') return formatCurrency(model.salaryYear0);
+    if (key === 'salaryBeforeTax') return formatCurrency(model.salaryYear0, { decimals: 0 });
     if (type === 'currency') return formatCurrencyInput(inputs[key]);
     if (type === 'percent') return formatPercent(inputs[key]);
     return inputs[key];
@@ -1050,6 +1054,36 @@ const Week12 = () => {
             </div>
           </div>
 
+          {/* Goal emphasis card: the single number and timeline this whole
+              page is building toward, called out above the worksheet so it
+              doesn't get lost among the input tables. */}
+          <div style={{
+            margin: '0 0 24px',
+            padding: '28px 32px',
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.06) 0%, rgba(13, 26, 75, 0.02) 100%)',
+            border: '1px solid rgba(13, 26, 75, 0.12)',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
+              Your Retirement Income Goal
+            </div>
+            <div style={{ fontSize: '42px', fontWeight: '800', color: '#0d1a4b', letterSpacing: '-0.02em', lineHeight: '1.1' }}>
+              {formatCurrency(model.goalToday, { decimals: 0 })}
+              <span style={{ fontSize: '18px', fontWeight: '600', color: '#6b7280' }}> / year, today&apos;s dollars</span>
+            </div>
+            <div style={{
+              fontSize: '15px',
+              fontWeight: '500',
+              marginTop: '12px',
+              color: model.gapVsGoalToday >= 0 ? '#166534' : '#991b1b',
+            }}>
+              {model.gapVsGoalToday >= 0
+                ? `On your current plan, you're on track to reach this by age ${model.retirementAge} (in ${model.yearsToRetirement} years) -- with ${formatCurrency(model.gapVsGoalToday, { decimals: 0 })}/year to spare.`
+                : `On your current plan, you're projected to fall short of this goal by ${formatCurrency(Math.abs(model.gapVsGoalToday), { decimals: 0 })}/year at age ${model.retirementAge} (in ${model.yearsToRetirement} years).`}
+            </div>
+          </div>
+
           <div className="week12-responsive-hidden-desktop">
             <div style={{ ...styles.contributionsCard, marginTop: 0 }} className="week12-surface">
               <div style={styles.contributionsHeader}>This Year&apos;s Contributions</div>
@@ -1122,7 +1156,7 @@ const Week12 = () => {
           <div style={styles.chartGrid} className="week12-chart-grid">
             <div style={styles.chartCard} className="week12-chart-card week12-surface">
               <div style={styles.chartTitle}>Goal vs Income (Today&apos;s $)</div>
-              <div style={{ height: 270 }}>
+              <div style={{ height: 360 }}>
                 <Bar data={goalVsIncomeData} options={sharedBarOptions} />
               </div>
               <div style={styles.chartLegendRow}>
@@ -1137,7 +1171,7 @@ const Week12 = () => {
 
             <div style={styles.chartCard} className="week12-chart-card week12-surface">
               <div style={styles.chartTitle}>Where Your Retirement Money Comes From</div>
-              <div style={{ height: 270 }}>
+              <div style={{ height: 360 }}>
                 <Bar data={moneySourceData} options={sharedBarOptions} />
               </div>
               <div style={styles.chartLegendRow}>
@@ -1153,7 +1187,7 @@ const Week12 = () => {
 
           <div style={styles.lineChartCard} className="week12-chart-card week12-line-half week12-surface">
             <div style={styles.chartTitle}>Investments Over Time (Nominal $)</div>
-            <div style={{ height: 305 }}>
+            <div style={{ height: 400 }}>
               <Line data={investmentsData} options={lineOptions} />
             </div>
           </div>

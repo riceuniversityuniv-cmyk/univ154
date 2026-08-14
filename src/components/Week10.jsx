@@ -2,7 +2,7 @@ import React from 'react';
 
 const Week10 = () => {
   const styles = {
-    container: { minHeight: '100vh', backgroundColor: '#f8f9fa', padding: '20px', maxWidth: '1200px', margin: '0 auto' },
+    container: { minHeight: '100vh', backgroundColor: '#f8f9fa', padding: '20px', maxWidth: '1520px', margin: '0 auto' },
     sectionContainer: { backgroundColor: 'white', borderRadius: '12px', padding: '24px', marginBottom: '30px', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)', border: '1px solid #e9ecef' },
     enhancedHeader: { backgroundColor: '#0d1a4b', color: 'white', padding: '20px 24px', borderRadius: '12px', fontWeight: '700', fontSize: '18px', textAlign: 'center', marginBottom: '20px' },
     placeholderContent: { textAlign: 'center', padding: '40px 20px', color: '#666', fontSize: '16px' },

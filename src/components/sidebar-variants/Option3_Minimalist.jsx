@@ -32,7 +32,7 @@ export const MinimalistSidebar = ({
     <div 
       className="sidebar-modern"
       style={{
-        width: '320px',
+        width: '360px',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',

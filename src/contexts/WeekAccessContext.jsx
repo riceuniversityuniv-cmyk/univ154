@@ -38,13 +38,19 @@ const DEFAULT_ORDER = {
   'week-5': 9,
 };
 
+// Fallback "Week N" syllabus number derived from the weekId string itself
+// (e.g. 'week-5' -> 5) -- used until an admin sets display_week_number in
+// the DB, or if that column's migration hasn't been applied yet.
+const defaultWeekNumber = (weekId) => parseInt(weekId.replace('week-', ''), 10);
+
 const createDefaultWeekSettings = () => {
   const defaults = {};
   SUPPORTED_WEEK_IDS.forEach((weekId) => {
     defaults[weekId] = {
       isAvailable: weekId === 'week-1',
       releaseDate: null,
-      order: DEFAULT_ORDER[weekId] ?? 99
+      order: DEFAULT_ORDER[weekId] ?? 99,
+      weekNumber: defaultWeekNumber(weekId)
     };
   });
   return defaults;
@@ -72,14 +78,20 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
         console.log('========================================');
         
         if (user) {
-          // Fetch global week settings. display_order may not exist yet if
-          // migration 20260813000000_add_display_order_to_global_week_settings.sql
-          // hasn't been applied to this DB -- fall back to the 3-column select
-          // (and DEFAULT_ORDER) rather than leaving settings empty and locking
-          // every week for every student.
+          // Fetch global week settings. display_order/display_week_number may
+          // not exist yet if their migrations haven't been applied to this DB
+          // -- fall back progressively rather than leaving settings empty and
+          // locking every week for every student.
           let { data: globalSettings, error: globalError } = await supabase
             .from('global_week_settings')
-            .select('week_id, is_globally_available, release_date, display_order');
+            .select('week_id, is_globally_available, release_date, display_order, display_week_number');
+
+          if (globalError) {
+            console.warn('display_week_number column not available yet, falling back:', globalError.message);
+            ({ data: globalSettings, error: globalError } = await supabase
+              .from('global_week_settings')
+              .select('week_id, is_globally_available, release_date, display_order'));
+          }
 
           if (globalError) {
             console.warn('display_order column not available yet, falling back:', globalError.message);
@@ -98,7 +110,8 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
                   globalMap[item.week_id] = {
                     isAvailable: item.is_globally_available,
                     releaseDate: item.release_date,
-                    order: item.display_order ?? DEFAULT_ORDER[item.week_id] ?? 99
+                    order: item.display_order ?? DEFAULT_ORDER[item.week_id] ?? 99,
+                    weekNumber: item.display_week_number ?? defaultWeekNumber(item.week_id)
                   };
                 }
               });
@@ -266,6 +279,40 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
     }
   };
 
+  // Admin function to change one week's syllabus "Week N" label (independent
+  // of display_order, which controls sidebar position -- see the comment on
+  // WEEK_TOPIC_LABELS above).
+  const updateWeekNumber = async (weekId, weekNumber) => {
+    if (!isAdmin) {
+      throw new Error('Only admins can update global week settings');
+    }
+
+    try {
+      const { error } = await supabase
+        .from('global_week_settings')
+        .upsert({
+          week_id: weekId,
+          is_globally_available: globalWeekSettings[weekId]?.isAvailable ?? false,
+          release_date: globalWeekSettings[weekId]?.releaseDate ?? null,
+          display_order: globalWeekSettings[weekId]?.order ?? DEFAULT_ORDER[weekId] ?? 99,
+          display_week_number: weekNumber,
+          updated_at: new Date().toISOString()
+        }, { onConflict: 'week_id' });
+
+      if (error) throw error;
+
+      setGlobalWeekSettings(prev => ({
+        ...prev,
+        [weekId]: { ...prev[weekId], weekNumber }
+      }));
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating week number:', error);
+      throw error;
+    }
+  };
+
   const value = {
     globalWeekSettings,
     isLoading,
@@ -275,6 +322,7 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
     updateGlobalWeekSettings,
     bulkUpdateGlobalWeekSettings,
     bulkUpdateWeekOrder,
+    updateWeekNumber,
     isAdmin: isAdmin  // Use the prop instead of calling isUserAdmin
   };
 

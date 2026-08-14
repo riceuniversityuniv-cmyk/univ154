@@ -2,19 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { formatCurrency, formatPercent } from '../utils/formatters';
-import { Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from 'chart.js';
-
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 // Modern inline styles matching Week 2 and Week 3 design
 const styles = {
@@ -31,6 +19,26 @@ const styles = {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     position: 'relative',
   },
+  // Same floating-box shape as Week7.jsx's term tooltip (navy gradient,
+  // blur, arrow), but with a warm gold text color instead of plain white
+  // so it doesn't read as an interchangeable copy of that one.
+  deferralTooltip: {
+    position: 'fixed',
+    zIndex: 10000,
+    background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.98) 0%, rgba(30, 58, 138, 0.96) 100%)',
+    color: '#fcd34d',
+    padding: '12px 16px',
+    borderRadius: '8px',
+    fontSize: '13px',
+    fontWeight: '500',
+    maxWidth: '280px',
+    boxShadow: '0 8px 24px rgba(13, 26, 75, 0.35)',
+    border: '1px solid rgba(255, 255, 255, 0.16)',
+    pointerEvents: 'none',
+    opacity: 0.97,
+    backdropFilter: 'blur(6px)',
+    transform: 'translateX(-50%)',
+  },
   sectionContainer: {
     backgroundColor: 'rgba(255, 255, 255, 0.7)',
     backdropFilter: 'blur(10px)',
@@ -42,7 +50,7 @@ const styles = {
     border: '1px solid rgba(255, 255, 255, 0.3)',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
     width: '100%',
-    maxWidth: '1200px',
+    maxWidth: '1520px',
     marginLeft: 'auto',
     marginRight: 'auto',
   },
@@ -118,14 +126,9 @@ const styles = {
   },
   
   th: {
-    background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '14px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     textAlign: 'center',
-    fontWeight: 600,
     letterSpacing: '-0.01em',
   },
   td: {
@@ -245,6 +248,18 @@ export default function Week6Retirement() {
 
   const selectedState = topInputs?.location;
   const stateBrackets = selectedState ? (assumptions.stateBrackets[selectedState] || []) : [];
+
+  // Which tab is showing: a Summary view (income summary + retirement
+  // account budgeting + monthly deferral calculator) plus one tab per
+  // account type. Splits what used to be one long scrolling page into
+  // separate views without touching any of the shared calculations below,
+  // which all still run regardless of which tab is active.
+  const [activeTab, setActiveTab] = useState('summary');
+
+  // Hover state for the "Deferral" quick-definition tooltip next to the
+  // Monthly Deferral Calculator title.
+  const [showDeferralTooltip, setShowDeferralTooltip] = useState(false);
+  const [deferralTooltipPosition, setDeferralTooltipPosition] = useState({ x: 0, y: 0 });
 
   // Shared input state
   const [startAge, setStartAge] = useState(20);
@@ -2355,51 +2370,6 @@ export default function Week6Retirement() {
   const finalBalanceB = getLastValid(simB.balances);
   const finalBalanceC = getLastValid(simC.balances);
 
-  // Chart data
-  const chartData = {
-    labels: simA.ages,
-    datasets: [
-      {
-        label: 'Series A',
-        data: simA.balances,
-        borderColor: '#d8dee9',
-        backgroundColor: 'rgba(216,222,233,0.45)',
-        tension: 0.2,
-      },
-      {
-        label: 'Series B',
-        data: simB.balances,
-        borderColor: '#94a3b8',
-        backgroundColor: 'rgba(148,163,184,0.3)',
-        tension: 0.2,
-      },
-      {
-        label: 'Series C',
-        data: simC.balances,
-        borderColor: '#1e293b',
-        backgroundColor: 'rgba(30,41,59,0.3)',
-        tension: 0.2,
-      },
-    ],
-  };
-
-  const chartOptions = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Traditional 401(k) Balance vs. Age' },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: function(value) {
-            return '$' + value.toLocaleString();
-          }
-        }
-      }
-    }
-  };
 
   // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
 
@@ -2496,6 +2466,30 @@ export default function Week6Retirement() {
         You can only enter data in the open (yellow) fields.
       </div>
 
+      {/* "Deferral" quick-definition tooltip */}
+      {showDeferralTooltip && (
+        <div style={{
+          ...styles.deferralTooltip,
+          left: `${deferralTooltipPosition.x}px`,
+          top: `${deferralTooltipPosition.y - 60}px`,
+        }}>
+          <div style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: '8px solid rgba(13, 26, 75, 0.97)',
+          }} />
+          <div style={{ lineHeight: '1.4', fontSize: '12px' }}>
+            <strong>Deferral</strong> just means income you choose not to take as cash today -- it goes straight into a retirement account instead, so you don't pay income tax on it right now (with a pre-tax account) or you're setting after-tax money aside to grow tax-free (with a Roth account).
+          </div>
+        </div>
+      )}
+
       <div style={styles.container} className="week6-retirement-page">
         <div style={styles.sectionContainer} className="week6-main-surface">
             {/* Enhanced Header */}
@@ -2525,6 +2519,48 @@ export default function Week6Retirement() {
           </div>
             </div>
 
+        {/* Tab bar: Summary + one tab per retirement account type, replacing
+            the old single long scrolling page. */}
+        <nav style={{
+          display: 'flex',
+          gap: '8px',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          borderBottom: '2px solid #e0e0e0',
+          marginBottom: '28px',
+        }}>
+          {[
+            { id: 'summary', label: 'Summary' },
+            { id: '401k', label: 'Traditional 401(k)' },
+            { id: 'roth401k', label: 'Roth 401(k)' },
+            { id: 'tradira', label: 'Traditional IRA' },
+            { id: 'rothira', label: 'Roth IRA' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              style={{
+                padding: '12px 20px',
+                fontSize: '15px',
+                fontWeight: '700',
+                color: activeTab === tab.id ? '#002060' : '#6b7280',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === tab.id ? '4px solid #002060' : '4px solid transparent',
+                marginBottom: '-2px',
+                cursor: 'pointer',
+                transition: 'color 0.2s',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+
+        {/* Summary tab: Income Summary + Retirement Account Budgeting +
+            Monthly Deferral Calculator (sections 1-3). */}
+        {activeTab === 'summary' && (<>
         {/* 1. Income Summary */}
           <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.8)',
@@ -2631,6 +2667,56 @@ export default function Week6Retirement() {
           </div>
         </div>
 
+        {/* 1.5. Account Types at a Glance -- replaces the small gray
+            paragraph that used to sit cramped under each account name in
+            the budgeting table below (hard to read at 12px in a narrow
+            column). Same info, laid out as a real comparison table. */}
+        <div style={{
+          ...styles.sectionContainer,
+          maxWidth: '1100px',
+          padding: '32px'
+        }}>
+          <div style={{
+            fontSize: '15px',
+            fontWeight: '600',
+            color: '#0d1a4b',
+            marginBottom: '20px',
+            textAlign: 'center',
+            letterSpacing: '-0.01em',
+          }}>
+            Account Types at a Glance
+          </div>
+          <div style={{ overflowX: 'auto', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+            <table style={{ ...styles.table, width: '100%', minWidth: '700px', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <thead>
+                <tr>
+                  <th style={{ ...styles.th, textAlign: 'left' }}>Account Type</th>
+                  <th style={styles.th}>Tax Treatment</th>
+                  <th style={styles.th}>Sponsor</th>
+                  <th style={styles.th}>Annual Limit</th>
+                  <th style={{ ...styles.th, textAlign: 'left' }}>Key Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: '$23,500', notes: 'No taxes now, taxed at withdrawal. Employer match available.' },
+                  { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: '$23,500', notes: 'Pay taxes now, withdraw tax-free. Employer match common (goes into a pre-tax 401(k)).' },
+                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', notes: 'Lowers taxes now, taxed at withdrawal. No employer match.' },
+                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', notes: 'Tax-free growth and withdrawals. No employer match.' },
+                ].map((row) => (
+                  <tr key={row.name}>
+                    <td style={{ ...styles.td, textAlign: 'left', fontWeight: '600' }}>{row.name}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>{row.tax}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>{row.sponsor}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>{row.limit}</td>
+                    <td style={{ ...styles.td, textAlign: 'left', fontSize: '13px', color: '#4b5563' }}>{row.notes}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         {/* 2. Retirement Account Budgeting Table */}
         <div style={{
           ...styles.sectionContainer,
@@ -2713,17 +2799,9 @@ export default function Week6Retirement() {
                   <div style={{
                     fontWeight: '600',
                     fontSize: '14px',
-                    marginBottom: '8px'
                   }}>
                     Traditional 401(k)
                   </div>
-                  <div style={{
-                    fontSize: '12px',
-                    color: '#666',
-                    lineHeight: '1.4'
-                  }}>
-                    Pre-tax. Employer-sponsored. $23,500 limit. No taxes now, taxed at withdrawal. Employer match available.
-                    </div>
                   </td>
                 <td style={styles.td}>
                   <div style={{
@@ -2776,11 +2854,8 @@ export default function Week6Retirement() {
             {/* Roth 401(k) */}
             <tr>
               <td style={{...styles.td, textAlign: 'left', verticalAlign: 'top', padding: '16px 12px'}}>
-                <div style={{fontWeight: '600', fontSize: '14px', marginBottom: '8px'}}>
+                <div style={{fontWeight: '600', fontSize: '14px'}}>
                   Roth 401(k)
-      </div>
-                <div style={{fontSize: '12px', color: '#666', lineHeight: '1.4'}}>
-                  Post-tax. Employer-sponsored. $23,500 limit. Pay taxes now, withdraw tax-free. Employer match common; goes into pre-tax 401(k).
                 </div>
               </td>
               <td style={styles.td}>
@@ -2814,12 +2889,9 @@ export default function Week6Retirement() {
             {/* Traditional IRA */}
             <tr>
               <td style={{...styles.td, textAlign: 'left', verticalAlign: 'top', padding: '16px 12px'}}>
-                <div style={{fontWeight: '600', fontSize: '14px', marginBottom: '8px'}}>
+                <div style={{fontWeight: '600', fontSize: '14px'}}>
                   Traditional IRA
-      </div>
-                <div style={{fontSize: '12px', color: '#666', lineHeight: '1.4'}}>
-                  Pre-tax. Individual account. $7,000 limit &lt;50 y/o &amp; &lt;$150,000 income. Lowers taxes now, taxed at withdrawal. No employer match.
-              </div>
+                </div>
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600'}}>
@@ -2848,12 +2920,9 @@ export default function Week6Retirement() {
             {/* Roth IRA */}
             <tr>
               <td style={{...styles.td, textAlign: 'left', verticalAlign: 'top', padding: '16px 12px'}}>
-                <div style={{fontWeight: '600', fontSize: '14px', marginBottom: '8px'}}>
+                <div style={{fontWeight: '600', fontSize: '14px'}}>
                   Roth IRA
-              </div>
-                <div style={{fontSize: '12px', color: '#666', lineHeight: '1.4'}}>
-                  Post-tax. Individual account. $7,000 limit &lt;50 yo &amp; &lt;$150,000 income. Tax-free growth and withdrawals. No employer match.
-              </div>
+                </div>
               </td>
               <td style={styles.td}>
                 <div style={{fontSize: '14px', fontWeight: '600'}}>
@@ -2921,7 +2990,19 @@ export default function Week6Retirement() {
             textAlign: 'center',
             letterSpacing: '-0.01em',
           }}>
-            Monthly Deferral Calculator
+            Monthly{' '}
+            <span
+              style={{ textDecoration: 'underline dotted', textUnderlineOffset: '3px', cursor: 'help' }}
+              onMouseEnter={(e) => {
+                setShowDeferralTooltip(true);
+                setDeferralTooltipPosition({ x: e.clientX, y: e.clientY });
+              }}
+              onMouseMove={(e) => setDeferralTooltipPosition({ x: e.clientX, y: e.clientY })}
+              onMouseLeave={() => setShowDeferralTooltip(false)}
+            >
+              Deferral
+            </span>{' '}
+            Calculator
               </div>
           <div style={{
             marginBottom: '12px',
@@ -3033,21 +3114,11 @@ export default function Week6Retirement() {
             </tbody>
           </table>
           </div>
-          <div style={{
-            fontSize: '13px',
-            color: '#666',
-            fontStyle: 'italic',
-            textAlign: 'center',
-            marginTop: '16px',
-            padding: '6px 12px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '6px',
-            border: '1px solid #e9ecef'
-          }}>
-            Note: Adjust Week 1 Budget based on this week's insights
-            </div>
               </div>
+        </>)}
 
+        {/* 401(k) tab */}
+        {activeTab === '401k' && (<>
         {/* 5. Traditional 401(k) Balance and Withdrawals */}
         <div style={{
           display: 'grid',
@@ -3564,7 +3635,7 @@ export default function Week6Retirement() {
               borderRadius: '14px',
               padding: '28px',
               marginBottom: '24px',
-              minHeight: '380px',
+              minHeight: '480px',
               boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
             }}>
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
@@ -3599,16 +3670,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
@@ -3617,8 +3688,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -3633,8 +3704,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -3758,7 +3829,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'separate', borderSpacing: '0' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -4608,7 +4679,7 @@ export default function Week6Retirement() {
               borderRadius: '14px',
               padding: '28px',
               marginBottom: '24px',
-              minHeight: '380px',
+              minHeight: '480px',
               boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
             }}>
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
@@ -4657,16 +4728,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
@@ -4675,8 +4746,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -4691,8 +4762,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -4714,7 +4785,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesA / extendedMaxValue)}
                               fill="#d8dee9"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series B bar */}
@@ -4724,7 +4797,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesB / extendedMaxValue)}
                               fill="#94a3b8"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series C bar */}
@@ -4734,7 +4809,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesC / extendedMaxValue)}
                               fill="#1e293b"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                           </g>
                         );
@@ -4777,7 +4854,10 @@ export default function Week6Retirement() {
               </div>
             </div>
           </div>
+        </>)}
 
+        {/* Roth 401(k) tab */}
+        {activeTab === 'roth401k' && (<>
         {/* 6. Roth 401(k) Balance and Withdrawals */}
         <div style={{
           display: 'grid',
@@ -5322,16 +5402,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
@@ -5340,8 +5420,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -5356,8 +5436,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -5566,7 +5646,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'separate', borderSpacing: '0' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -6269,16 +6349,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
@@ -6287,8 +6367,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -6303,8 +6383,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -6326,7 +6406,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesA / extendedMaxValue)}
                               fill="#d8dee9"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series B bar */}
@@ -6336,7 +6418,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesB / extendedMaxValue)}
                               fill="#94a3b8"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series C bar */}
@@ -6346,7 +6430,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesC / extendedMaxValue)}
                               fill="#1e293b"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                           </g>
                         );
@@ -6391,7 +6477,10 @@ export default function Week6Retirement() {
 
         </div>
       </div>
+        </>)}
 
+        {/* Traditional IRA tab */}
+        {activeTab === 'tradira' && (<>
         {/* 7. Traditional IRA Balance and Withdrawals */}
         <div style={{
           display: 'grid',
@@ -6936,16 +7025,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
@@ -6954,8 +7043,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -6970,8 +7059,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -7163,7 +7252,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'separate', borderSpacing: '0' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -7867,16 +7956,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
@@ -7885,8 +7974,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -7901,8 +7990,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -7924,7 +8013,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesA / extendedMaxValue)}
                               fill="#d8dee9"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series B bar */}
@@ -7934,7 +8025,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesB / extendedMaxValue)}
                               fill="#94a3b8"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series C bar */}
@@ -7944,7 +8037,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesC / extendedMaxValue)}
                               fill="#1e293b"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                           </g>
                         );
@@ -7989,7 +8084,10 @@ export default function Week6Retirement() {
 
           </div>
         </div>
+        </>)}
 
+        {/* Roth IRA tab */}
+        {activeTab === 'rothira' && (<>
         {/* 8. Roth IRA Balance and Withdrawals */}
         <div style={{
           display: 'grid',
@@ -8534,16 +8632,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
@@ -8552,8 +8650,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -8568,8 +8666,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -8763,7 +8861,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'separate', borderSpacing: '0' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -9467,16 +9565,16 @@ export default function Week6Retirement() {
                 };
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 500;
-                const chartHeight = 250;
-                const padding = 20;
-                const yAxisLabelWidth = 60; // Space for Y-axis labels
+                const chartWidth = 760;
+                const chartHeight = 400;
+                const padding = 24;
+                const yAxisLabelWidth = 75; // Space for Y-axis labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ border: '1px solid #ddd', borderRadius: '4px' }}>
+                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
@@ -9485,8 +9583,8 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="10"
-                              fill="#666"
+                              fontSize="12"
+                              fill="#64748b"
                               textAnchor="end"
                             >
                               {formatCurrency(Math.round(value))}
@@ -9501,8 +9599,8 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="10"
-                          fill="#666"
+                          fontSize="12"
+                          fill="#64748b"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -9524,7 +9622,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesA / extendedMaxValue)}
                               fill="#d8dee9"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series B bar */}
@@ -9534,7 +9634,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesB / extendedMaxValue)}
                               fill="#94a3b8"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                             
                             {/* Series C bar */}
@@ -9544,7 +9646,9 @@ export default function Week6Retirement() {
                               width={barWidth / 3}
                               height={plotHeight * (d.seriesC / extendedMaxValue)}
                               fill="#1e293b"
-                              opacity="0.8"
+                              opacity="0.85"
+                              rx="2"
+                              ry="2"
                             />
                           </g>
                         );
@@ -9589,8 +9693,9 @@ export default function Week6Retirement() {
 
           </div>
         </div>
+        </>)}
 
-      
+
           {/* Section Divider */}
           <div style={styles.sectionDivider}></div>
 

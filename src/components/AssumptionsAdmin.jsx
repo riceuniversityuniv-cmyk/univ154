@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { MdCheckCircle, MdCancel, MdWarning, MdAdd, MdDelete } from 'react-icons/md';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 // Admin UI for the legislative/financial constants every tax/retirement
 // calculator in the app now reads from (src/utils/taxEngine.js +
@@ -48,11 +49,9 @@ const styles = {
     border: '1px solid #e0e0e0',
   },
   th: {
-    backgroundColor: '#002060',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '10px',
     textAlign: 'center',
-    fontWeight: '600',
     fontSize: '13px',
   },
   td: {
@@ -63,8 +62,12 @@ const styles = {
   input: {
     padding: '6px 10px',
     borderRadius: '6px',
-    border: '1px solid #d0d0d0',
+    // Yellow-input convention (matches every other editable field in the
+    // app) -- was plain gray here, inconsistent.
+    border: '2px solid #d1d5db',
+    backgroundColor: '#fffde7',
     fontSize: '14px',
+    fontWeight: '500',
     width: '100%',
     boxSizing: 'border-box',
     textAlign: 'right',

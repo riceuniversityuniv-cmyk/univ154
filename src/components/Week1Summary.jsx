@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useBudget } from '../contexts/BudgetContext';
 import { formatCurrency } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 const styles = {
   container: {
@@ -30,12 +31,9 @@ const styles = {
     boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
   },
   th: {
-    background: '#0d1a4b',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '16px',
-    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
     textAlign: 'center',
-    fontWeight: '600',
     fontSize: '13px',
     letterSpacing: '0.01em',
   },
@@ -59,11 +57,9 @@ const styles = {
     color: '#374151',
   },
   sectionTitle: {
-    background: '#0d1a4b',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '16px',
     textAlign: 'center',
-    fontWeight: '600',
     fontSize: '16px',
     letterSpacing: '0.01em',
   },
@@ -146,13 +142,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B4:</strong> Pre-tax Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C4:</strong> {formatCurrency(summaryCalculations.preTaxIncome)}
+              <strong>C4:</strong> {formatCurrency(summaryCalculations.preTaxIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Budgeting'!$E$6</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E4:</strong> Pre-tax Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F4:</strong> {formatCurrency(summaryCalculations.preTaxIncome)}
+              <strong>F4:</strong> {formatCurrency(summaryCalculations.preTaxIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Budgeting'!$E$6</div>
             </td>
           </tr>
@@ -161,12 +157,12 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B6:</strong> Standard Deduction (Single Filers 2025)</td>
             <td style={{...styles.td, ...styles.tdValue}}>
-              <strong>C6:</strong> {formatCurrency(summaryCalculations.standardDeduction)}
+              <strong>C6:</strong> {formatCurrency(summaryCalculations.standardDeduction, { decimals: 0 })}
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E6:</strong> Standard Deduction (Single Filers 2025)</td>
             <td style={{...styles.td, ...styles.tdValue}}>
-              <strong>F6:</strong> {formatCurrency(summaryCalculations.standardDeduction)}
+              <strong>F6:</strong> {formatCurrency(summaryCalculations.standardDeduction, { decimals: 0 })}
             </td>
           </tr>
           
@@ -174,13 +170,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B7:</strong> Pre-Tax Expenses</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C7:</strong> {formatCurrency(summaryCalculations.suggestedPreTaxExpenses)}
+              <strong>C7:</strong> {formatCurrency(summaryCalculations.suggestedPreTaxExpenses, { decimals: 0 })}
               <div style={styles.formulaNote}>= (('Week 1 - Budgeting'!$G$28+'Week 1 - Budgeting'!$G$38)*12)</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E7:</strong> Pre-Tax Expenses</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F7:</strong> {formatCurrency(summaryCalculations.userPreTaxExpenses)}
+              <strong>F7:</strong> {formatCurrency(summaryCalculations.userPreTaxExpenses, { decimals: 0 })}
               <div style={styles.formulaNote}>= (('Week 1 - Budgeting'!$E$28+'Week 1 - Budgeting'!$E$38)*12)</div>
             </td>
           </tr>
@@ -189,13 +185,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B9:</strong> Taxable Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C9:</strong> {formatCurrency(summaryCalculations.suggestedTaxableIncome)}
+              <strong>C9:</strong> {formatCurrency(summaryCalculations.suggestedTaxableIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= C4-C6-C7</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E9:</strong> Taxable Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F9:</strong> {formatCurrency(summaryCalculations.userTaxableIncome)}
+              <strong>F9:</strong> {formatCurrency(summaryCalculations.userTaxableIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= F4-F6-F7</div>
             </td>
           </tr>
@@ -204,13 +200,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B11:</strong> Federal Income Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C11:</strong> {formatCurrency(summaryCalculations.suggestedFederalIncomeTax)}
+              <strong>C11:</strong> {formatCurrency(summaryCalculations.suggestedFederalIncomeTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!G16</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E11:</strong> Federal Income Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F11:</strong> {formatCurrency(summaryCalculations.userFederalIncomeTax)}
+              <strong>F11:</strong> {formatCurrency(summaryCalculations.userFederalIncomeTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!M16</div>
             </td>
           </tr>
@@ -219,13 +215,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B12:</strong> Federal Social Security Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C12:</strong> {formatCurrency(summaryCalculations.suggestedSocialSecurityTax)}
+              <strong>C12:</strong> {formatCurrency(summaryCalculations.suggestedSocialSecurityTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!G18</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E12:</strong> Federal Social Security Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F12:</strong> {formatCurrency(summaryCalculations.userSocialSecurityTax)}
+              <strong>F12:</strong> {formatCurrency(summaryCalculations.userSocialSecurityTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!M18</div>
             </td>
           </tr>
@@ -234,13 +230,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B13:</strong> Federal Medicare Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C13:</strong> {formatCurrency(summaryCalculations.suggestedMedicareTax)}
+              <strong>C13:</strong> {formatCurrency(summaryCalculations.suggestedMedicareTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!G20</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E13:</strong> Federal Medicare Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F13:</strong> {formatCurrency(summaryCalculations.userMedicareTax)}
+              <strong>F13:</strong> {formatCurrency(summaryCalculations.userMedicareTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!M20</div>
             </td>
           </tr>
@@ -249,13 +245,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B15:</strong> State Income Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C15:</strong> {formatCurrency(summaryCalculations.suggestedStateIncomeTax)}
+              <strong>C15:</strong> {formatCurrency(summaryCalculations.suggestedStateIncomeTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - State Tax'!H169</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E15:</strong> State Income Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F15:</strong> {formatCurrency(summaryCalculations.userStateIncomeTax)}
+              <strong>F15:</strong> {formatCurrency(summaryCalculations.userStateIncomeTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - State Tax'!$L$169</div>
             </td>
           </tr>
@@ -264,13 +260,13 @@ export default function Week1Summary() {
           <tr>
             <td style={styles.td}><strong>B16:</strong> New York City Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>C16:</strong> {formatCurrency(summaryCalculations.suggestedNYCTax)}
+              <strong>C16:</strong> {formatCurrency(summaryCalculations.suggestedNYCTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - State Tax'!H178</div>
             </td>
             <td style={styles.td}></td>
             <td style={styles.td}><strong>E16:</strong> New York City Tax Payment</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-              <strong>F16:</strong> {formatCurrency(summaryCalculations.userNYCTax)}
+              <strong>F16:</strong> {formatCurrency(summaryCalculations.userNYCTax, { decimals: 0 })}
               <div style={styles.formulaNote}>= 'Week 1 - State Tax'!M178</div>
             </td>
           </tr>
@@ -279,13 +275,13 @@ export default function Week1Summary() {
           <tr style={{ backgroundColor: '#f0fdf4' }}>
             <td style={{...styles.td, fontWeight: '600', color: '#166534'}}><strong>B18:</strong> After Tax Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell, fontWeight: '600', fontSize: '18px', color: '#166534'}}>
-              <strong style={{color: '#0d1a4b'}}>C18:</strong> {formatCurrency(summaryCalculations.suggestedAfterTaxIncome)}
+              <strong style={{color: '#0d1a4b'}}>C18:</strong> {formatCurrency(summaryCalculations.suggestedAfterTaxIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= MAX(C9-SUM(C11:C16)+C6,0)</div>
             </td>
             <td style={styles.td}></td>
             <td style={{...styles.td, fontWeight: '600', color: '#166534'}}><strong>E18:</strong> After Tax Income</td>
             <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell, fontWeight: '600', fontSize: '18px', color: '#166534'}}>
-              <strong style={{color: '#0d1a4b'}}>F18:</strong> {formatCurrency(summaryCalculations.userAfterTaxIncome)}
+              <strong style={{color: '#0d1a4b'}}>F18:</strong> {formatCurrency(summaryCalculations.userAfterTaxIncome, { decimals: 0 })}
               <div style={styles.formulaNote}>= MAX(F9-SUM(F11:F16)+F6,0)</div>
             </td>
           </tr>
@@ -311,7 +307,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B22:</strong> Taxable Income</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C22:</strong> {formatCurrency(summaryCalculations.zeroPretaxTaxableIncome)}
+                <strong>C22:</strong> {formatCurrency(summaryCalculations.zeroPretaxTaxableIncome, { decimals: 0 })}
                 <div style={styles.formulaNote}>= C4-C6</div>
               </td>
             </tr>
@@ -319,7 +315,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B24:</strong> Federal Income Tax Payment</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C24:</strong> {formatCurrency(summaryCalculations.suggestedFederalIncomeTax)}
+                <strong>C24:</strong> {formatCurrency(summaryCalculations.suggestedFederalIncomeTax, { decimals: 0 })}
                 <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!T16</div>
               </td>
             </tr>
@@ -327,7 +323,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B25:</strong> Federal Social Security Tax Payment</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C25:</strong> {formatCurrency(summaryCalculations.suggestedSocialSecurityTax)}
+                <strong>C25:</strong> {formatCurrency(summaryCalculations.suggestedSocialSecurityTax, { decimals: 0 })}
                 <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!T18</div>
               </td>
             </tr>
@@ -335,7 +331,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B26:</strong> Federal Medicare Tax Payment</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C26:</strong> {formatCurrency(summaryCalculations.suggestedMedicareTax)}
+                <strong>C26:</strong> {formatCurrency(summaryCalculations.suggestedMedicareTax, { decimals: 0 })}
                 <div style={styles.formulaNote}>= 'Week 1 - Federal Tax'!T20</div>
               </td>
             </tr>
@@ -343,7 +339,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B28:</strong> State Income Tax Payment</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C28:</strong> {formatCurrency(summaryCalculations.suggestedStateIncomeTax)}
+                <strong>C28:</strong> {formatCurrency(summaryCalculations.suggestedStateIncomeTax, { decimals: 0 })}
                 <div style={styles.formulaNote}>= 'Week 1 - State Tax'!$P$169</div>
               </td>
             </tr>
@@ -351,7 +347,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B29:</strong> New York City Tax Payment</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C29:</strong> {formatCurrency(summaryCalculations.suggestedNYCTax)}
+                <strong>C29:</strong> {formatCurrency(summaryCalculations.suggestedNYCTax, { decimals: 0 })}
                 <div style={styles.formulaNote}>= 'Week 1 - State Tax'!Q178</div>
               </td>
             </tr>
@@ -359,7 +355,7 @@ export default function Week1Summary() {
             <tr>
               <td style={styles.td}><strong>B31:</strong> After Tax Income</td>
               <td style={{...styles.td, ...styles.tdValue, ...styles.calculatedCell}}>
-                <strong>C31:</strong> {formatCurrency(summaryCalculations.suggestedAfterTaxIncome)}
+                <strong>C31:</strong> {formatCurrency(summaryCalculations.suggestedAfterTaxIncome, { decimals: 0 })}
                 <div style={styles.formulaNote}>= MAX(C22-SUM(C24:C29)+C6,0)</div>
               </td>
             </tr>

@@ -333,7 +333,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         className="fixed z-40 flex items-center justify-center"
         style={{
           top: '28px',
-          left: showSidebar ? '320px' : '18px',
+          left: showSidebar ? '360px' : '18px',
           transform: 'translateX(-50%)',
           width: '36px',
           height: '36px',
@@ -506,7 +506,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
           */}
 
           {/* Render nested routes */}
-          <div className="w-full max-w-[1400px]">
+          <div className="w-full max-w-[1760px]">
             <BudgetProvider>
               <Outlet />
             </BudgetProvider>

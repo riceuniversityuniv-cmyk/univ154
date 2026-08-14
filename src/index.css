@@ -23,6 +23,28 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
+/* Retirement Planning "Summary Table" blocks (one per account type): the
+   inline per-cell borders mixed 1px/2px widths and different gray shades on
+   different edges, so the grid lines looked uneven/doubled. Force one
+   consistent border on every cell -- !important is required because inline
+   styles otherwise win over this class. */
+.week6-summary-table th,
+.week6-summary-table td {
+  border: 1px solid #d1d5db !important;
+}
+
+/* Number inputs: hide the browser's up/down spinner arrows everywhere so
+   positioning/sizing stays consistent across the whole tool, instead of
+   relying on per-page opt-in classes. */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* Ensure full height for all root elements */
 html,
 body,
@@ -123,6 +145,8 @@ input:focus, textarea:focus, select:focus {
 .sidebar-modern .module-text-marquee-wrap {
   min-width: 0;
   white-space: normal;
+  overflow-wrap: break-word;
+  word-break: break-word;
   line-height: 1.3;
 }
 

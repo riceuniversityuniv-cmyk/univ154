@@ -3,6 +3,7 @@ import { Line } from 'react-chartjs-2';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateLTCGTax } from '../utils/taxEngine';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -486,7 +487,7 @@ const Week9 = () => {
       border: '1px solid rgba(255, 255, 255, 0.3)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       width: '100%',
-      maxWidth: '1200px',
+      maxWidth: '1520px',
       marginLeft: 'auto',
       marginRight: 'auto',
     },
@@ -536,14 +537,9 @@ const Week9 = () => {
       boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.06)',
     },
     th: {
-      background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)',
-      backdropFilter: 'blur(10px)',
-      WebkitBackdropFilter: 'blur(10px)',
-      color: 'white',
+      ...tableHeaderStyle,
       padding: '16px 18px',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
       textAlign: 'center',
-      fontWeight: 600,
       letterSpacing: '-0.01em',
       fontSize: '15px',
     },
@@ -653,14 +649,6 @@ const Week9 = () => {
   return (
     <>
       <style>{`
-        .week9-no-spinner::-webkit-inner-spin-button,
-        .week9-no-spinner::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        .week9-no-spinner {
-          -moz-appearance: textfield;
-        }
         .week9-markets-page input,
         .week9-lift-surface,
         .week9-info-surface,

@@ -126,7 +126,7 @@ const Week4 = () => {
       border: '1px solid rgba(255, 255, 255, 0.3)',
       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
       width: '100%',
-      maxWidth: '1200px',
+      maxWidth: '1520px',
       marginLeft: 'auto',
       marginRight: 'auto',
     },
@@ -527,10 +527,6 @@ const Week4 = () => {
         </div>
       </div>
 
-      {/* Note */}
-      <div style={{ ...styles.note, marginTop: '24px', marginBottom: '0' }}>
-        Note: Adjust Week 1 Budget based on this week's insights
-      </div>
     </div>
   );
 };

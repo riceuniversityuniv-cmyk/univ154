@@ -8,7 +8,8 @@ import {
   removeAdmin,
   transferMasterAdmin,
 } from '../utils/adminApi';
-import { MdCheckCircle, MdCancel, MdWarning, MdDelete, MdPersonAdd, MdSwapHoriz, MdStar } from 'react-icons/md';
+import { MdCheckCircle, MdCancel, MdWarning, MdDelete, MdPersonAdd, MdSwapHoriz } from 'react-icons/md';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 // Same styling pattern as WeekAccessAdmin.jsx, for visual consistency
 // between the two admin pages.
@@ -23,12 +24,9 @@ const styles = {
     border: '1px solid #e0e0e0'
   },
   th: {
-    backgroundColor: '#002060',
-    color: 'white',
+    ...tableHeaderStyle,
     padding: '12px',
-    borderBottom: '1px solid #e0e0e0',
     textAlign: 'center',
-    fontWeight: '600'
   },
   td: {
     border: '1px solid #e0e0e0',
@@ -59,8 +57,13 @@ const styles = {
   input: {
     padding: '8px 12px',
     borderRadius: '6px',
-    border: '1px solid #d0d0d0',
+    // Same yellow-input convention used everywhere else in the tool
+    // (Week5/Week9/Week12/BudgetForm) to signal an editable field --
+    // previously plain gray here, inconsistent with the rest of the app.
+    border: '2px solid #d1d5db',
+    backgroundColor: '#fffde7',
     fontSize: '14px',
+    fontWeight: '500',
     flex: 1,
     minWidth: '220px',
   },
@@ -86,20 +89,14 @@ const styles = {
   },
 };
 
+// Plain text label, color-coded only -- no pill, no icon, no accent line.
 const roleBadge = (role) => (
   <span style={{
-    padding: '4px 12px',
-    borderRadius: '12px',
-    fontSize: '12px',
-    fontWeight: '500',
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '4px',
-    ...(role === 'master_admin'
-      ? { backgroundColor: '#fef3c7', color: '#92400e' }
-      : { backgroundColor: '#dbeafe', color: '#1e40af' })
+    fontSize: '13px',
+    fontWeight: '600',
+    letterSpacing: '0.01em',
+    color: role === 'master_admin' ? '#92400e' : '#1e40af',
   }}>
-    {role === 'master_admin' && <MdStar style={{ fontSize: '14px' }} />}
     {role === 'master_admin' ? 'Master Admin' : 'Admin'}
   </span>
 );
