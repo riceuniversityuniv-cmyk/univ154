@@ -168,7 +168,7 @@ export default function Login() {
         </div>
       )}
       
-      <div className="w-full max-w-[400px] space-y-6 bg-white p-8 rounded-2xl shadow-lg px-6">
+      <div className="w-full max-w-[560px] space-y-6 bg-white p-8 rounded-2xl shadow-lg px-6">
         {/* Logo and Title Section - Minimalist Gradient Card */}
         <div className="flex flex-col items-center w-full">
           {/* Rice University Logo with fade-in */}
@@ -194,7 +194,7 @@ export default function Login() {
             style={{
               animationFillMode: 'forwards',
               boxShadow: '0 10px 25px -5px rgba(253, 230, 19, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.07)',
-              padding: '20px 110px',
+              padding: '20px 60px',
               border: '1px solid rgba(242, 250, 3, 0.08)'
             }}
           >
@@ -276,7 +276,7 @@ export default function Login() {
               required
               value={email}
               onChange={handleEmailChange}
-              placeholder="username@rice.edu, username@alumni.rice.edu, username@gmail.com, or username@yahoo.com"
+              placeholder="username@rice.edu, @gmail.com, or @yahoo.com"
               pattern=".*@(rice\.edu|alumni\.rice\.edu|gmail\.com|yahoo\.com)$"
               title="Please use your Rice University email address (@rice.edu or @alumni.rice.edu), Gmail address (@gmail.com), or Yahoo address (@yahoo.com)"
               style={{ height: '42px', fontSize: '14px', borderRadius: '10px', width: '100%', boxSizing: 'border-box', border: '2px solid #d1d5db' }}

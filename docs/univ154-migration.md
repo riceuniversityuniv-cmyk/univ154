@@ -7,36 +7,12 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-Two open issues found 2026-08-13 evening, not yet fixed. User is switching Claude
-accounts (low on usage) — this section exists so a fresh session has everything
-needed without re-deriving it. See working log entry "Google OAuth redirects to
-dead Netlify 404 + login-card layout regression" (bottom of this doc, dated
-2026-08-13 evening) for full detail. Short version:
-
-1. **Google sign-in on the live Cloudflare site (`univ154.pages.dev`) redirects to
-   a Netlify "Site not found" page** (Netlify Internal ID
-   `01KZY9T1YTZ39MSE6C6R26S4MH`), tried both email and Google login. The frontend
-   code is NOT hardcoded to Netlify — `AuthContext.jsx:257` builds `redirectTo` from
-   `window.location.origin` dynamically. **Prime suspect: Supabase project
-   `zyznmhbtpniluhkyowbb` → Authentication → URL Configuration** — the "Site URL"
-   and/or "Redirect URLs" allow-list is likely still set to
-   `https://riceuniv154.netlify.app` from the original Netlify setup and was never
-   updated to `https://univ154.pages.dev` when Cloudflare became primary (see the
-   2026-08-13 "later same day" entry below about this exact allow-list needing
-   updates once before, for the Netlify→Netlify migration — this looks like the
-   same class of bug, one hop later). Fix: add `https://univ154.pages.dev/*` (and
-   set Site URL to `https://univ154.pages.dev`) in that Supabase screen; also check
-   the Google Cloud Console OAuth client's Authorized redirect URIs includes the
-   Supabase callback (`https://zyznmhbtpniluhkyowbb.supabase.co/auth/v1/callback`)
-   — that part is host-agnostic and was already fixed once, probably still fine.
-2. **Login/onboarding card layout looks visually broken** — user's screenshots show
-   the sign-in card. Prime suspect: `src/components/Login.jsx` — the gradient logo
-   card has `padding: '20px 110px'` (~line 197) sitting inside a `max-w-[400px]`
-   outer container (~line 171), leaving only ~180px of horizontal room for a
-   145px-tall logo (~line 206) plus the "Financial Literacy for Life" heading. That
-   padding value is suspicious regardless of hosting — needs a visual QA pass in a
-   browser (not just a code read) to confirm what's actually rendering wrong before
-   changing it.
+One open item as of 2026-08-14, waiting on the user (not code): confirm the
+Supabase Auth → URL Configuration change described in the 2026-08-14 working
+log entry below has actually been made and that Google sign-in on
+`univ154.pages.dev` no longer 404s to Netlify. The login-card layout item from
+2026-08-13 evening is code-fixed and pushed (same 2026-08-14 entry) — no
+longer active.
 
 ## Current architecture (as of 2026-08-13)
 
@@ -246,6 +222,58 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-14 — Widened login card (no more dead gutters) + OAuth 404 fix handed to user as a dashboard-only change
+Picked up the 2026-08-13 evening handoff (Google OAuth → dead Netlify 404,
+login card looking cramped). Confirmed both root causes the handoff already
+suspected, using the user's actual screenshots (1920px-wide desktop Chrome)
+this time instead of a code-only read.
+
+- **Login card layout — fixed, code change, verified visually before
+  pushing.** `src/components/Login.jsx`: outer container `max-w-[400px]` →
+  `max-w-[560px]`; the gradient logo card's inline `padding: '20px 110px'` →
+  `'20px 60px'` (110px/side was tuned for the old 400px-wide parent — left
+  unscaled it would've just added dead space *inside* the card instead of
+  using the extra width); email input placeholder shortened from the full
+  four-domain string (which was clipping mid-word — `…username@alumni.rice.e…`)
+  to `"username@rice.edu, @gmail.com, or @yahoo.com"` (the full domain list is
+  still shown in the red validation warning when the typed email doesn't
+  match, so nothing was lost, just moved out of the placeholder). Confirmed
+  `max-w-[400px]` predates the Cloudflare migration in git history — this was
+  never actually caused by the hosting switch, just a design that was never
+  tuned for a wide desktop viewport and only got noticed now.
+  - User explicitly chose "widen the existing centered card" over a
+    split-screen or decorative-background redesign — smallest visual change,
+    keeps the current look, just stops it reading as broken on a large
+    monitor. Gutters are still visible at 560px on a 1920px-wide screen by
+    design (a centered card was never going to be full-bleed) — that trade-off
+    was made explicitly, not missed.
+  - **Verified without spending a Cloudflare Pages build**: ran `npm run dev`
+    locally (already wired to the live Supabase backend via `.env.local`) and
+    used the Playwright MCP tool to screenshot the login page at 1920×1080
+    (matching the user's screenshots) and at 390×844 (mobile) before touching
+    git at all. This is the reusable answer to "how do I preview without
+    deploying" for this repo going forward — no separate preview
+    infrastructure needed, the pieces already existed.
+  - `npm run build` clean.
+- **Google OAuth 404 — diagnosed, not yet confirmed fixed; fix handed to the
+  user as a Supabase dashboard change, not code.** No tool in this session had
+  Supabase Management API access (no stored PAT, no MCP server for it), and
+  the user opted to make the change themselves rather than generate a new PAT.
+  Gave the user the exact values: Supabase project `zyznmhbtpniluhkyowbb` →
+  Authentication → URL Configuration → Site URL = `https://univ154.pages.dev`,
+  Redirect URLs allow-list += `https://univ154.pages.dev/**` (Supabase's
+  allow-list uses `**` glob syntax). This exactly matches the 2026-08-13
+  evening handoff's prime suspect. **Still needs a next-session (or later this
+  session) confirmation that the user actually made the change and that
+  Google sign-in works live** — nobody has clicked "Continue with Google" on
+  the live site since this fix was described.
+- Takeaway reinforcing the 2026-08-13 "latest" entry: the OAuth allow-list has
+  now broken exactly this way twice across two different hosting migrations
+  (Netlify→Netlify rename, then Netlify→Cloudflare) — worth remembering that
+  *any* future hosting change for this project needs a Supabase Auth URL
+  Configuration check as a standard step, not an afterthought discovered via a
+  broken login.
 
 ### 2026-08-13 (evening) — Google OAuth redirects to dead Netlify 404 + login-card layout regression; handed off mid-investigation
 User tried logging into the live site both ways (email/password wasn't mentioned as
