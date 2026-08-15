@@ -2485,7 +2485,7 @@ export default function Week6Retirement() {
             borderTop: '8px solid rgba(13, 26, 75, 0.97)',
           }} />
           <div style={{ lineHeight: '1.4', fontSize: '12px' }}>
-            <strong>Deferral</strong> just means income you choose not to take as cash today -- it goes straight into a retirement account instead, so you don't pay income tax on it right now (with a pre-tax account) or you're setting after-tax money aside to grow tax-free (with a Roth account).
+            <strong>Deferral</strong>: income you redirect into a retirement account instead of taking as cash today.
           </div>
         </div>
       )}
@@ -2694,22 +2694,24 @@ export default function Week6Retirement() {
                   <th style={styles.th}>Tax Treatment</th>
                   <th style={styles.th}>Sponsor</th>
                   <th style={styles.th}>Annual Limit</th>
-                  <th style={{ ...styles.th, textAlign: 'left' }}>Key Notes</th>
+                  <th style={styles.th}>Withdrawal Taxation</th>
+                  <th style={styles.th}>Employer Match</th>
                 </tr>
               </thead>
               <tbody>
                 {[
-                  { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: '$23,500', notes: 'No taxes now, taxed at withdrawal. Employer match available.' },
-                  { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: '$23,500', notes: 'Pay taxes now, withdraw tax-free. Employer match common (goes into a pre-tax 401(k)).' },
-                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', notes: 'Lowers taxes now, taxed at withdrawal. No employer match.' },
-                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', notes: 'Tax-free growth and withdrawals. No employer match.' },
+                  { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: '$23,500', withdrawalTax: 'Taxed at withdrawal', match: 'Available' },
+                  { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: '$23,500', withdrawalTax: 'Tax-free at withdrawal', match: 'Common (into pre-tax 401(k))' },
+                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', withdrawalTax: 'Taxed at withdrawal', match: 'None' },
+                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', withdrawalTax: 'Tax-free at withdrawal', match: 'None' },
                 ].map((row) => (
                   <tr key={row.name}>
                     <td style={{ ...styles.td, textAlign: 'left', fontWeight: '600' }}>{row.name}</td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>{row.tax}</td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>{row.sponsor}</td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>{row.limit}</td>
-                    <td style={{ ...styles.td, textAlign: 'left', fontSize: '13px', color: '#4b5563' }}>{row.notes}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>{row.withdrawalTax}</td>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>{row.match}</td>
                   </tr>
                 ))}
               </tbody>
@@ -3673,7 +3675,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -3689,10 +3691,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -3705,7 +3707,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -3781,31 +3783,31 @@ export default function Week6Retirement() {
                       Traditional 401(k) Plan - Series A (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Employer Match</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Total Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Employer Match</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Total Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesAData.accumulationData.length > 20 && (
                             <tr>
-                              <td colSpan="6" style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center', fontStyle: 'italic' }}>
+                              <td colSpan="6" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
                                 ... and {seriesAData.accumulationData.length - 20} more rows
                               </td>
                             </tr>
@@ -3829,7 +3831,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -3910,7 +3912,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditional401kSeriesA().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesA().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3919,7 +3921,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditional401kSeriesB().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesB().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3928,7 +3930,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditional401kSeriesC().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditional401kSeriesC().finalBalance, { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -3948,7 +3950,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3957,7 +3959,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3966,7 +3968,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditional401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                   </tr>
                 </tbody>
               </table>
@@ -4035,25 +4037,25 @@ export default function Week6Retirement() {
                       Traditional 401(k) Plan - Series A (Withdrawal Phase)
               </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesAData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesAData.withdrawalData.length > 20 && (
                             <tr>
-                              <td colSpan="3" style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center', fontStyle: 'italic' }}>
+                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
                                 ... and {seriesAData.withdrawalData.length - 20} more rows
                               </td>
                             </tr>
@@ -4082,25 +4084,25 @@ export default function Week6Retirement() {
                       Traditional 401(k) Plan - Series B (Withdrawal Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesBData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesBData.withdrawalData.length > 20 && (
                             <tr>
-                              <td colSpan="3" style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center', fontStyle: 'italic' }}>
+                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
                                 ... and {seriesBData.withdrawalData.length - 20} more rows
                               </td>
                             </tr>
@@ -4129,25 +4131,25 @@ export default function Week6Retirement() {
                       Traditional 401(k) Plan - Series C (Withdrawal Phase)
               </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesCData.withdrawalData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesCData.withdrawalData.length > 20 && (
                             <tr>
-                              <td colSpan="3" style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center', fontStyle: 'italic' }}>
+                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
                                 ... and {seriesCData.withdrawalData.length - 20} more rows
                               </td>
                             </tr>
@@ -4635,31 +4637,31 @@ export default function Week6Retirement() {
                       Traditional 401(k) Plan - Series B (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Employer Match</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Total Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Employer Match</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Total Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                           {seriesBData.accumulationData.length > 20 && (
                             <tr>
-                              <td colSpan="6" style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center', fontStyle: 'italic' }}>
+                              <td colSpan="6" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
                                 ... and {seriesBData.accumulationData.length - 20} more rows
                               </td>
                             </tr>
@@ -4731,7 +4733,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -4747,10 +4749,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -4763,7 +4765,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -5405,7 +5407,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -5421,10 +5423,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -5437,7 +5439,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -5513,26 +5515,26 @@ export default function Week6Retirement() {
                       Roth 401(k) Plan - Series A (Accumulation Phase)
       </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Employer Match</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Total Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Employer Match</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Total Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5559,26 +5561,26 @@ export default function Week6Retirement() {
                       Roth 401(k) Plan - Series B (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Employer Match</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Total Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Employer Match</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Total Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5605,26 +5607,26 @@ export default function Week6Retirement() {
                       Roth 401(k) Plan - Series C (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Employer Match</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Total Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Employer Match</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Total Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.employerMatch)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.totalContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -5646,7 +5648,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -5727,7 +5729,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRoth401kSeriesA().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesA().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5736,7 +5738,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRoth401kSeriesB().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesB().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5745,7 +5747,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRoth401kSeriesC().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRoth401kSeriesC().finalBalance, { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -5765,7 +5767,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5774,7 +5776,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5783,7 +5785,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRoth401kSeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                   </tr>
             </tbody>
           </table>
@@ -6352,7 +6354,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -6368,10 +6370,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -6384,7 +6386,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -7028,7 +7030,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -7044,10 +7046,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -7060,7 +7062,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -7134,22 +7136,22 @@ export default function Week6Retirement() {
                       Traditional IRA Plan - Series A (Accumulation Phase)
             </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7175,22 +7177,22 @@ export default function Week6Retirement() {
                       Traditional IRA Plan - Series B (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7216,22 +7218,22 @@ export default function Week6Retirement() {
                       Traditional IRA Plan - Series C (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -7252,7 +7254,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -7333,7 +7335,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditionalIRASeriesA().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesA().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7342,7 +7344,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditionalIRASeriesB().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesB().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7351,7 +7353,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateTraditionalIRASeriesC().finalBalance)}</td>
+                    }}>{formatCurrency(calculateTraditionalIRASeriesC().finalBalance, { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -7371,7 +7373,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7380,7 +7382,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7389,7 +7391,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateTraditionalIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                   </tr>
             </tbody>
           </table>
@@ -7959,7 +7961,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -7975,10 +7977,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -7991,7 +7993,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -8635,7 +8637,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -8651,10 +8653,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -8667,7 +8669,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}
@@ -8742,22 +8744,22 @@ export default function Week6Retirement() {
                       Roth IRA Plan - Series A (Accumulation Phase)
             </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8783,22 +8785,22 @@ export default function Week6Retirement() {
                       Roth IRA Plan - Series B (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8824,22 +8826,22 @@ export default function Week6Retirement() {
                       Roth IRA Plan - Series C (Accumulation Phase)
                     </div>
                     <div style={{ overflowX: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Age</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Year</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Annual Contribution</th>
-                            <th style={{ border: '1px solid #ddd', padding: '6px', textAlign: 'center' }}>Account Balance (FV)</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Contribution</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance (FV)</th>
                           </tr>
                         </thead>
                         <tbody>
                           {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.age}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
-                              <td style={{ border: '1px solid #ddd', padding: '4px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.annualContribution)}</td>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -8861,7 +8863,7 @@ export default function Week6Retirement() {
               <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Summary
             </div>
-              <table className="week6-summary-table" style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+              <table className="week6-summary-table" style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr>
                     <th style={{ 
@@ -8942,7 +8944,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRothIRASeriesA().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesA().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8951,7 +8953,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRothIRASeriesB().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesB().finalBalance, { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8960,7 +8962,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculateRothIRASeriesC().finalBalance)}</td>
+                    }}>{formatCurrency(calculateRothIRASeriesC().finalBalance, { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ 
@@ -8980,7 +8982,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesA().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8989,7 +8991,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesB().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8998,7 +9000,7 @@ export default function Week6Retirement() {
                       borderRight: '1px solid rgba(229, 231, 235, 0.8)',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)))}</td>
+                    }}>{formatCurrency(calculatePresentValue(calculateRothIRASeriesC().finalBalance, (retirementPlanningInputs.retirementAge || 65) - (retirementPlanningInputs.contributionStartAge || 22)), { decimals: 0 })}</td>
                   </tr>
           </tbody>
         </table>
@@ -9568,7 +9570,7 @@ export default function Week6Retirement() {
                 const chartWidth = 760;
                 const chartHeight = 400;
                 const padding = 24;
-                const yAxisLabelWidth = 75; // Space for Y-axis labels
+                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -9584,10 +9586,10 @@ export default function Week6Retirement() {
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
                               fontSize="12"
-                              fill="#64748b"
+                              fill="#000000"
                               textAnchor="end"
                             >
-                              {formatCurrency(Math.round(value))}
+                              {formatCurrency(Math.round(value), { decimals: 0 })}
                             </text>
                           </g>
                         );
@@ -9600,7 +9602,7 @@ export default function Week6Retirement() {
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
                           fontSize="12"
-                          fill="#64748b"
+                          fill="#000000"
                           textAnchor="middle"
                         >
                           {d.age}

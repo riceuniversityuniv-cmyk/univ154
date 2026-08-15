@@ -368,7 +368,10 @@ const Week5 = () => {
           display: false,
         },
         legend: {
-          position: 'top',
+          position: 'bottom',
+          labels: {
+            color: '#000000',
+          },
         },
         tooltip: {
           animation: { duration: 0 },
@@ -393,9 +396,11 @@ const Week5 = () => {
           grid: { display: false },
           title: {
             display: true,
-            text: 'Payment Amount ($)'
+            text: 'Payment Amount ($)',
+            color: '#000000',
           },
           ticks: {
+            color: '#000000',
             callback: (value) => formatCurrency(value, { decimals: 0 }),
           },
         },
@@ -404,7 +409,11 @@ const Week5 = () => {
           grid: { display: false },
           title: {
             display: true,
-            text: 'Month Number'
+            text: 'Month Number',
+            color: '#000000',
+          },
+          ticks: {
+            color: '#000000',
           }
         },
       },
@@ -420,7 +429,11 @@ const Week5 = () => {
           grid: { display: false },
           title: {
             display: true,
-            text: 'Week Number'
+            text: 'Week Number',
+            color: '#000000',
+          },
+          ticks: {
+            color: '#000000',
           }
         },
       },
@@ -663,8 +676,8 @@ const Week5 = () => {
     },
     chartsSection: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '16px',
+      gridTemplateColumns: '1fr',
+      gap: '24px',
       marginBottom: '20px',
       maxWidth: '100%'
     },
@@ -818,17 +831,18 @@ const Week5 = () => {
                 Loan Details
               </h3>
               
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '20px',
-                gap: '50px'
+                gap: '16px'
               }}>
-                <label style={{ 
-                  fontSize: '14px', 
+                <label style={{
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   color: '#374151',
-                  minWidth: '160px'
+                  width: '230px',
+                  flexShrink: 0
                 }}>
                   Loan Amount:
                 </label>
@@ -877,17 +891,18 @@ const Week5 = () => {
                 />
               </div>
 
-              <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '20px',
-                gap: '50px'
+                gap: '16px'
               }}>
-                <label style={{ 
-                  fontSize: '14px', 
+                <label style={{
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   color: '#374151',
-                  minWidth: '160px'
+                  width: '230px',
+                  flexShrink: 0
                 }}>
                   Annual Interest Rate:
                 </label>
@@ -945,16 +960,17 @@ const Week5 = () => {
                 </div>
               </div>
 
-              <div style={{ 
-                display: 'flex', 
+              <div style={{
+                display: 'flex',
                 alignItems: 'center',
-                gap: '50px'
+                gap: '16px'
               }}>
-                <label style={{ 
-                  fontSize: '14px', 
+                <label style={{
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   color: '#374151',
-                  minWidth: '140px'
+                  width: '230px',
+                  flexShrink: 0
                 }}>
                   Regular Monthly Payment Loan Term:
                 </label>
