@@ -324,10 +324,12 @@ const Week9 = () => {
         align: 'end',
         labels: {
           color: '#000000',
-          boxWidth: 16,
-          padding: 18,
-          font: { size: 14 },
+          font: { size: 18, weight: '600' },
+          padding: 20,
           usePointStyle: true,
+          pointStyle: 'rectRounded',
+          boxWidth: 20,
+          boxHeight: 20,
         },
       },
       title: {
@@ -347,13 +349,14 @@ const Week9 = () => {
     },
     scales: {
       x: {
-        title: { display: true, text: 'Age', color: '#000000', font: { size: 14 } },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 22, weight: '700' }, padding: { top: 15 } },
         min: minAge,
         max: maxAge,
         grid: { display: false },
+        border: { display: false },
         ticks: {
           color: '#000000',
-          font: { size: 13 },
+          font: { size: 19, weight: '500' },
           stepSize: 1,
           callback: function(value) {
             const age = Number(this.getLabelForValue(value));
@@ -365,13 +368,14 @@ const Week9 = () => {
       },
       y: {
         beginAtZero: true,
-        title: { display: true, text: 'Ending Account Balance', color: '#000000', font: { size: 14 } },
+        title: { display: true, text: 'Ending Account Balance', color: '#000000', font: { size: 22, weight: '700' }, padding: { bottom: 15 } },
         min: 0,
         max: chartMaxY,
         grid: { display: false },
+        border: { display: false },
         ticks: {
           color: '#000000',
-          font: { size: 13 },
+          font: { size: 19, weight: '500' },
           stepSize: chartMaxY / 5,
           callback: (v) =>
             v >= 1000000 ? `$${v / 1000000}M` : v >= 1000 ? `$${v / 1000}K` : `$${v}`,
@@ -626,7 +630,7 @@ const Week9 = () => {
     rowLabelInputGap: '100px',
     chartWrapper: {
       backgroundColor: 'rgba(255, 255, 255, 0.9)',
-      border: '1px solid rgba(229, 231, 235, 0.8)',
+      border: 'none',
       borderRadius: '14px',
       padding: '40px',
       marginBottom: '30px',
@@ -1135,9 +1139,9 @@ const Week9 = () => {
           </div>
 
           {/* Sub-card: Brokerage Account Balance chart - overflow hidden so graph stays inside */}
-          <div style={{ ...styles.subCard, padding: '36px', minHeight: '560px', overflow: 'hidden', boxSizing: 'border-box' }} className="week9-lift-surface">
+          <div style={{ ...styles.subCard, padding: '36px', minHeight: '660px', overflow: 'hidden', boxSizing: 'border-box' }} className="week9-lift-surface">
             <div style={{ ...styles.chartWrapper, marginTop: 0, marginBottom: 0 }}>
-              <div style={{ height: 420, width: '100%', maxWidth: '100%', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
+              <div style={{ height: 520, width: '100%', maxWidth: '100%', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
                 <Line data={chartData} options={chartOptions} />
               </div>
             </div>
