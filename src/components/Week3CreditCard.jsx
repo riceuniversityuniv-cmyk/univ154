@@ -593,7 +593,7 @@ const Week3CreditCard = () => {
       color: '#0d1a4b'
     },
     chartTitle: {
-      fontSize: '15px',
+      fontSize: '20px',
       fontWeight: '600',
       color: '#0d1a4b',
       margin: '0',
@@ -1295,7 +1295,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       }
                     }
@@ -1320,7 +1320,7 @@ const Week3CreditCard = () => {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       },
                       callback: function(value) {
@@ -1468,7 +1468,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       }
                     }
@@ -1493,7 +1493,7 @@ const Week3CreditCard = () => {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       },
                       callback: function(value) {
@@ -1970,7 +1970,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       }
                     }
@@ -1995,7 +1995,7 @@ const Week3CreditCard = () => {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 16,
+                        size: 19,
                         weight: '500'
                       },
                       callback: function(value) {
