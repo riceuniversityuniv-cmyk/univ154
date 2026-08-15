@@ -75,7 +75,7 @@ const styles = {
   },
   worksheetGrid: {
     display: 'grid',
-    gridTemplateColumns: 'minmax(0, 1fr) 192px',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: '18px',
     alignItems: 'start',
     marginBottom: '32px',
@@ -213,44 +213,12 @@ const styles = {
     outline: 'none',
     boxSizing: 'border-box',
   },
-  contributionsCard: {
-    border: '1px solid rgba(203, 213, 225, 0.9)',
-    borderRadius: '12px',
-    overflow: 'hidden',
-    backgroundColor: 'rgba(255, 255, 255, 0.72)',
-    backdropFilter: 'blur(8px)',
-    WebkitBackdropFilter: 'blur(8px)',
-    marginTop: '680px',
-    position: 'relative',
-    top: 'auto',
-    boxShadow: '0 8px 20px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.05)',
-  },
-  contributionsHeader: {
-    padding: '9px 8px',
-    textAlign: 'center',
-    borderBottom: '1px solid rgba(203, 213, 225, 0.9)',
-    fontStyle: 'italic', 
-    fontWeight: 700,
-    color: '#1f2937',
-    background: 'linear-gradient(to bottom, rgba(249, 250, 251, 0.95) 0%, rgba(243, 244, 246, 0.9) 100%)',
-    fontSize: '11px',
-    letterSpacing: '0.01em',
-  },
-  contributionsValue: {
-    textAlign: 'center',
-    padding: '12px 8px',
-    fontSize: '14px',
-    color: '#111827',
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderBottom: '1px solid rgba(203, 213, 225, 0.9)',
-    fontWeight: 600,
-    lineHeight: 1.2,
-  },
   chartGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+    gridTemplateColumns: 'minmax(0, 1fr)',
     gap: '18px',
     alignItems: 'start',
+    marginBottom: '32px',
   },
   chartCard: {
     border: '1px solid rgba(229, 231, 235, 0.55)',
@@ -303,7 +271,7 @@ const styles = {
     boxShadow: '0 8px 20px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.05)',
     margin: '18px auto 0',
     width: '100%',
-    maxWidth: 'calc((100% - 18px) / 2)',
+    maxWidth: '100%',
     minHeight: '340px',
   },
 };
@@ -398,6 +366,11 @@ const Week12 = () => {
   const { topInputs } = useBudget() || {};
   const { assumptions } = useAssumptions();
   const [inputs, setInputs] = useState(WEEK12_DEFAULT_INPUTS);
+  // Hover state for the "This Year's Contributions" quick-definition
+  // tooltip, replacing the old fixed-sidebar card (styled like Week6/Week7's
+  // hover-term tooltips).
+  const [showContributionsTooltip, setShowContributionsTooltip] = useState(false);
+  const [contributionsTooltipPosition, setContributionsTooltipPosition] = useState({ x: 0, y: 0 });
 
   const updateInput = (key, sanitizer) => (event) => {
     const value = sanitizer ? sanitizer(event.target.value) : event.target.value;
@@ -716,27 +689,6 @@ const Week12 = () => {
     };
   }, [inputs, linkedSalary, budgetContextLooksUntouched, assumptions]);
 
-  const goalVsIncomeData = useMemo(
-    () => ({
-      labels: ['Goal', 'Outside income', 'Investment income', 'Gap'],
-      datasets: [
-        {
-          label: 'Amount',
-          data: [
-            model.goalToday,
-            model.outsideIncomeToday,
-            model.afterTaxInvestmentIncomeToday,
-            model.gapVsGoalToday,
-          ],
-          backgroundColor: ['#1e293b', '#94a3b8', '#0f766e', '#64748b'],
-          borderRadius: 6,
-          barThickness: 28,
-        },
-      ],
-    }),
-    [model.goalToday, model.outsideIncomeToday, model.afterTaxInvestmentIncomeToday, model.gapVsGoalToday]
-  );
-
   const moneySourceData = useMemo(
     () => ({
       labels: ['Businesses', 'Real estate', 'Notes/IOUs', 'Royalties/IP', 'Investments'],
@@ -799,19 +751,17 @@ const Week12 = () => {
     };
   }, [model.projectionRows, model.yearsToRetirement]);
 
-  const goalVsIncomeLegend = [
-    { label: 'Goal', color: '#1e293b' },
-    { label: 'Outside income', color: '#94a3b8' },
-    { label: 'Investment income', color: '#0f766e' },
-    { label: 'Gap', color: '#64748b' },
-  ];
-
   const moneySourceLegend = [
     { label: 'Businesses', color: '#d8dee9' },
     { label: 'Real estate', color: '#94a3b8' },
     { label: 'Notes/IOUs', color: '#64748b' },
     { label: 'Royalties/IP', color: '#475569' },
     { label: 'Investments', color: '#1e293b' },
+  ];
+
+  const investmentsLegend = [
+    { label: 'Before retirement', color: '#94a3b8' },
+    { label: 'After retirement', color: '#1e293b' },
   ];
 
   const sharedBarOptions = {
@@ -831,12 +781,13 @@ const Week12 = () => {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { font: { size: 11 }, maxRotation: 0, minRotation: 0 },
+        ticks: { color: '#000000', font: { size: 11 }, maxRotation: 0, minRotation: 0 },
       },
       y: {
         beginAtZero: true,
         grid: { display: false },
         ticks: {
+          color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
           font: { size: 11 },
         },
@@ -858,8 +809,9 @@ const Week12 = () => {
     scales: {
       x: {
         grid: { display: false },
-        title: { display: true, text: 'Age', font: { size: 12 } },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 12 } },
         ticks: {
+          color: '#000000',
           maxTicksLimit: 16,
           autoSkip: true,
           font: { size: 11 },
@@ -869,6 +821,7 @@ const Week12 = () => {
         beginAtZero: true,
         grid: { display: false },
         ticks: {
+          color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
           font: { size: 11 },
         },
@@ -981,26 +934,7 @@ const Week12 = () => {
           transform: translateY(-2px);
           box-shadow: 0 14px 28px rgba(15, 23, 42, 0.11);
         }
-        .week12-responsive-hidden-desktop {
-          display: none;
-        }
         @media (max-width: 1024px) {
-          .week12-sheet-grid {
-            grid-template-columns: minmax(0, 1fr) !important;
-          }
-          .week12-contributions-desktop {
-            display: none !important;
-          }
-          .week12-responsive-hidden-desktop {
-            display: block;
-            margin-bottom: 14px;
-          }
-          .week12-chart-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .week12-line-half {
-            max-width: 100% !important;
-          }
           .week12-field-row {
             grid-template-columns: 1fr !important;
           }
@@ -1037,6 +971,48 @@ const Week12 = () => {
         You can only enter data in the open (yellow) fields.
       </div>
 
+      {/* "This Year's Contributions" quick-definition tooltip */}
+      {showContributionsTooltip && (
+        <div
+          style={{
+            position: 'fixed',
+            left: `${contributionsTooltipPosition.x}px`,
+            top: `${contributionsTooltipPosition.y - 70}px`,
+            transform: 'translateX(-50%)',
+            backgroundColor: 'rgba(13, 26, 75, 0.97)',
+            color: '#fff',
+            padding: '10px 14px',
+            borderRadius: '8px',
+            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            maxWidth: '260px',
+          }}
+        >
+          <div style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: '8px solid rgba(13, 26, 75, 0.97)',
+          }} />
+          <div style={{ lineHeight: '1.4', fontSize: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+              <span>401(k)</span>
+              <strong>{formatCurrency(model.yearly401kContribution)}</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', marginTop: '4px' }}>
+              <span>IRA</span>
+              <strong>{formatCurrency(model.yearlyIraContribution)}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div style={styles.container}>
         <div style={styles.sectionContainer} className="week12-goal-page">
           <div style={styles.enhancedHeader}>
@@ -1064,6 +1040,10 @@ const Week12 = () => {
             background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.06) 0%, rgba(13, 26, 75, 0.02) 100%)',
             border: '1px solid rgba(13, 26, 75, 0.12)',
             textAlign: 'center',
+            position: 'sticky',
+            top: '16px',
+            zIndex: 40,
+            boxShadow: '0 8px 24px 0 rgba(13, 26, 75, 0.1)',
           }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
               Your Retirement Income Goal
@@ -1082,13 +1062,24 @@ const Week12 = () => {
                 ? `On your current plan, you're on track to reach this by age ${model.retirementAge} (in ${model.yearsToRetirement} years) -- with ${formatCurrency(model.gapVsGoalToday, { decimals: 0 })}/year to spare.`
                 : `On your current plan, you're projected to fall short of this goal by ${formatCurrency(Math.abs(model.gapVsGoalToday), { decimals: 0 })}/year at age ${model.retirementAge} (in ${model.yearsToRetirement} years).`}
             </div>
-          </div>
-
-          <div className="week12-responsive-hidden-desktop">
-            <div style={{ ...styles.contributionsCard, marginTop: 0 }} className="week12-surface">
-              <div style={styles.contributionsHeader}>This Year&apos;s Contributions</div>
-              <div style={styles.contributionsValue}>{formatCurrency(model.yearly401kContribution)}</div>
-              <div style={{ ...styles.contributionsValue, borderBottom: 'none' }}>{formatCurrency(model.yearlyIraContribution)}</div>
+            <div
+              style={{
+                display: 'inline-block',
+                marginTop: '14px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#0d1a4b',
+                borderBottom: '1px dotted #0d1a4b',
+                cursor: 'help',
+              }}
+              onMouseEnter={(e) => {
+                setShowContributionsTooltip(true);
+                setContributionsTooltipPosition({ x: e.clientX, y: e.clientY });
+              }}
+              onMouseMove={(e) => setContributionsTooltipPosition({ x: e.clientX, y: e.clientY })}
+              onMouseLeave={() => setShowContributionsTooltip(false)}
+            >
+              This Year&apos;s Contributions
             </div>
           </div>
 
@@ -1145,30 +1136,9 @@ const Week12 = () => {
                 </div>
               </div>
             </div>
-
-            <div style={styles.contributionsCard} className="week12-contributions-desktop week12-surface">
-              <div style={styles.contributionsHeader}>This Year&apos;s Contributions</div>
-              <div style={styles.contributionsValue}>{formatCurrency(model.yearly401kContribution)}</div>
-              <div style={{ ...styles.contributionsValue, borderBottom: 'none' }}>{formatCurrency(model.yearlyIraContribution)}</div>
-            </div>
           </div>
 
           <div style={styles.chartGrid} className="week12-chart-grid">
-            <div style={styles.chartCard} className="week12-chart-card week12-surface">
-              <div style={styles.chartTitle}>Goal vs Income (Today&apos;s $)</div>
-              <div style={{ height: 360 }}>
-                <Bar data={goalVsIncomeData} options={sharedBarOptions} />
-              </div>
-              <div style={styles.chartLegendRow}>
-                {goalVsIncomeLegend.map((item) => (
-                  <span key={item.label} style={styles.chartLegendItem}>
-                    <span style={{ ...styles.chartLegendSwatch, backgroundColor: item.color }} />
-                    {item.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-
             <div style={styles.chartCard} className="week12-chart-card week12-surface">
               <div style={styles.chartTitle}>Where Your Retirement Money Comes From</div>
               <div style={{ height: 360 }}>
@@ -1189,6 +1159,14 @@ const Week12 = () => {
             <div style={styles.chartTitle}>Investments Over Time (Nominal $)</div>
             <div style={{ height: 400 }}>
               <Line data={investmentsData} options={lineOptions} />
+            </div>
+            <div style={styles.chartLegendRow}>
+              {investmentsLegend.map((item) => (
+                <span key={item.label} style={styles.chartLegendItem}>
+                  <span style={{ ...styles.chartLegendSwatch, backgroundColor: item.color }} />
+                  {item.label}
+                </span>
+              ))}
             </div>
           </div>
         </div>
