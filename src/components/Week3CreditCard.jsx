@@ -1845,7 +1845,7 @@ const Week3CreditCard = () => {
                     labels: {
                       color: '#000000',
                       font: {
-                        size: 14
+                        size: 16
                       }
                     },
                   },
@@ -1880,38 +1880,41 @@ const Week3CreditCard = () => {
                 scales: {
                   x: {
                     grid: { display: false },
+                    border: { display: false },
                     title: {
                       display: true,
                       text: 'Month',
                       color: '#000000',
                       font: {
-                        size: 15,
+                        size: 17,
                         weight: '600'
                       }
                     },
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 13
+                        size: 14
                       }
                     }
                   },
                   y: {
                     grid: { display: false },
+                    border: { display: false },
                     beginAtZero: true,
                     title: {
                       display: true,
                       text: 'Payment',
                       color: '#000000',
                       font: {
-                        size: 15,
+                        size: 17,
                         weight: '600'
                       }
                     },
                     ticks: {
                       color: '#000000',
+                      stepSize: 100,
                       font: {
-                        size: 13
+                        size: 14
                       },
                       callback: function(value) {
                         return formatCurrency(value, { decimals: 0 });
