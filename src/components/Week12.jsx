@@ -221,7 +221,7 @@ const styles = {
     marginBottom: '32px',
   },
   chartCard: {
-    border: '1px solid rgba(229, 231, 235, 0.55)',
+    border: 'none',
     borderRadius: '14px',
     backgroundColor: 'rgba(255,255,255,0.68)',
     backdropFilter: 'blur(8px)',
@@ -231,7 +231,7 @@ const styles = {
     minHeight: '300px',
   },
   chartTitle: {
-    fontSize: '16px',
+    fontSize: '20px',
     fontWeight: 700,
     marginBottom: '12px',
     textAlign: 'center',
@@ -262,7 +262,7 @@ const styles = {
     flexShrink: 0,
   },
   lineChartCard: {
-    border: '1px solid rgba(229, 231, 235, 0.55)',
+    border: 'none',
     borderRadius: '14px',
     backgroundColor: 'rgba(255,255,255,0.68)',
     backdropFilter: 'blur(8px)',
@@ -781,15 +781,17 @@ const Week12 = () => {
     scales: {
       x: {
         grid: { display: false },
-        ticks: { color: '#000000', font: { size: 11 }, maxRotation: 0, minRotation: 0 },
+        border: { display: false },
+        ticks: { color: '#000000', font: { size: 19, weight: '500' }, maxRotation: 0, minRotation: 0 },
       },
       y: {
         beginAtZero: true,
         grid: { display: false },
+        border: { display: false },
         ticks: {
           color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
-          font: { size: 11 },
+          font: { size: 19, weight: '500' },
         },
       },
     },
@@ -809,21 +811,23 @@ const Week12 = () => {
     scales: {
       x: {
         grid: { display: false },
-        title: { display: true, text: 'Age', color: '#000000', font: { size: 12 } },
+        border: { display: false },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 22, weight: '700' }, padding: { top: 15 } },
         ticks: {
           color: '#000000',
           maxTicksLimit: 16,
           autoSkip: true,
-          font: { size: 11 },
+          font: { size: 19, weight: '500' },
         },
       },
       y: {
         beginAtZero: true,
         grid: { display: false },
+        border: { display: false },
         ticks: {
           color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
-          font: { size: 11 },
+          font: { size: 19, weight: '500' },
         },
       },
     },
@@ -1141,7 +1145,7 @@ const Week12 = () => {
           <div style={styles.chartGrid} className="week12-chart-grid">
             <div style={styles.chartCard} className="week12-chart-card week12-surface">
               <div style={styles.chartTitle}>Where Your Retirement Money Comes From</div>
-              <div style={{ height: 360 }}>
+              <div style={{ height: 520 }}>
                 <Bar data={moneySourceData} options={sharedBarOptions} />
               </div>
               <div style={styles.chartLegendRow}>
@@ -1157,7 +1161,7 @@ const Week12 = () => {
 
           <div style={styles.lineChartCard} className="week12-chart-card week12-line-half week12-surface">
             <div style={styles.chartTitle}>Investments Over Time (Nominal $)</div>
-            <div style={{ height: 400 }}>
+            <div style={{ height: 520 }}>
               <Line data={investmentsData} options={lineOptions} />
             </div>
             <div style={styles.chartLegendRow}>
