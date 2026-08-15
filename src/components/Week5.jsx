@@ -371,6 +371,12 @@ const Week5 = () => {
           position: 'bottom',
           labels: {
             color: '#000000',
+            font: { size: 18, weight: '600' },
+            padding: 20,
+            usePointStyle: true,
+            pointStyle: 'rectRounded',
+            boxWidth: 20,
+            boxHeight: 20,
           },
         },
         tooltip: {
@@ -394,26 +400,35 @@ const Week5 = () => {
           beginAtZero: true,
           stacked: true,
           grid: { display: false },
+          border: { display: false },
           title: {
             display: true,
             text: 'Payment Amount ($)',
             color: '#000000',
+            font: { size: 22, weight: '700' },
+            padding: { bottom: 15 },
           },
           ticks: {
             color: '#000000',
+            maxTicksLimit: 6,
+            font: { size: 19, weight: '500' },
             callback: (value) => formatCurrency(value, { decimals: 0 }),
           },
         },
         x: {
           stacked: true,
           grid: { display: false },
+          border: { display: false },
           title: {
             display: true,
             text: 'Month Number',
             color: '#000000',
+            font: { size: 22, weight: '700' },
+            padding: { top: 15 },
           },
           ticks: {
             color: '#000000',
+            font: { size: 19, weight: '500' },
           }
         },
       },
@@ -427,13 +442,17 @@ const Week5 = () => {
         x: {
           stacked: true,
           grid: { display: false },
+          border: { display: false },
           title: {
             display: true,
             text: 'Week Number',
             color: '#000000',
+            font: { size: 22, weight: '700' },
+            padding: { top: 15 },
           },
           ticks: {
             color: '#000000',
+            font: { size: 19, weight: '500' },
           }
         },
       },
@@ -693,7 +712,7 @@ const Week5 = () => {
       backgroundColor: 'white',
       padding: '24px',
       borderRadius: '12px',
-      border: '2px solid #e9ecef',
+      border: 'none',
       boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
       marginBottom: '20px',
       position: 'relative'
@@ -712,7 +731,7 @@ const Week5 = () => {
       color: '#002060'
     },
     chartTitle: {
-      fontSize: '14px',
+      fontSize: '20px',
       fontWeight: '600',
       color: '#002060',
       margin: '0',
@@ -738,9 +757,9 @@ const Week5 = () => {
       color: '#002060'
     },
     chartContainer: {
-      height: '420px',
+      height: '520px',
       backgroundColor: '#f8f9fa',
-      border: '1px solid #e9ecef',
+      border: 'none',
       borderRadius: '6px',
       display: 'flex',
       alignItems: 'center',
