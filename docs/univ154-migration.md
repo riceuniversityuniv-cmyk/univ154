@@ -7,6 +7,17 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**Next step: roll the Module 3 chart best-practice spec (below) out to
+every other chart in the tool** — Week5.jsx (Real Estate), Week6Retirement.jsx
+(hand-rolled SVG charts, may need a different approach — see spec note),
+Week7.jsx, Week9.jsx, Week12.jsx (Goal tab). See the **2026-08-15 "Module 3
+chart best practices"** working-log entry immediately below for the exact,
+copy-pasteable Chart.js v4 config to apply everywhere, plus the list of
+every file/line touched in `Week3CreditCard.jsx` so the same edits can be
+replicated. Do this file by file, `npm run build` after each, and check
+each chart on `localhost:5173` before moving to the next — don't batch all
+five files into one unverified pass.
+
 **Large UI/UX pass sitting locally, committed but NOT pushed — do not push
 to `main` / deploy until the user explicitly says go.** User is still
 planning more changes before shipping. Run `git log origin/main..HEAD
@@ -237,6 +248,130 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-15 — Module 3 chart best practices established (Chart.js spec); NOT YET rolled out to other modules
+Iterative live-preview session (7 rounds against `localhost:5173`) landed on a
+final Chart.js v4 (`react-chartjs-2` `Bar`) configuration for
+`Week3CreditCard.jsx`'s three inline charts ("User Input Payment",
+"Minimum Payment", "General Loan" — all "Interest vs. Principal") and their
+shared "click to expand" modal. **This is now the house style for every
+`Bar`/Chart.js chart in the tool** — the explicit next step (see 🔴 ACTIVE
+above) is applying it to Week5/Week6Retirement/Week7/Week9/Week12. All
+commits below are local-only on `main`, not pushed: `c667507`, `18a578d`,
+`0e58b3f`, `a3d2a60`, `74c38a0`, `d0d185d`, `6cb0fcd`.
+
+**Why this took 7 rounds (read before repeating the mistakes):**
+- Chart.js v4 has **three independent visual layers per axis** that all look
+  like "a border/gridline" to a non-dev eye but are configured completely
+  separately: `scales.<axis>.grid` (gridlines across the plot), `scales.<axis>.border`
+  (the axis line itself, a v3.7+/v4-only property), and `ticks` (the label
+  text). On top of that, this codebase ALSO has a plain CSS `border` on the
+  `chartContainer` wrapper `<div>` (a real box border around the whole
+  canvas, unrelated to Chart.js) — four things total that can each
+  independently produce "there's a border/line I don't want." When a user
+  says "remove the border," check all four before declaring it fixed.
+- `onMouseEnter`/`onMouseLeave` handlers in this file directly mutate
+  `e.currentTarget.style.border` — editing a card's *base* style object is
+  not enough if the hover handlers re-apply an old border value on
+  mouse-leave (which can end up being the resting state). **Grep for
+  `e.currentTarget.style.border` on any chart card you touch and fix all
+  matching occurrences, not just the base style.**
+- Per-chart `<Bar options={...}>` blocks are **NOT** shared objects in this
+  file — three structurally-identical inline charts + one modal chart are
+  four independently-coded option blocks. A fix to one does not propagate;
+  budget to edit each one (this is exactly what makes a multi-file rollout
+  mechanical but not a single find/replace).
+- Small incremental font bumps (13→14→16px) read as "no visible change" to
+  the user even though they were real changes. Jump straight to the final
+  spec sizes below rather than nudging by 1-2px at a time.
+
+**The spec** (apply to every `<Bar options={...}>` block, inline AND any
+expand/modal view):
+```js
+plugins: {
+  legend: {
+    position: 'bottom',
+    labels: {
+      color: '#000000',
+      font: { size: 18, weight: '600' },
+      padding: 20,
+      usePointStyle: true,
+      pointStyle: 'rectRounded',
+      boxWidth: 20,
+      boxHeight: 20
+    },
+  },
+  // title/tooltip: unchanged from whatever the file already had
+},
+scales: {
+  x: {
+    grid: { display: false },
+    border: { display: false },
+    title: {
+      display: true, text: '<axis label>', color: '#000000',
+      font: { size: 22, weight: '700' },
+      padding: { top: 15 }              // modal uses { top: 15, bottom: 15 }
+    },
+    ticks: {
+      color: '#000000',
+      font: { size: 19, weight: '500' }
+    }
+  },
+  y: {
+    grid: { display: false },
+    border: { display: false },
+    beginAtZero: true,
+    title: {
+      display: true, text: '<axis label>', color: '#000000',
+      font: { size: 22, weight: '700' },
+      padding: { bottom: 15 }           // modal uses { top: 15, bottom: 15 }
+    },
+    ticks: {
+      color: '#000000',
+      stepSize: 100,                    // tune per chart's actual value range —
+                                         // goal is ~4-5 labels on the y-axis, not
+                                         // literally always $100 (Module 3's charts
+                                         // happen to live in the $0-500 range)
+      font: { size: 19, weight: '500' },
+      callback: function(value) { return formatCurrency(value, { decimals: 0 }); }
+    }
+  }
+}
+```
+Plus, at the CSS/layout level (not Chart.js options):
+- Chart card wrapper width: match the full-width banner above it (`100%`,
+  not a `calc(50% - 8px)` two-up layout) — this was Module 3's specific
+  "match the General Loans banner width" ask; re-derive the right width per
+  module rather than copying `100%` blindly if a module's layout differs.
+- Chart card title (`<h3>`) font size: `20px` (was `15px`).
+- Chart container height: `520px` (was `420px`) — both the shared
+  container style's `height` AND any inline `style={{ height: '...px' }}`
+  on the same wrapper need bumping together, they're separate properties in
+  this file.
+- Any CSS `border` on the chart's outer container div (distinct from Chart.js's
+  `scales.*.border` above): `none`.
+- Any `onMouseEnter`/`onMouseLeave` handlers on that same wrapper: also set
+  their `style.border` mutations to `'none'`.
+
+**Verification pattern used each round**: `npm run build` (clean every
+time), then ask the user to hard-refresh `localhost:5173` and confirm
+visually — do NOT declare a chart "fixed" from reading the diff alone, this
+file's chart cards have enough overlapping style sources (base style +
+hover handlers + Chart.js options + CSS wrapper) that a change can compile
+clean and still not be visible for a reason not yet found.
+
+**Not yet done / explicitly deferred**:
+- The rollout itself (Week5, Week6Retirement, Week7, Week9, Week12) — this
+  entry is the spec to use when doing it, not a record that it's done.
+- `Week6Retirement.jsx`'s charts are hand-rolled SVG, not Chart.js `Bar`
+  components (per the 2026-08-14 "chart elegance pass" entry) — this
+  spec's Chart.js `options` block doesn't directly apply there; will need
+  translating the same *visual* outcome (no gridlines, larger fonts, taller
+  charts, no border) into whatever the SVG code's equivalent knobs are.
+- Whether every other module's y-axis should literally use `stepSize: 100`
+  or a value tuned to that chart's own range wasn't asked — use the
+  "~4-5 labels" rule of thumb, not a hardcoded 100, unless a module's
+  numbers happen to also live in a similar range to Module 3's.
 
 ### 2026-08-14 — Big UI/UX + spacing pass across ~17 files (three rounds, all local-only, not pushed)
 User did a full pass through the live tool and flagged a large batch of
