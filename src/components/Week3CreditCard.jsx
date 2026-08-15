@@ -659,7 +659,7 @@ const Week3CreditCard = () => {
       textAlign: 'center'
     },
     chartContainer: {
-      height: '420px',
+      height: '520px',
       backgroundColor: 'rgba(249, 250, 251, 0.6)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
@@ -1333,7 +1333,7 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '420px' }}
+              style={{ height: '520px' }}
             />
           </div>
         </div>
@@ -1506,7 +1506,7 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '420px' }}
+              style={{ height: '520px' }}
             />
           </div>
           </div>
@@ -2008,7 +2008,7 @@ const Week3CreditCard = () => {
                     duration: 0
                 }
               }}
-              style={{ height: '420px' }}
+              style={{ height: '520px' }}
             />
           </div>
         </div>
