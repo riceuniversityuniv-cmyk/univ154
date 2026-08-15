@@ -7,16 +7,16 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**Next step: roll the Module 3 chart best-practice spec (below) out to
-every other chart in the tool** — Week5.jsx (Real Estate), Week6Retirement.jsx
-(hand-rolled SVG charts, may need a different approach — see spec note),
-Week7.jsx, Week9.jsx, Week12.jsx (Goal tab). See the **2026-08-15 "Module 3
-chart best practices"** working-log entry immediately below for the exact,
-copy-pasteable Chart.js v4 config to apply everywhere, plus the list of
-every file/line touched in `Week3CreditCard.jsx` so the same edits can be
-replicated. Do this file by file, `npm run build` after each, and check
-each chart on `localhost:5173` before moving to the next — don't batch all
-five files into one unverified pass.
+**Chart best-practice rollout is DONE (2026-08-15) — verify visually next
+session, then decide on push.** All charts in the tool now match the
+Module 3 spec (see the 2026-08-15 "Module 3 chart best practices" entry
+below for the spec itself, and the 2026-08-15 "Chart best-practice spec
+rolled out" entry for what changed where). `npm run build` is clean after
+every file. **Not yet done: visual confirmation on `localhost:5173`** — the
+doc's own verification pattern says a clean build doesn't guarantee a
+chart actually looks right, so hard-refresh and eyeball all 4 files
+(Week5, Week6Retirement's 8 SVG charts, Week9, Week12) before telling the
+user it's fully done.
 
 **Large UI/UX pass sitting locally, committed but NOT pushed — do not push
 to `main` / deploy until the user explicitly says go.** User is still
@@ -249,6 +249,58 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
 
 ## § Working log (append-only)
 
+### 2026-08-15 — Chart best-practice spec rolled out to every remaining chart (Week5, Week6Retirement, Week9, Week12)
+Applied the spec from the entry directly below to every chart in the tool
+that wasn't already done in Module 3. One commit per file, `npm run build`
+clean after each. **Week7.jsx has no charts** (checked — only decorative
+inline `<svg>` icons), so it's out of scope, not skipped.
+
+- **Week5.jsx** (`8cfc49a`) — 2 Chart.js `Bar` charts (Monthly / Bi-Weekly
+  Payment, side-by-side 2-up like Module 3's User Input/Minimum Payment
+  pair — left that layout alone, didn't force 100% width). Legend/axis
+  fonts, `border: {display:false}` on both scales, card border → none,
+  chart title 14→20px, container 420→520px. Y-axis `stepSize` couldn't be
+  a fixed dollar figure like Module 3's (loan amount is a free-text user
+  input, so the payment range varies a lot) — used `maxTicksLimit: 6`
+  instead so Chart.js auto-picks round numbers at any scale.
+- **Week9.jsx** (`2568de6`) — 1 Chart.js `Line` chart (Brokerage Account
+  Balance). Already had `stepSize: chartMaxY/5` (someone had independently
+  landed on the same "~5 labels" rule) and `grid:{display:false}` — just
+  needed `border:{display:false}` added, fonts bumped to spec, and the
+  `chartWrapper` div's border removed (that div is chart-only, unlike the
+  broader `subCard` class it sits inside, which is reused for non-chart
+  sections and was deliberately left alone). Container 420→520px; bumped
+  the outer card's `minHeight` 560→660px so the taller chart doesn't get
+  clipped.
+- **Week12.jsx** (`981ffc9`) — 1 `Bar` (money-source breakdown) + 1 `Line`
+  (investments over time), both in the Goal tab. Both already use a custom
+  HTML legend row under the chart instead of Chart.js's built-in legend
+  (colored-dot `<span>`s) — left that as-is, didn't force Chart.js legend
+  styling onto a chart that intentionally doesn't show one. Didn't invent
+  new axis titles where none existed (the Bar chart has never had axis
+  titles) — only bumped what was already there: tick font 11→19px, axis
+  border off, existing "Age" title on the Line chart 12→22px, card border
+  → none, chart title 16→20px, both containers 360/400→520px.
+- **Week6Retirement.jsx** (`8976241`) — hand-rolled SVG, not Chart.js (see
+  spec note below on why). 8 structurally-identical chart blocks
+  (Traditional/Roth × 401k/IRA × Balance/Withdrawals). Verified every
+  target substring's occurrence count matched 8 (or 16/24 for
+  per-chart-×-2-or-3 elements) with a Python script before doing a
+  count-checked global replace — safer than 8 manual edits given the
+  file's 9,700 lines. Changes: axis tick `fontSize` 12→19, legend label
+  text 11px `#666` → 18px `#000000` weight 600, `chartHeight` 400→520,
+  `yAxisLabelWidth` 100→130 (bigger tick font needs a wider label gutter
+  or the $ figures clip), wrapper `border` → none (was two different
+  values pre-existing across the 8 — `rgba(229,231,235,0.8)` on 2 charts,
+  `#e9ecef` on 6 — both replaced), wrapper `minHeight` 480px/350px → 620px
+  uniformly, chart title 14-16px → 20px. Gridlines were already off (prior
+  session's work per the code comment "horizontal grid lines removed") and
+  there was never an axis border line drawn in the SVG, so those two parts
+  of the spec were already satisfied here.
+
+**Not done this session**: visual confirmation on `localhost:5173` — see
+🔴 ACTIVE above.
+
 ### 2026-08-15 — Module 3 chart best practices established (Chart.js spec); NOT YET rolled out to other modules
 Iterative live-preview session (7 rounds against `localhost:5173`) landed on a
 final Chart.js v4 (`react-chartjs-2` `Bar`) configuration for
@@ -360,18 +412,19 @@ file's chart cards have enough overlapping style sources (base style +
 hover handlers + Chart.js options + CSS wrapper) that a change can compile
 clean and still not be visible for a reason not yet found.
 
-**Not yet done / explicitly deferred**:
-- The rollout itself (Week5, Week6Retirement, Week7, Week9, Week12) — this
-  entry is the spec to use when doing it, not a record that it's done.
+**Rollout status**: done as of 2026-08-15 — see the "Chart best-practice
+spec rolled out" working-log entry directly above this one for what
+happened in each file (Week5, Week9, Week12, Week6Retirement's SVG
+translation; Week7 has no charts). The notes below are kept for historical
+context on the open questions that entry resolved:
 - `Week6Retirement.jsx`'s charts are hand-rolled SVG, not Chart.js `Bar`
   components (per the 2026-08-14 "chart elegance pass" entry) — this
-  spec's Chart.js `options` block doesn't directly apply there; will need
-  translating the same *visual* outcome (no gridlines, larger fonts, taller
-  charts, no border) into whatever the SVG code's equivalent knobs are.
+  spec's Chart.js `options` block doesn't directly apply there; translated
+  to the SVG code's equivalent knobs (see entry above).
 - Whether every other module's y-axis should literally use `stepSize: 100`
-  or a value tuned to that chart's own range wasn't asked — use the
-  "~4-5 labels" rule of thumb, not a hardcoded 100, unless a module's
-  numbers happen to also live in a similar range to Module 3's.
+  or a value tuned to that chart's own range wasn't asked — used the
+  "~4-5 labels" rule of thumb per chart's actual range instead of a
+  hardcoded 100 (see entry above for what each file ended up using).
 
 ### 2026-08-14 — Big UI/UX + spacing pass across ~17 files (three rounds, all local-only, not pushed)
 User did a full pass through the live tool and flagged a large batch of
