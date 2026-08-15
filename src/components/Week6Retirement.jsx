@@ -3633,14 +3633,14 @@ export default function Week6Retirement() {
             {/* Dynamic Chart */}
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              border: '1px solid rgba(229, 231, 235, 0.8)',
+              border: 'none',
               borderRadius: '14px',
               padding: '28px',
               marginBottom: '24px',
-              minHeight: '480px',
+              minHeight: '620px',
               boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
             }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Traditional 401(k) Balance vs. Age Chart
               </div>
               {(() => {
@@ -3673,9 +3673,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(maxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -3690,7 +3690,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -3706,7 +3706,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -3752,15 +3752,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -4677,14 +4677,14 @@ export default function Week6Retirement() {
             {/* Traditional 401(k) Withdrawals vs Age Chart */}
             <div style={{
               backgroundColor: 'rgba(255, 255, 255, 0.9)',
-              border: '1px solid rgba(229, 231, 235, 0.8)',
+              border: 'none',
               borderRadius: '14px',
               padding: '28px',
               marginBottom: '24px',
-              minHeight: '480px',
+              minHeight: '620px',
               boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
             }}>
-              <div style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
+              <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
                 Traditional 401(k) Withdrawals vs. Age Chart
               </div>
               {(() => {
@@ -4731,9 +4731,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -4748,7 +4748,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -4764,7 +4764,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -4827,15 +4827,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -5366,13 +5366,13 @@ export default function Week6Retirement() {
             {/* Dynamic Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Roth 401(k) Balance vs. Age Chart
       </div>
               {(() => {
@@ -5405,9 +5405,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(maxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -5422,7 +5422,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -5438,7 +5438,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -5484,15 +5484,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
       </div>
@@ -6299,13 +6299,13 @@ export default function Week6Retirement() {
             {/* Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Roth 401(k) Withdrawals vs. Age Chart
             </div>
               {(() => {
@@ -6352,9 +6352,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -6369,7 +6369,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -6385,7 +6385,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -6448,15 +6448,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
           </div>
@@ -6989,13 +6989,13 @@ export default function Week6Retirement() {
             {/* Traditional IRA Balance vs Age Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Traditional IRA Balance vs. Age Chart
               </div>
               {(() => {
@@ -7028,9 +7028,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(maxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -7045,7 +7045,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -7061,7 +7061,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -7107,15 +7107,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -7906,13 +7906,13 @@ export default function Week6Retirement() {
             {/* Traditional IRA Withdrawals vs Age Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Traditional IRA Withdrawals vs. Age Chart
               </div>
               {(() => {
@@ -7959,9 +7959,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -7976,7 +7976,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -7992,7 +7992,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -8055,15 +8055,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#666' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#dc3545' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -8596,13 +8596,13 @@ export default function Week6Retirement() {
             {/* Roth IRA Balance vs Age Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Roth IRA Balance vs. Age Chart
               </div>
               {(() => {
@@ -8635,9 +8635,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(maxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -8652,7 +8652,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -8668,7 +8668,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -8714,15 +8714,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -9515,13 +9515,13 @@ export default function Week6Retirement() {
             {/* Roth IRA Withdrawals vs Age Chart */}
             <div style={{
               backgroundColor: '#f8f9fa',
-              border: '1px solid #e9ecef',
+              border: 'none',
               borderRadius: '6px',
               padding: '16px',
               marginBottom: '16px',
-              minHeight: '350px'
+              minHeight: '620px'
             }}>
-              <div style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
+              <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
                 Roth IRA Withdrawals vs. Age Chart
               </div>
               {(() => {
@@ -9568,9 +9568,9 @@ export default function Week6Retirement() {
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
                 const chartWidth = 760;
-                const chartHeight = 400;
+                const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 100; // Space for Y-axis labels (wide enough for uncut whole-dollar figures)
+                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
                 const plotHeight = chartHeight - 2 * padding;
                 
@@ -9585,7 +9585,7 @@ export default function Week6Retirement() {
                             <text
                               x={yAxisLabelWidth - 5}
                               y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="12"
+                              fontSize="19"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -9601,7 +9601,7 @@ export default function Week6Retirement() {
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
                           y={chartHeight - padding + 15}
-                          fontSize="12"
+                          fontSize="19"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -9664,15 +9664,15 @@ export default function Week6Retirement() {
               <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series A</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#666' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series B</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <div style={{ width: '12px', height: '2px', backgroundColor: '#dc3545' }}></div>
-                  <span style={{ fontSize: '11px', color: '#666' }}>Series C</span>
+                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
