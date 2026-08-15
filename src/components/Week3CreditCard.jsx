@@ -1166,18 +1166,18 @@ const Week3CreditCard = () => {
       {/* Charts Section - Side by Side like Excel */}
       <div style={styles.chartsSection}>
         {/* Left Chart: User Input Payment */}
-        <div 
-          style={{ ...styles.chartCardEnhanced, cursor: 'pointer' }}
+        <div
+          style={{ ...styles.chartCardEnhanced, cursor: 'pointer', border: 'none' }}
           onClick={() => setExpandedChart('userPayment')}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)';
             e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-            e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
+            e.currentTarget.style.border = 'none';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
             e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-            e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+            e.currentTarget.style.border = 'none';
           }}
         >
           <div style={styles.chartHeader}>
@@ -1237,6 +1237,15 @@ const Week3CreditCard = () => {
                     position: 'bottom',
                     labels: {
                       color: '#000000',
+                      font: {
+                        size: 18,
+                        weight: '600'
+                      },
+                      padding: 20,
+                      usePointStyle: true,
+                      pointStyle: 'rectRounded',
+                      boxWidth: 20,
+                      boxHeight: 20
                     },
                   },
                   title: {
@@ -1270,25 +1279,50 @@ const Week3CreditCard = () => {
                 scales: {
                   x: {
                     grid: { display: false },
+                    border: { display: false },
                     title: {
                       display: true,
                       text: 'Month',
                       color: '#000000',
+                      font: {
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        top: 15
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      font: {
+                        size: 16,
+                        weight: '500'
+                      }
                     }
                   },
                   y: {
                     grid: { display: false },
+                    border: { display: false },
                     beginAtZero: true,
                     title: {
                       display: true,
                       text: 'Payment',
                       color: '#000000',
+                      font: {
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        bottom: 15
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      stepSize: 100,
+                      font: {
+                        size: 16,
+                        weight: '500'
+                      },
                       callback: function(value) {
                         return formatCurrency(value, { decimals: 0 });
                       }
@@ -1305,18 +1339,18 @@ const Week3CreditCard = () => {
         </div>
 
         {/* Second Chart: Minimum Payment */}
-        <div 
-          style={{ ...styles.chartCardEnhanced, cursor: 'pointer' }}
+        <div
+          style={{ ...styles.chartCardEnhanced, cursor: 'pointer', border: 'none' }}
           onClick={() => setExpandedChart('minimumPayment')}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-4px)';
             e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-            e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
+            e.currentTarget.style.border = 'none';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
             e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-            e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+            e.currentTarget.style.border = 'none';
           }}
         >
           <div style={styles.chartHeader}>
@@ -1376,6 +1410,15 @@ const Week3CreditCard = () => {
                     position: 'bottom',
                     labels: {
                       color: '#000000',
+                      font: {
+                        size: 18,
+                        weight: '600'
+                      },
+                      padding: 20,
+                      usePointStyle: true,
+                      pointStyle: 'rectRounded',
+                      boxWidth: 20,
+                      boxHeight: 20
                     },
                   },
                   title: {
@@ -1409,25 +1452,50 @@ const Week3CreditCard = () => {
                 scales: {
                   x: {
                     grid: { display: false },
+                    border: { display: false },
                     title: {
                       display: true,
                       text: 'Month',
                       color: '#000000',
+                      font: {
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        top: 15
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      font: {
+                        size: 16,
+                        weight: '500'
+                      }
                     }
                   },
                   y: {
                     grid: { display: false },
+                    border: { display: false },
                     beginAtZero: true,
                     title: {
                       display: true,
                       text: 'Payment',
                       color: '#000000',
+                      font: {
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        bottom: 15
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      stepSize: 100,
+                      font: {
+                        size: 16,
+                        weight: '500'
+                      },
                       callback: function(value) {
                         return formatCurrency(value, { decimals: 0 });
                       }
@@ -1779,12 +1847,12 @@ const Week3CreditCard = () => {
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
               e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-              e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
+              e.currentTarget.style.border = 'none';
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.transform = 'translateY(0)';
               e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-              e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+              e.currentTarget.style.border = 'none';
             }}
           >
           <div style={styles.chartHeader}>
