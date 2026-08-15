@@ -423,7 +423,7 @@ const Week3CreditCard = () => {
     inputGrid: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: '16px'
+      gap: '40px'
     },
     inputColumn: {
       display: 'flex',
@@ -439,7 +439,8 @@ const Week3CreditCard = () => {
       fontSize: '14px',
       fontWeight: '600',
       color: '#374151',
-      minWidth: '100px'
+      width: '190px',
+      flexShrink: 0
     },
     input: {
       width: '120px',
@@ -551,8 +552,8 @@ const Week3CreditCard = () => {
     },
     chartsSection: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
-      gap: '16px',
+      gridTemplateColumns: '1fr',
+      gap: '24px',
       marginBottom: '20px',
       maxWidth: '100%'
     },
@@ -626,8 +627,39 @@ const Week3CreditCard = () => {
       fontWeight: '600',
       color: '#0d1a4b'
     },
+    comparisonRow: {
+      display: 'grid',
+      gridTemplateColumns: '1.3fr 1fr 1fr',
+      alignItems: 'center',
+      padding: '10px 12px',
+      borderBottom: '1px solid #e0e0e0'
+    },
+    comparisonHeaderRow: {
+      display: 'grid',
+      gridTemplateColumns: '1.3fr 1fr 1fr',
+      alignItems: 'end',
+      padding: '0 12px 12px',
+      borderBottom: '2px solid #e5e7eb'
+    },
+    comparisonHeaderLabel: {
+      fontSize: '15px',
+      fontWeight: '600',
+      color: '#0d1a4b',
+      textAlign: 'center',
+      letterSpacing: '-0.01em',
+    },
+    comparisonLabel: {
+      fontSize: '14px',
+      color: '#666'
+    },
+    comparisonValue: {
+      fontSize: '14px',
+      fontWeight: '600',
+      color: '#0d1a4b',
+      textAlign: 'center'
+    },
     chartContainer: {
-      height: '300px',
+      height: '420px',
       backgroundColor: 'rgba(249, 250, 251, 0.6)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
@@ -687,7 +719,7 @@ const Week3CreditCard = () => {
     },
     generalLoansContent: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: '1.3fr 0.85fr 1fr',
       gap: '24px',
       marginBottom: '32px'
     },
@@ -695,7 +727,7 @@ const Week3CreditCard = () => {
       backgroundColor: 'rgba(255, 255, 255, 0.8)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      padding: '24px',
+      padding: '18px',
       borderRadius: '12px',
       border: '1px solid rgba(255, 255, 255, 0.3)',
       boxShadow: '0 4px 16px 0 rgba(0, 0, 0, 0.08)',
@@ -1081,83 +1113,49 @@ const Week3CreditCard = () => {
           </div>
         </div>
 
-        {/* Right Side: Summary Results - Side by Side */}
+        {/* Right Side: Summary Results - Combined Comparison Table */}
         <div style={styles.rightSection}>
-          <div style={styles.summaryGrid}>
-            {/* User Input Payment Summary */}
-            <div 
-              style={styles.summaryCardEnhanced}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-                e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <div style={styles.summaryCardHeader}>
-              <h3 style={styles.summaryTitle}>User Input Payment</h3>
+          <div
+            style={styles.summaryCardEnhanced}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
+              e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+            }}
+          >
+            <div style={styles.summaryTable}>
+              <div style={styles.comparisonHeaderRow}>
+                <div />
+                <div style={styles.comparisonHeaderLabel}>User Input Payment</div>
+                <div style={styles.comparisonHeaderLabel}>Minimum Payment</div>
               </div>
-              <div style={styles.summaryTable}>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Interest Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.interestPaid)}</div>
-                </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Principal Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.principalPaid)}</div>
-                </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Total Amount Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(userPaymentData.summary.totalAmountPaid)}</div>
-                </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Months to Pay Off</div>
-                  <div style={styles.summaryValue}>
-                    {userPaymentData.amortizationTable.length === 600 ? 'Never (600+ months)' : `${userPaymentData.amortizationTable.length} months`}
-                  </div>
-                </div>
+              <div style={styles.comparisonRow}>
+                <div style={styles.comparisonLabel}>Interest Paid</div>
+                <div style={styles.comparisonValue}>{formatCurrency(userPaymentData.summary.interestPaid)}</div>
+                <div style={styles.comparisonValue}>{formatCurrency(minimumPaymentData.summary.interestPaid)}</div>
               </div>
-            </div>
-
-            {/* Minimum Input Payment Summary */}
-            <div 
-              style={styles.summaryCardEnhanced}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-4px)';
-                e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-                e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)';
-                e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-                e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-              }}
-            >
-              <div style={styles.summaryCardHeader}>
-              <h3 style={styles.summaryTitle}>Minimum Input Payment</h3>
+              <div style={styles.comparisonRow}>
+                <div style={styles.comparisonLabel}>Principal Paid</div>
+                <div style={styles.comparisonValue}>{formatCurrency(userPaymentData.summary.principalPaid)}</div>
+                <div style={styles.comparisonValue}>{formatCurrency(minimumPaymentData.summary.principalPaid)}</div>
               </div>
-              <div style={styles.summaryTable}>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Interest Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.interestPaid)}</div>
+              <div style={styles.comparisonRow}>
+                <div style={styles.comparisonLabel}>Total Amount Paid</div>
+                <div style={styles.comparisonValue}>{formatCurrency(userPaymentData.summary.totalAmountPaid)}</div>
+                <div style={styles.comparisonValue}>{formatCurrency(minimumPaymentData.summary.totalAmountPaid)}</div>
+              </div>
+              <div style={{ ...styles.comparisonRow, borderBottom: 'none' }}>
+                <div style={styles.comparisonLabel}>Months to Pay Off</div>
+                <div style={styles.comparisonValue}>
+                  {userPaymentData.amortizationTable.length === 600 ? 'Never (600+)' : `${userPaymentData.amortizationTable.length} months`}
                 </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Principal Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.principalPaid)}</div>
-                </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Total Amount Paid</div>
-                  <div style={styles.summaryValue}>{formatCurrency(minimumPaymentData.summary.totalAmountPaid)}</div>
-                </div>
-                <div style={styles.summaryRow}>
-                  <div style={styles.summaryLabel}>Months to Pay Off</div>
-                  <div style={styles.summaryValue}>
-                    {minimumPaymentData.amortizationTable.length === 600 ? 'Never (600+)' : `${minimumPaymentData.amortizationTable.length}`}
-                  </div>
+                <div style={styles.comparisonValue}>
+                  {minimumPaymentData.amortizationTable.length === 600 ? 'Never (600+)' : `${minimumPaymentData.amortizationTable.length} months`}
                 </div>
               </div>
             </div>
@@ -1184,11 +1182,11 @@ const Week3CreditCard = () => {
         >
           <div style={styles.chartHeader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>Debt Payments: Interest vs Principal</h3>
+              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>User Input Payment: Interest vs. Principal</h3>
             </div>
-            <div style={{ 
-              fontSize: '11px', 
-              color: '#0d1a4b', 
+            <div style={{
+              fontSize: '11px',
+              color: '#0d1a4b',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
@@ -1202,9 +1200,8 @@ const Week3CreditCard = () => {
               <span>Click to expand</span>
             </div>
           </div>
-          <div style={{ fontSize: '15px', color: '#666', textAlign: 'center', marginBottom: '10px', fontWeight: '600' }}>User Input Payment</div>
           <div style={styles.chartContainer}>
-            <Bar 
+            <Bar
               data={{
                 labels: userPaymentData.amortizationTable.map((_, index) => index + 1),
                 datasets: [
@@ -1237,7 +1234,10 @@ const Week3CreditCard = () => {
                 },
                 plugins: {
                   legend: {
-                    position: 'top',
+                    position: 'bottom',
+                    labels: {
+                      color: '#000000',
+                    },
                   },
                   title: {
                     display: false
@@ -1272,7 +1272,11 @@ const Week3CreditCard = () => {
                     grid: { display: false },
                     title: {
                       display: true,
-                      text: 'Month'
+                      text: 'Month',
+                      color: '#000000',
+                    },
+                    ticks: {
+                      color: '#000000',
                     }
                   },
                   y: {
@@ -1280,11 +1284,13 @@ const Week3CreditCard = () => {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Payment'
+                      text: 'Payment',
+                      color: '#000000',
                     },
                     ticks: {
+                      color: '#000000',
                       callback: function(value) {
-                        return formatCurrency(value);
+                        return formatCurrency(value, { decimals: 0 });
                       }
                     }
                   }
@@ -1293,12 +1299,12 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '300px' }}
+              style={{ height: '420px' }}
             />
           </div>
         </div>
 
-        {/* Right Chart: Minimum Input Payment */}
+        {/* Second Chart: Minimum Payment */}
         <div 
           style={{ ...styles.chartCardEnhanced, cursor: 'pointer' }}
           onClick={() => setExpandedChart('minimumPayment')}
@@ -1315,11 +1321,11 @@ const Week3CreditCard = () => {
         >
           <div style={styles.chartHeader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>Debt Payments: Interest vs Principal</h3>
+              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>Minimum Payment: Interest vs Principal</h3>
             </div>
-            <div style={{ 
-              fontSize: '11px', 
-              color: '#0d1a4b', 
+            <div style={{
+              fontSize: '11px',
+              color: '#0d1a4b',
               fontWeight: '600',
               display: 'flex',
               alignItems: 'center',
@@ -1333,9 +1339,8 @@ const Week3CreditCard = () => {
               <span>Click to expand</span>
             </div>
           </div>
-          <div style={{ fontSize: '15px', color: '#666', textAlign: 'center', marginBottom: '10px', fontWeight: '600' }}>Minimum Payment</div>
           <div style={styles.chartContainer}>
-            <Bar 
+            <Bar
               data={{
                 labels: minimumPaymentData.amortizationTable.slice(0, 100).map((_, index) => index + 1),
                 datasets: [
@@ -1368,7 +1373,10 @@ const Week3CreditCard = () => {
                 },
                 plugins: {
                   legend: {
-                    position: 'top',
+                    position: 'bottom',
+                    labels: {
+                      color: '#000000',
+                    },
                   },
                   title: {
                     display: false
@@ -1403,7 +1411,11 @@ const Week3CreditCard = () => {
                     grid: { display: false },
                     title: {
                       display: true,
-                      text: 'Month'
+                      text: 'Month',
+                      color: '#000000',
+                    },
+                    ticks: {
+                      color: '#000000',
                     }
                   },
                   y: {
@@ -1411,11 +1423,13 @@ const Week3CreditCard = () => {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Payment'
+                      text: 'Payment',
+                      color: '#000000',
                     },
                     ticks: {
+                      color: '#000000',
                       callback: function(value) {
-                        return formatCurrency(value);
+                        return formatCurrency(value, { decimals: 0 });
                       }
                     }
                   }
@@ -1424,7 +1438,7 @@ const Week3CreditCard = () => {
                   duration: 0
                 }
               }}
-              style={{ height: '300px' }}
+              style={{ height: '420px' }}
             />
           </div>
           </div>
@@ -1442,43 +1456,8 @@ const Week3CreditCard = () => {
         </div>
         
         <div style={styles.generalLoansContent}>
-          {/* Left: Average Interest Rates */}
-          <div 
-            style={styles.ratesTable}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-4px)';
-              e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
-              e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
-              e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-            }}
-          >
-            <h3 style={styles.ratesTitle}>Average Interest Rates</h3>
-            <div style={styles.ratesList}>
-              <div style={styles.rateItem}>
-                <span style={styles.rateLabel}>New Car</span>
-                <span style={styles.rateValue}>6.73%</span>
-              </div>
-              <div style={styles.rateItem}>
-                <span style={styles.rateLabel}>Used Car</span>
-                <span style={styles.rateValue}>11.87%</span>
-              </div>
-              <div style={styles.rateItem}>
-                <span style={styles.rateLabel}>Student Loans</span>
-                <span style={styles.rateValue}>6.39%</span>
-              </div>
-              <div style={styles.rateItem}>
-                <span style={styles.rateLabel}>Unsecured Loans</span>
-                <span style={styles.rateValue}>12.57%</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Middle: Loan Details */}
-          <div 
+          {/* Left: Loan Details */}
+          <div
             style={styles.loanDetails}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
@@ -1699,7 +1678,8 @@ const Week3CreditCard = () => {
                   }}
                     style={{
                       ...styles.loanInput,
-                      padding: '14px 52px 14px 16px',
+                      width: '200px',
+                      padding: '14px 68px 14px 16px',
                       height: '100%',
                       lineHeight: '20px',
                       boxSizing: 'border-box',
@@ -1718,14 +1698,49 @@ const Week3CreditCard = () => {
                       e.target.style.backgroundColor = '#fffde7';
                     }}
                   />
-                  <span style={{ position: 'absolute', right: '14px', top: '50%', transform: 'translateY(-50%)', color: '#111827', fontSize: '13px', fontWeight: '500', pointerEvents: 'none', lineHeight: 1 }}>months</span>
+                  <span style={{ position: 'absolute', right: '16px', top: '50%', transform: 'translateY(-50%)', color: '#111827', fontSize: '13px', fontWeight: '500', pointerEvents: 'none', lineHeight: 1 }}>months</span>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* Middle: Average Interest Rates */}
+          <div
+            style={styles.ratesTable}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 12px 40px 0 rgba(0, 0, 0, 0.12), 0 6px 20px 0 rgba(0, 0, 0, 0.1), 0 2px 8px 0 rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.border = '1px solid rgba(229, 231, 235, 0.8)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 16px 0 rgba(0, 0, 0, 0.08)';
+              e.currentTarget.style.border = '1px solid rgba(255, 255, 255, 0.3)';
+            }}
+          >
+            <h3 style={styles.ratesTitle}>Average Interest Rates</h3>
+            <div style={styles.ratesList}>
+              <div style={styles.rateItem}>
+                <span style={styles.rateLabel}>New Car</span>
+                <span style={styles.rateValue}>6.73%</span>
+              </div>
+              <div style={styles.rateItem}>
+                <span style={styles.rateLabel}>Used Car</span>
+                <span style={styles.rateValue}>11.87%</span>
+              </div>
+              <div style={styles.rateItem}>
+                <span style={styles.rateLabel}>Student Loans</span>
+                <span style={styles.rateValue}>6.39%</span>
+              </div>
+              <div style={styles.rateItem}>
+                <span style={styles.rateLabel}>Unsecured Loans</span>
+                <span style={styles.rateValue}>12.57%</span>
+              </div>
+            </div>
+          </div>
+
           {/* Right: Payment Summary */}
-          <div 
+          <div
             style={styles.paymentSummary}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
@@ -1792,9 +1807,8 @@ const Week3CreditCard = () => {
                 <span>Click to expand</span>
               </div>
           </div>
-          <div style={{ fontSize: '15px', color: '#666', textAlign: 'center', marginBottom: '10px', fontWeight: '600' }}>Fixed Monthly Payment</div>
           <div style={styles.chartContainer}>
-            <Bar 
+            <Bar
               data={{
                 labels: generalLoanData.amortizationTable.map((_, index) => index + 1),
                 datasets: [
@@ -1827,7 +1841,10 @@ const Week3CreditCard = () => {
                   },
                 plugins: {
                   legend: {
-                    position: 'top',
+                    position: 'bottom',
+                    labels: {
+                      color: '#000000',
+                    },
                   },
                   title: {
                     display: false
@@ -1862,7 +1879,11 @@ const Week3CreditCard = () => {
                     grid: { display: false },
                     title: {
                       display: true,
-                      text: 'Month'
+                      text: 'Month',
+                      color: '#000000',
+                    },
+                    ticks: {
+                      color: '#000000',
                     }
                   },
                   y: {
@@ -1870,11 +1891,13 @@ const Week3CreditCard = () => {
                     beginAtZero: true,
                     title: {
                       display: true,
-                      text: 'Payment'
+                      text: 'Payment',
+                      color: '#000000',
                     },
                     ticks: {
+                      color: '#000000',
                       callback: function(value) {
-                        return formatCurrency(value);
+                        return formatCurrency(value, { decimals: 0 });
                       }
                     }
                   }
@@ -1969,15 +1992,10 @@ const Week3CreditCard = () => {
                 margin: 0,
                 marginBottom: '8px'
               }}>
-                {expandedChart === 'userPayment' && 'Debt Payments: Interest vs Principal'}
-                {expandedChart === 'minimumPayment' && 'Debt Payments: Interest vs Principal'}
+                {expandedChart === 'userPayment' && 'User Input Payment: Interest vs. Principal'}
+                {expandedChart === 'minimumPayment' && 'Minimum Payment: Interest vs Principal'}
                 {expandedChart === 'generalLoan' && 'General Loan: Interest vs Principal'}
               </h2>
-              <div style={{ fontSize: '14px', color: '#666', fontWeight: '600' }}>
-                {expandedChart === 'userPayment' && 'User Input Payment'}
-                {expandedChart === 'minimumPayment' && 'Minimum Payment'}
-                {expandedChart === 'generalLoan' && 'Fixed Monthly Payment'}
-              </div>
       </div>
 
             {/* Expanded Chart */}
@@ -2061,8 +2079,9 @@ const Week3CreditCard = () => {
                   },
                   plugins: {
                     legend: {
-                      position: 'top',
+                      position: 'bottom',
                       labels: {
+                        color: '#000000',
                         font: {
                           size: 18,
                           weight: '600'
@@ -2107,6 +2126,7 @@ const Week3CreditCard = () => {
                       title: {
                         display: true,
                         text: 'Month',
+                        color: '#000000',
                         font: {
                           size: 22,
                           weight: '700'
@@ -2117,6 +2137,7 @@ const Week3CreditCard = () => {
                         }
                       },
                       ticks: {
+                        color: '#000000',
                         font: {
                           size: 16,
                           weight: '500'
@@ -2129,6 +2150,7 @@ const Week3CreditCard = () => {
                       title: {
                         display: true,
                         text: 'Payment',
+                        color: '#000000',
                         font: {
                           size: 22,
                           weight: '700'
@@ -2139,13 +2161,14 @@ const Week3CreditCard = () => {
                         }
                       },
                       ticks: {
+                        color: '#000000',
                         font: {
                           size: 16,
                           weight: '500'
                         },
                         padding: 12,
                         callback: function(value) {
-                          return formatCurrency(value);
+                          return formatCurrency(value, { decimals: 0 });
                         }
                       }
                     }

@@ -3,6 +3,7 @@ import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { calculateBracketBreakdown } from '../utils/taxEngine';
 import { formatCurrency, formatPercent } from '../utils/formatters';
+import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
 const Week4 = () => {
   const { summaryCalculations, topInputs } = useBudget();
@@ -233,11 +234,9 @@ const Week4 = () => {
       boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.05)',
     },
     tableHeader: {
-      background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.95) 0%, rgba(30, 58, 138, 0.9) 100%)',
-      color: 'white',
+      ...tableHeaderStyle,
       padding: '12px 8px',
       textAlign: 'center',
-      fontWeight: '600',
       fontSize: '13px',
       letterSpacing: '-0.01em',
     },
@@ -465,12 +464,12 @@ const Week4 = () => {
                       }}
                     >
                       <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
-                      <td style={styles.tableCell}>{formatCurrency(bracket.lower)}</td>
+                      <td style={styles.tableCell}>{formatCurrency(bracket.lower, { decimals: 0 })}</td>
                       <td style={styles.tableCell}>
-                        {bracket.upper >= 1e12 ? '...' : `${formatCurrency(bracket.upper)}`}
+                        {bracket.upper >= 1e12 ? '...' : `${formatCurrency(bracket.upper, { decimals: 0 })}`}
                       </td>
                       <td style={styles.tableCell}>
-                        {formatCurrency(bracket.taxInBracket)}
+                        {formatCurrency(bracket.taxInBracket, { decimals: 0 })}
                       </td>
                     </tr>
                   ))}

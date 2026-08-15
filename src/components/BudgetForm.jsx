@@ -555,39 +555,6 @@ const ProgressBar = ({ percentage, color = '#16a34a', height = '8px', showLabel 
 };
 
 // Status Badge Component - Modern badge design
-const StatusBadge = ({ status, variant = 'default' }) => {
-  const variants = {
-    success: { bg: 'rgba(240, 253, 244, 0.8)', color: '#16a34a', border: 'rgba(134, 239, 172, 0.5)', icon: '✓' },
-    warning: { bg: 'rgba(254, 252, 232, 0.8)', color: '#ca8a04', border: 'rgba(253, 224, 71, 0.5)', icon: '⚠' },
-    error: { bg: 'rgba(254, 242, 242, 0.8)', color: '#dc2626', border: 'rgba(252, 165, 165, 0.5)', icon: '✕' },
-    info: { bg: 'rgba(240, 249, 255, 0.8)', color: '#2563eb', border: 'rgba(191, 219, 254, 0.5)', icon: 'ℹ' },
-    default: { bg: 'rgba(249, 250, 251, 0.8)', color: '#6b7280', border: 'rgba(229, 231, 235, 0.5)', icon: '' }
-  };
-  
-  const style = variants[variant] || variants.default;
-  
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '4px 12px',
-      borderRadius: '9999px',
-      fontSize: '12px',
-      fontWeight: '600',
-      backgroundColor: style.bg,
-      color: style.color,
-      border: `1px solid ${style.border}`,
-      backdropFilter: 'blur(8px)',
-      WebkitBackdropFilter: 'blur(8px)',
-      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
-    }}>
-      {style.icon && <span>{style.icon}</span>}
-      {status}
-    </span>
-  );
-};
-
 const userInputFields = [
     { id: 'preTaxIncome', label: 'Annual Pre-Tax Income', value: '1000000' },
     { id: 'location', label: 'Location (State Abbreviation)', value: 'NY' },
@@ -1485,7 +1452,6 @@ export default function BudgetForm() {
               const utilizationPercent = monthlyIncome > 0 ? (totalExpenses / monthlyIncome) * 100 : 0;
               const isUnder = difference > 0;
               const isOver = difference < 0;
-              const statusText = calculateBudgetChecker();
 
               return (
                 <div style={{
@@ -1528,11 +1494,7 @@ export default function BudgetForm() {
                     }}>
                       {isUnder ? `+${formatCurrency(difference)}` : isOver ? `-${formatCurrency(Math.abs(difference))}` : '$0.00'}
                     </div>
-                    <div style={{fontSize: '13px', color: '#6b7280', fontWeight: '500', marginBottom: '8px'}}>Budget Status</div>
-                    <StatusBadge
-                      status={statusText.replace('Under Budget by $', '').replace('Over Budget by $', '').replace('Exactly on Budget', 'On Track')}
-                      variant={isUnder ? 'success' : isOver ? 'error' : 'info'}
-                    />
+                    <div style={{fontSize: '13px', color: '#6b7280', fontWeight: '500'}}>Budget Status</div>
                   </div>
 
                   <div>
