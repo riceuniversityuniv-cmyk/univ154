@@ -354,6 +354,10 @@ const Week7 = () => {
       backgroundColor: 'white',
       transition: 'background-color 0.15s ease',
     },
+    hoverTermLabel: {
+      borderBottom: '1px dotted #0d1a4b',
+      cursor: 'help',
+    },
     input: {
       width: '120px',
       border: '2px solid #d1d5db',
@@ -627,15 +631,6 @@ const Week7 = () => {
               Plan Comparison
             </div>
             <div style={styles.titleUnderline} />
-            <div style={{
-              fontSize: '12px',
-              color: '#64748b',
-              textAlign: 'center',
-              marginBottom: '16px',
-              fontStyle: 'italic'
-            }}>
-              Hover category labels to view quick definitions.
-            </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={styles.table} className="week7-data-table">
                 <thead>
@@ -660,7 +655,7 @@ const Week7 = () => {
                       }}
                       onMouseLeave={() => setHoveredTerm(null)}
                     >
-                      Annual Premium
+                      <span style={styles.hoverTermLabel}>Annual Premium</span>
                     </td>
                     <td style={styles.td}>
                       <input
@@ -699,7 +694,7 @@ const Week7 = () => {
                       }}
                       onMouseLeave={() => setHoveredTerm(null)}
                     >
-                      Deductible
+                      <span style={styles.hoverTermLabel}>Deductible</span>
                     </td>
                     <td style={styles.td}>
                       <input
@@ -738,7 +733,7 @@ const Week7 = () => {
                       }}
                       onMouseLeave={() => setHoveredTerm(null)}
                     >
-                      Coinsurance Rate
+                      <span style={styles.hoverTermLabel}>Coinsurance Rate</span>
                     </td>
                     <td style={styles.td}>
                       <input
@@ -807,7 +802,7 @@ const Week7 = () => {
                       }}
                       onMouseLeave={() => setHoveredTerm(null)}
                     >
-                      Max Paid Out-of-Pocket
+                      <span style={styles.hoverTermLabel}>Max Paid Out-of-Pocket</span>
                     </td>
                     <td style={styles.td}>
                       <input
@@ -846,7 +841,7 @@ const Week7 = () => {
                       }}
                       onMouseLeave={() => setHoveredTerm(null)}
                     >
-                      Employer HSA Contribution
+                      <span style={styles.hoverTermLabel}>Employer HSA Contribution</span>
                     </td>
                     <td style={styles.td}>
                       <input

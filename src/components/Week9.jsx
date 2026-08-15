@@ -323,6 +323,7 @@ const Week9 = () => {
         position: 'bottom',
         align: 'end',
         labels: {
+          color: '#000000',
           boxWidth: 16,
           padding: 18,
           font: { size: 14 },
@@ -346,11 +347,12 @@ const Week9 = () => {
     },
     scales: {
       x: {
-        title: { display: true, text: 'Age', font: { size: 14 } },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 14 } },
         min: minAge,
         max: maxAge,
         grid: { display: false },
         ticks: {
+          color: '#000000',
           font: { size: 13 },
           stepSize: 1,
           callback: function(value) {
@@ -363,11 +365,12 @@ const Week9 = () => {
       },
       y: {
         beginAtZero: true,
-        title: { display: true, text: 'Ending Account Balance', font: { size: 14 } },
+        title: { display: true, text: 'Ending Account Balance', color: '#000000', font: { size: 14 } },
         min: 0,
         max: chartMaxY,
         grid: { display: false },
         ticks: {
+          color: '#000000',
           font: { size: 13 },
           stepSize: chartMaxY / 5,
           callback: (v) =>
