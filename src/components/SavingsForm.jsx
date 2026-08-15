@@ -381,7 +381,7 @@ const styles = {
     minWidth: 0,
     border: 'none',
     background: 'transparent',
-    padding: '14px 8px 14px 0',
+    padding: '14px 0 14px 0',
     fontSize: '14px',
     fontWeight: '600',
     color: '#374151',
@@ -390,7 +390,7 @@ const styles = {
     outline: 'none',
   },
   monthsSuffix: {
-    marginLeft: '8px',
+    marginLeft: '4px',
     fontSize: '14px',
     fontWeight: '600',
     color: '#374151',
