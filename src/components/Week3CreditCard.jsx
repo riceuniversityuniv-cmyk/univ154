@@ -2225,6 +2225,8 @@ const Week3CreditCard = () => {
                   },
                   scales: {
                     x: {
+                      grid: { display: false },
+                      border: { display: false },
                       title: {
                         display: true,
                         text: 'Month',
@@ -2241,13 +2243,15 @@ const Week3CreditCard = () => {
                       ticks: {
                         color: '#000000',
                         font: {
-                          size: 16,
+                          size: 19,
                           weight: '500'
                         },
                         padding: 12
                       }
                     },
                     y: {
+                      grid: { display: false },
+                      border: { display: false },
                       beginAtZero: true,
                       title: {
                         display: true,
@@ -2264,8 +2268,9 @@ const Week3CreditCard = () => {
                       },
                       ticks: {
                         color: '#000000',
+                        stepSize: 100,
                         font: {
-                          size: 16,
+                          size: 19,
                           weight: '500'
                         },
                         padding: 12,
