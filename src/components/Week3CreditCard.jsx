@@ -663,7 +663,7 @@ const Week3CreditCard = () => {
       backgroundColor: 'rgba(249, 250, 251, 0.6)',
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
-      border: '1px solid rgba(229, 231, 235, 0.5)',
+      border: 'none',
       borderRadius: '8px',
       display: 'flex',
       alignItems: 'center',
@@ -1845,8 +1845,14 @@ const Week3CreditCard = () => {
                     labels: {
                       color: '#000000',
                       font: {
-                        size: 16
-                      }
+                        size: 18,
+                        weight: '600'
+                      },
+                      padding: 20,
+                      usePointStyle: true,
+                      pointStyle: 'rectRounded',
+                      boxWidth: 20,
+                      boxHeight: 20
                     },
                   },
                   title: {
@@ -1886,14 +1892,18 @@ const Week3CreditCard = () => {
                       text: 'Month',
                       color: '#000000',
                       font: {
-                        size: 17,
-                        weight: '600'
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        top: 15
                       }
                     },
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 14
+                        size: 16,
+                        weight: '500'
                       }
                     }
                   },
@@ -1906,15 +1916,19 @@ const Week3CreditCard = () => {
                       text: 'Payment',
                       color: '#000000',
                       font: {
-                        size: 17,
-                        weight: '600'
+                        size: 22,
+                        weight: '700'
+                      },
+                      padding: {
+                        bottom: 15
                       }
                     },
                     ticks: {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 14
+                        size: 16,
+                        weight: '500'
                       },
                       callback: function(value) {
                         return formatCurrency(value, { decimals: 0 });
