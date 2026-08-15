@@ -797,7 +797,7 @@ const Week3CreditCard = () => {
       color: '#666'
     },
     loanInput: {
-      width: '150px',
+      width: '200px',
       border: '2px solid #d1d5db',
       padding: '10px 14px',
       textAlign: 'right',
@@ -1773,8 +1773,8 @@ const Week3CreditCard = () => {
 
       {/* General Loan Chart Section */}
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: '32px', width: '100%' }}>
-          <div 
-            style={{ ...styles.chartCardEnhanced, cursor: 'pointer', width: 'calc(50% - 8px)', maxWidth: 'calc(50% - 8px)' }}
+          <div
+            style={{ ...styles.chartCardEnhanced, cursor: 'pointer', width: '100%', maxWidth: '100%', border: 'none' }}
             onClick={() => setExpandedChart('generalLoan')}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
@@ -1844,6 +1844,9 @@ const Week3CreditCard = () => {
                     position: 'bottom',
                     labels: {
                       color: '#000000',
+                      font: {
+                        size: 14
+                      }
                     },
                   },
                   title: {
@@ -1881,9 +1884,16 @@ const Week3CreditCard = () => {
                       display: true,
                       text: 'Month',
                       color: '#000000',
+                      font: {
+                        size: 15,
+                        weight: '600'
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      font: {
+                        size: 13
+                      }
                     }
                   },
                   y: {
@@ -1893,9 +1903,16 @@ const Week3CreditCard = () => {
                       display: true,
                       text: 'Payment',
                       color: '#000000',
+                      font: {
+                        size: 15,
+                        weight: '600'
+                      }
                     },
                     ticks: {
                       color: '#000000',
+                      font: {
+                        size: 13
+                      },
                       callback: function(value) {
                         return formatCurrency(value, { decimals: 0 });
                       }
@@ -1906,7 +1923,7 @@ const Week3CreditCard = () => {
                     duration: 0
                 }
               }}
-              style={{ height: '300px' }}
+              style={{ height: '420px' }}
             />
           </div>
         </div>
