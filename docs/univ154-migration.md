@@ -7,14 +7,16 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**Not yet pushed (2026-08-17, later same day):** the chart
-`layout.padding.top` fix / font-shrink rollout finish (commit `3261acf`,
-see the matching 2026-08-17 working-log entry below) is committed on
-`main` locally but not yet pushed — do that next unless the user says
-otherwise. (Module 9's amortization-table centering, an earlier commit the
-same day, is already pushed and live.) Still no authenticated browser
-credentials in this environment, so the chart change hasn't been visually
-confirmed live; if a chart looks off, check there first.
+**About to push (2026-08-17, later same day):** two more local commits on
+top of the chart-padding one — `ba02a76` (Module 1 income-row alignment,
+Module 9 portfolio input-box alignment, Brokerage chart title/axis-border
+fix) and a docs commit. See the two matching 2026-08-17 working-log
+entries below for detail, especially the Brokerage chart's deliberate
+Line-chart-only axis-border exception — don't blanket-revert that to
+"no border" thinking it's inconsistent with the Module 3 spec, it's
+intentional. Still no authenticated browser credentials in this
+environment, so none of today's chart/table changes have been visually
+confirmed live; if something looks off, check there first.
 
 **Pushed to `main` / live on Cloudflare Pages (2026-08-17, earlier same day).** The chart
 best-practice rollout + the whole 2026-08-14 UI/UX pass (20 commits total,
@@ -259,6 +261,48 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-17 — Module 1 income-row alignment, Module 9 input-box alignment, Brokerage chart title/axis fix
+User follow-up after the chart-padding pass above: three more UI fixes.
+
+- **Module 1 (`BudgetForm.jsx`)**: "Monthly Income (After Taxes & Pre-Tax
+  Expense Items)" row's two currency cells had no `textAlign` override
+  (base `styles.td` doesn't set one, so they rendered left-aligned) —
+  added `textAlign: 'right'` to match every other numeric cell in the
+  table (`styles.input`/`styles.readOnly` are both `textAlign: 'right'`
+  elsewhere in this same file).
+- **Module 9 portfolio allocation table (`Week9.jsx`)**: the four input
+  columns (Annual Return, Scenario 1-3 Weight) looked center-aligned even
+  though `styles.inputYellow` already sets `textAlign: 'right'` — the
+  *text inside* each input was right-aligned, but the fixed-120px-wide
+  input box was centered inside its (wider) `<td>` because the base
+  `styles.td` is `textAlign: 'center'`. Right-aligned the wrapping `<td>`
+  on all 16 input cells (4 rows × 4 columns) so the box itself sits at the
+  column's right edge, not just the digits inside it. **Lesson: "input
+  looks centered" can mean either the text-within-input or the
+  box-within-cell is centered — they're independent and this file had the
+  first one right and the second one wrong.**
+- **Module 9 Brokerage Account Balance chart**: user reported the chart
+  title looked wrong and there were no visible axis lines.
+  - Title: this chart never got the `<h3>` title treatment every other
+    chart in the tool uses — it was relying on Chart.js's in-canvas
+    `plugins.title` (16px) instead. Added a real `<h3>` above the chart
+    (bumped the file's unused `styles.chartTitle` from 16px→20px to match
+    house spec, reused it) and turned the in-canvas title off.
+  - Axis lines: this is a `Line` chart, the only one outside
+    `Week12.jsx`'s investments chart, and (per the Module 3 spec) had
+    `border: { display: false }` on both axes like everything else. On a
+    `Bar` chart the bars' own baseline visually anchors the axis even with
+    no border; a `Line` chart has no such baseline, so with the border off
+    it read as data floating with no reference frame. Turned the axis
+    border back on (`display: true, color: '#000000', width: 1`) for this
+    chart specifically — **a deliberate, chart-type-specific exception to
+    the house "no axis border" rule, not a reversal of it for Bar charts.**
+    If another Line chart shows up in the tool, give it the same
+    treatment; don't blanket-apply this to Bar charts.
+- Verified: `npm run build` clean, `npx eslint` on both touched files
+  shows only pre-existing unrelated `no-unused-vars` errors. Still no
+  authenticated browser session available in this environment.
 
 ### 2026-08-17 — Charts: top-of-canvas padding + finished the leftover font-shrink rollout
 User asked for two things: (1) Module 3's charts had their top y-axis label
