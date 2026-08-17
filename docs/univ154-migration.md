@@ -7,32 +7,34 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**Chart best-practice rollout is DONE (2026-08-15) — verify visually next
-session, then decide on push.** All charts in the tool now match the
-Module 3 spec (see the 2026-08-15 "Module 3 chart best practices" entry
-below for the spec itself, and the 2026-08-15 "Chart best-practice spec
-rolled out" entry for what changed where). `npm run build` is clean after
-every file. **Not yet done: visual confirmation on `localhost:5173`** — the
-doc's own verification pattern says a clean build doesn't guarantee a
-chart actually looks right, so hard-refresh and eyeball all 4 files
-(Week5, Week6Retirement's 8 SVG charts, Week9, Week12) before telling the
-user it's fully done.
+**Pushed to `main` / live on Cloudflare Pages (2026-08-17).** The chart
+best-practice rollout + the whole 2026-08-14 UI/UX pass (20 commits total,
+`5dcdda1`..`c0425f9`) are now deployed — user explicitly said go. Pre-push
+sanity check this session: `npm run build` clean, `npm run dev` +
+Playwright screenshot of the login page (widened card renders correctly,
+zero console errors) — **not** a full per-chart visual pass across all 4
+chart files, since that requires an authenticated admin session this
+session didn't have credentials for. If a chart looks off live, that's the
+first place to check.
 
-**Large UI/UX pass sitting locally, committed but NOT pushed — do not push
-to `main` / deploy until the user explicitly says go.** User is still
-planning more changes before shipping. Run `git log origin/main..HEAD
---oneline` to see exactly what's ahead of the live site. See the
-2026-08-14 "Big UI/UX + spacing pass" working log entry below for the full
-list of what changed (three rounds: initial ~15-item pass, a refinement
-round, then a page-width/negative-space pass).
+**Standing instruction from the user (2026-08-17): check `localhost:5173`
+before deploying, going forward.** Default workflow for future sessions:
+implement → `npm run build` → `npm run dev` + have the user (or Playwright,
+credentials permitting) confirm on localhost → only then push to `main`.
+Don't skip straight to a push on a "looks right in the diff" basis.
 
 Two things a future session needs to know before touching this further:
-- A new migration, `supabase/migrations/20260814000000_add_display_week_number_to_global_week_settings.sql`,
-  has **not been applied** by the user yet (same manual
-  Supabase Dashboard → SQL Editor process as always — nothing here
-  auto-applies migrations). Until it's run, the admin "Week #" field in
-  Week Access works in the UI but silently doesn't persist — it falls back
-  to the value derived from `weekId`.
+- Two migrations are sitting unapplied — same manual Supabase Dashboard →
+  SQL Editor process as always, nothing here auto-applies migrations:
+  - `supabase/migrations/20260814000000_add_display_week_number_to_global_week_settings.sql`
+    — until run, the admin "Week #" field in Week Access works in the UI
+    but silently doesn't persist, falls back to the value derived from
+    `weekId`.
+  - `supabase/migrations/20260817000000_add_admins_mkemp_mk258.sql` — adds
+    `mk258@rice.edu` and `mkemp@bowersockcapital.com` as admins. Until run,
+    neither can access admin features (and `AuthContext.jsx`'s
+    `isValidEmail` allow-list change that lets mkemp's non-standard domain
+    sign in at all is already live, but useless without this row).
 - Local dev server workflow for previewing without spending a Cloudflare
   build: `npm run dev` (already wired to live Supabase via `.env.local`),
   then have the user check `http://localhost:5173` themselves, or use
@@ -248,6 +250,31 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-17 — Pushed the whole local backlog live + added two admins
+User asked to push all local progress to the live site, and separately
+established a standing workflow rule: check `localhost:5173` before
+deploying, going forward (not just for in-progress feature work — for any
+future push).
+
+- **Deploy**: 20 commits (`5dcdda1`..`c0425f9`, everything from the
+  2026-08-14 UI/UX pass through the 2026-08-15 chart rollout plus this
+  session's admin commit) pushed to `main`. `npm run build` clean;
+  `npm run dev` + Playwright screenshot of the login page confirmed no
+  console errors and the widened card rendered correctly before pushing.
+  Did not do a full authenticated per-chart visual pass (no admin
+  credentials available in-session) — see 🔴 ACTIVE for what to check if
+  something looks off live.
+- **New admins**: added `mk258@rice.edu` and `mkemp@bowersockcapital.com`
+  via `supabase/migrations/20260817000000_add_admins_mkemp_mk258.sql`
+  (not yet applied — manual SQL Editor step, same as always).
+  `mkemp@bowersockcapital.com`'s domain isn't in `AuthContext.jsx`'s
+  sign-in allow-list (`@rice.edu`/`@alumni.rice.edu`/`@gmail.com`/
+  `@yahoo.com`) — asked the user how to handle it rather than guessing;
+  they chose a one-off exact-address exception
+  (`ALLOWED_EXACT_EMAILS`) over opening the whole
+  `@bowersockcapital.com` domain. `mk258@rice.edu` needed no allow-list
+  change.
 
 ### 2026-08-15 — Chart best-practice spec rolled out to every remaining chart (Week5, Week6Retirement, Week9, Week12)
 Applied the spec from the entry directly below to every chart in the tool
