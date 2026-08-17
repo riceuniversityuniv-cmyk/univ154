@@ -7,7 +7,16 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**Pushed to `main` / live on Cloudflare Pages (2026-08-17).** The chart
+**Not yet pushed (2026-08-17, later same day):** the chart
+`layout.padding.top` fix / font-shrink rollout finish (commit `3261acf`,
+see the matching 2026-08-17 working-log entry below) is committed on
+`main` locally but not yet pushed — do that next unless the user says
+otherwise. (Module 9's amortization-table centering, an earlier commit the
+same day, is already pushed and live.) Still no authenticated browser
+credentials in this environment, so the chart change hasn't been visually
+confirmed live; if a chart looks off, check there first.
+
+**Pushed to `main` / live on Cloudflare Pages (2026-08-17, earlier same day).** The chart
 best-practice rollout + the whole 2026-08-14 UI/UX pass (20 commits total,
 `5dcdda1`..`c0425f9`) are now deployed — user explicitly said go. Pre-push
 sanity check this session: `npm run build` clean, `npm run dev` +
@@ -250,6 +259,59 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
 
 ## § Working log (append-only)
+
+### 2026-08-17 — Charts: top-of-canvas padding + finished the leftover font-shrink rollout
+User asked for two things: (1) Module 3's charts had their top y-axis label
+sitting too close to the top edge of the canvas, and (2) apply the same
+axis-line/chart-title rule to every other module's charts for consistency.
+
+- **Root cause of (1)**: none of the Chart.js `options` blocks set
+  `layout.padding.top` (or set it too small, in Week9's case — `top: 8`),
+  so Chart.js draws the top gridline/tick flush against the canvas edge
+  with no headroom.
+- **Fix**: added/raised `layout: { padding: { top: 20 } }` on every
+  Chart.js chart in the tool — all 4 inline+modal blocks in
+  `Week3CreditCard.jsx` (Module 3), `Week5.jsx`'s shared
+  `monthlyChartOptions` (covers both Monthly/Bi-Weekly since
+  `biWeeklyChartOptions` spreads it), `Week9.jsx` (bumped existing `top: 8`
+  → `20`), and both `Week12.jsx` blocks (`sharedBarOptions`,
+  `lineOptions`).
+- **Bug caught along the way**: `Week12.jsx`'s `sharedBarOptions` had two
+  separate `layout` keys in the same object literal (a leftover duplicate)
+  — JS object literals silently let the second key win, so my first
+  `layout.padding.top` insertion was being overwritten by the pre-existing
+  second `layout: { padding: {..., top: 6} }` a few lines down. Build
+  compiled clean either way (not a syntax error) — only caught by grepping
+  for a second `layout:` in the same file after the fact. **Lesson: after
+  inserting a new key into an object literal via sed/line-number edits,
+  grep the whole object for a pre-existing key of the same name — duplicate
+  object keys are a silent bug, not a lint/build error.**
+- **Found an already-in-progress, uncommitted rollout while investigating**:
+  `Week3CreditCard.jsx`, `Week9.jsx`, and `Week12.jsx` all had matching
+  uncommitted edits already sitting in the working tree shrinking the
+  Module 3 chart-spec fonts (legend 18→15, axis titles 22→17, ticks 19→16)
+  — consistent across all three files, clearly a prior session's
+  in-progress work that was never committed. `Week5.jsx` had the same edit
+  already committed (from the previous turn's Module 9 table-alignment fix,
+  where it rode along bundled into that commit). Treated this as the real,
+  current house spec (not the older 18/22/19 one still written in this
+  doc's spec block above) since it was already fully self-consistent across
+  every file that had it — finished it out by committing it alongside the
+  padding fix rather than reverting it. **The spec block further down this
+  doc (font sizes 18/22/19) is now stale** — the live sizes are 15/17/16;
+  not rewriting the historical entry, just flagging it here so a future
+  session doesn't copy the outdated numbers.
+- **Left alone**: `Week4.jsx` (no charts — its pending diff is an unrelated
+  `formatCurrency(...)` → `formatCurrency(..., { decimals: 0 })` cleanup,
+  not touched) and the same unrelated decimals cleanup inside `Week9.jsx`'s
+  scenario-summary table (separable by hunk, left unstaged). Also left
+  `Week6Retirement.jsx` alone — its charts are hand-rolled SVG from a
+  separate prior migration pass, out of scope for a Chart.js-options fix.
+- Verified: `npm run build` clean, `npx eslint` on all 4 touched files
+  shows only pre-existing unrelated `no-unused-vars` errors (not on lines
+  touched). No authenticated browser check (still no login credentials in
+  this environment — see the 2026-08-17 entry below and several earlier
+  ones for the same recurring limitation).
 
 ### 2026-08-17 — Pushed the whole local backlog live + added two admins
 User asked to push all local progress to the live site, and separately
