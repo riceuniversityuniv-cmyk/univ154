@@ -8,8 +8,13 @@ export function useAuth() {
   return useContext(AuthContext)
 }
 
-// Helper function to validate Rice, Gmail, and Yahoo email addresses
+// Helper function to validate Rice, Gmail, and Yahoo email addresses, plus a
+// small allow-list of specific non-domain-matching addresses granted access
+// individually (e.g. an outside admin whose employer domain isn't one of the
+// generally-allowed ones) -- see docs/univ154-migration.md.
+const ALLOWED_EXACT_EMAILS = ['mkemp@bowersockcapital.com'];
 const isValidEmail = (email) => {
+  if (ALLOWED_EXACT_EMAILS.includes(email?.toLowerCase())) return true;
   return email.endsWith('@rice.edu') || email.endsWith('@alumni.rice.edu') || email.endsWith('@gmail.com') || email.endsWith('@yahoo.com');
 };
 
