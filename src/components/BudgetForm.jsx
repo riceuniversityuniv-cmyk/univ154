@@ -2107,10 +2107,10 @@ export default function BudgetForm() {
                           Monthly Income (After Taxes & Pre-Tax Expense Items)
                         </td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}></td>
-                        <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
+                        <td style={{...styles.td, textAlign: 'right', backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
                           {formatCurrency(summaryCalculations.userAfterTaxIncome / 12)}
                         </td>
-                        <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
+                        <td style={{...styles.td, textAlign: 'right', backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}>
                           {formatCurrency(summaryCalculations.suggestedAfterTaxIncome / 12)}
                         </td>
                         <td style={{...styles.td, backgroundColor: 'rgba(240, 253, 244, 0.6)', backdropFilter: 'blur(5px)', WebkitBackdropFilter: 'blur(5px)'}}></td>

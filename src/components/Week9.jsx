@@ -333,10 +333,7 @@ const Week9 = () => {
         },
       },
       title: {
-        display: true,
-        text: 'Brokerage Account Balance',
-        font: { size: 16, weight: '600' },
-        padding: { bottom: 16 },
+        display: false,
       },
       tooltip: {
         titleFont: { size: 14 },
@@ -353,7 +350,7 @@ const Week9 = () => {
         min: minAge,
         max: maxAge,
         grid: { display: false },
-        border: { display: false },
+        border: { display: true, color: '#000000', width: 1 },
         ticks: {
           color: '#000000',
           font: { size: 16, weight: '500' },
@@ -372,7 +369,7 @@ const Week9 = () => {
         min: 0,
         max: chartMaxY,
         grid: { display: false },
-        border: { display: false },
+        border: { display: true, color: '#000000', width: 1 },
         ticks: {
           color: '#000000',
           font: { size: 16, weight: '500' },
@@ -642,7 +639,7 @@ const Week9 = () => {
       overflow: 'hidden',
     },
     chartTitle: {
-      fontSize: '16px',
+      fontSize: '20px',
       fontWeight: 700,
       marginBottom: '30px',
       textAlign: 'center',
@@ -898,7 +895,7 @@ const Week9 = () => {
                   <tbody>
                     <tr>
                       <td style={{ ...styles.td, textAlign: 'left' }}>Equities</td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -908,7 +905,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -918,7 +915,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -928,7 +925,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -941,7 +938,7 @@ const Week9 = () => {
                     </tr>
                     <tr>
                       <td style={{ ...styles.td, textAlign: 'left' }}>Fixed Income</td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -951,7 +948,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -961,7 +958,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -971,7 +968,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -984,7 +981,7 @@ const Week9 = () => {
                     </tr>
                     <tr>
                       <td style={{ ...styles.td, textAlign: 'left' }}>Cash</td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -994,7 +991,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1004,7 +1001,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1014,7 +1011,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1027,7 +1024,7 @@ const Week9 = () => {
                     </tr>
                     <tr>
                       <td style={{ ...styles.td, textAlign: 'left' }}>Alternatives</td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1037,7 +1034,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1047,7 +1044,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1057,7 +1054,7 @@ const Week9 = () => {
                           style={styles.inputYellow}
                         />
                       </td>
-                      <td style={styles.td}>
+                      <td style={{ ...styles.td, textAlign: 'right' }}>
                         <input
                           type="text"
                           inputMode="decimal"
@@ -1140,6 +1137,7 @@ const Week9 = () => {
 
           {/* Sub-card: Brokerage Account Balance chart - overflow hidden so graph stays inside */}
           <div style={{ ...styles.subCard, padding: '36px', minHeight: '660px', overflow: 'hidden', boxSizing: 'border-box' }} className="week9-lift-surface">
+            <h3 style={{ ...styles.chartTitle, marginBottom: '12px' }}>Brokerage Account Balance</h3>
             <div style={{ ...styles.chartWrapper, marginTop: 0, marginBottom: 0 }}>
               <div style={{ height: 520, width: '100%', maxWidth: '100%', position: 'relative', overflow: 'hidden', boxSizing: 'border-box' }}>
                 <Line data={chartData} options={chartOptions} />
