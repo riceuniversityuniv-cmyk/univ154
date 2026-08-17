@@ -371,7 +371,7 @@ const Week5 = () => {
           position: 'bottom',
           labels: {
             color: '#000000',
-            font: { size: 18, weight: '600' },
+            font: { size: 15, weight: '600' },
             padding: 20,
             usePointStyle: true,
             pointStyle: 'rectRounded',
@@ -405,13 +405,13 @@ const Week5 = () => {
             display: true,
             text: 'Payment Amount ($)',
             color: '#000000',
-            font: { size: 22, weight: '700' },
+            font: { size: 17, weight: '700' },
             padding: { bottom: 15 },
           },
           ticks: {
             color: '#000000',
             maxTicksLimit: 6,
-            font: { size: 19, weight: '500' },
+            font: { size: 16, weight: '500' },
             callback: (value) => formatCurrency(value, { decimals: 0 }),
           },
         },
@@ -423,12 +423,12 @@ const Week5 = () => {
             display: true,
             text: 'Month Number',
             color: '#000000',
-            font: { size: 22, weight: '700' },
+            font: { size: 17, weight: '700' },
             padding: { top: 15 },
           },
           ticks: {
             color: '#000000',
-            font: { size: 19, weight: '500' },
+            font: { size: 16, weight: '500' },
           }
         },
       },
@@ -447,12 +447,12 @@ const Week5 = () => {
             display: true,
             text: 'Week Number',
             color: '#000000',
-            font: { size: 22, weight: '700' },
+            font: { size: 17, weight: '700' },
             padding: { top: 15 },
           },
           ticks: {
             color: '#000000',
-            font: { size: 19, weight: '500' },
+            font: { size: 16, weight: '500' },
           }
         },
       },
@@ -1286,11 +1286,11 @@ const Week5 = () => {
                           backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
                         }}>
                           <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{row.month}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance)}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance, { decimals: 0 })}</td>
                         </tr>
                       ));
                     })()}
@@ -1384,11 +1384,11 @@ const Week5 = () => {
                           backgroundColor: index % 2 === 0 ? 'white' : '#f8f9fa'
                         }}>
                           <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{row.week}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal)}</td>
-                          <td style={{ padding: '8px', textAlign: 'right', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance)}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.loanAmount, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.payment, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.interest, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.principal, { decimals: 0 })}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', border: '1px solid #e9ecef' }}>{formatCurrency(row.balance, { decimals: 0 })}</td>
                         </tr>
                       ));
                     })()}
