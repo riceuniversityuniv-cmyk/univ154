@@ -359,6 +359,7 @@ const Week5 = () => {
     const monthlyChartOptions = {
       responsive: true,
       maintainAspectRatio: false,
+      layout: { padding: { top: 20 } },
       interaction: {
         intersect: false,
         mode: 'index',

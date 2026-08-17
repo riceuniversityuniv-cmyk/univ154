@@ -311,7 +311,7 @@ const Week9 = () => {
     responsive: true,
     maintainAspectRatio: false,
     layout: {
-      padding: { top: 8, right: 24, bottom: 8, left: 8 },
+      padding: { top: 20, right: 24, bottom: 8, left: 8 },
     },
     interaction: {
       intersect: false,
@@ -324,7 +324,7 @@ const Week9 = () => {
         align: 'end',
         labels: {
           color: '#000000',
-          font: { size: 18, weight: '600' },
+          font: { size: 15, weight: '600' },
           padding: 20,
           usePointStyle: true,
           pointStyle: 'rectRounded',
@@ -349,14 +349,14 @@ const Week9 = () => {
     },
     scales: {
       x: {
-        title: { display: true, text: 'Age', color: '#000000', font: { size: 22, weight: '700' }, padding: { top: 15 } },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 17, weight: '700' }, padding: { top: 15 } },
         min: minAge,
         max: maxAge,
         grid: { display: false },
         border: { display: false },
         ticks: {
           color: '#000000',
-          font: { size: 19, weight: '500' },
+          font: { size: 16, weight: '500' },
           stepSize: 1,
           callback: function(value) {
             const age = Number(this.getLabelForValue(value));
@@ -368,14 +368,14 @@ const Week9 = () => {
       },
       y: {
         beginAtZero: true,
-        title: { display: true, text: 'Ending Account Balance', color: '#000000', font: { size: 22, weight: '700' }, padding: { bottom: 15 } },
+        title: { display: true, text: 'Ending Account Balance', color: '#000000', font: { size: 17, weight: '700' }, padding: { bottom: 15 } },
         min: 0,
         max: chartMaxY,
         grid: { display: false },
         border: { display: false },
         ticks: {
           color: '#000000',
-          font: { size: 19, weight: '500' },
+          font: { size: 16, weight: '500' },
           stepSize: chartMaxY / 5,
           callback: (v) =>
             v >= 1000000 ? `$${v / 1000000}M` : v >= 1000 ? `$${v / 1000}K` : `$${v}`,

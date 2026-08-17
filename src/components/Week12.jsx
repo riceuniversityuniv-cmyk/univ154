@@ -776,13 +776,13 @@ const Week12 = () => {
       },
     },
     layout: {
-      padding: { left: 8, right: 8, top: 6, bottom: 4 },
+      padding: { left: 8, right: 8, top: 20, bottom: 4 },
     },
     scales: {
       x: {
         grid: { display: false },
         border: { display: false },
-        ticks: { color: '#000000', font: { size: 19, weight: '500' }, maxRotation: 0, minRotation: 0 },
+        ticks: { color: '#000000', font: { size: 16, weight: '500' }, maxRotation: 0, minRotation: 0 },
       },
       y: {
         beginAtZero: true,
@@ -791,7 +791,7 @@ const Week12 = () => {
         ticks: {
           color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
-          font: { size: 19, weight: '500' },
+          font: { size: 16, weight: '500' },
         },
       },
     },
@@ -800,6 +800,7 @@ const Week12 = () => {
   const lineOptions = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: { padding: { top: 20 } },
     plugins: {
       legend: { display: false },
       tooltip: {
@@ -812,12 +813,12 @@ const Week12 = () => {
       x: {
         grid: { display: false },
         border: { display: false },
-        title: { display: true, text: 'Age', color: '#000000', font: { size: 22, weight: '700' }, padding: { top: 15 } },
+        title: { display: true, text: 'Age', color: '#000000', font: { size: 17, weight: '700' }, padding: { top: 15 } },
         ticks: {
           color: '#000000',
           maxTicksLimit: 16,
           autoSkip: true,
-          font: { size: 19, weight: '500' },
+          font: { size: 16, weight: '500' },
         },
       },
       y: {
@@ -827,7 +828,7 @@ const Week12 = () => {
         ticks: {
           color: '#000000',
           callback: (value) => formatCurrency(value, { decimals: 0 }),
-          font: { size: 19, weight: '500' },
+          font: { size: 16, weight: '500' },
         },
       },
     },

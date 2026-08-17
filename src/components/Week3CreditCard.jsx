@@ -1228,6 +1228,7 @@ const Week3CreditCard = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
                 interaction: {
                   intersect: false,
                   mode: 'index'
@@ -1238,7 +1239,7 @@ const Week3CreditCard = () => {
                     labels: {
                       color: '#000000',
                       font: {
-                        size: 18,
+                        size: 15,
                         weight: '600'
                       },
                       padding: 20,
@@ -1285,7 +1286,7 @@ const Week3CreditCard = () => {
                       text: 'Month',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1295,7 +1296,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       }
                     }
@@ -1309,7 +1310,7 @@ const Week3CreditCard = () => {
                       text: 'Payment',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1320,7 +1321,7 @@ const Week3CreditCard = () => {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       },
                       callback: function(value) {
@@ -1401,6 +1402,7 @@ const Week3CreditCard = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
                 interaction: {
                   intersect: false,
                   mode: 'index'
@@ -1411,7 +1413,7 @@ const Week3CreditCard = () => {
                     labels: {
                       color: '#000000',
                       font: {
-                        size: 18,
+                        size: 15,
                         weight: '600'
                       },
                       padding: 20,
@@ -1458,7 +1460,7 @@ const Week3CreditCard = () => {
                       text: 'Month',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1468,7 +1470,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       }
                     }
@@ -1482,7 +1484,7 @@ const Week3CreditCard = () => {
                       text: 'Payment',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1493,7 +1495,7 @@ const Week3CreditCard = () => {
                       color: '#000000',
                       stepSize: 100,
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       },
                       callback: function(value) {
@@ -1903,6 +1905,7 @@ const Week3CreditCard = () => {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
                   interaction: {
                     intersect: false,
                     mode: 'index'
@@ -1913,7 +1916,7 @@ const Week3CreditCard = () => {
                     labels: {
                       color: '#000000',
                       font: {
-                        size: 18,
+                        size: 15,
                         weight: '600'
                       },
                       padding: 20,
@@ -1960,7 +1963,7 @@ const Week3CreditCard = () => {
                       text: 'Month',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1970,7 +1973,7 @@ const Week3CreditCard = () => {
                     ticks: {
                       color: '#000000',
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       }
                     }
@@ -1984,7 +1987,7 @@ const Week3CreditCard = () => {
                       text: 'Payment',
                       color: '#000000',
                       font: {
-                        size: 22,
+                        size: 17,
                         weight: '700'
                       },
                       padding: {
@@ -1993,9 +1996,9 @@ const Week3CreditCard = () => {
                     },
                     ticks: {
                       color: '#000000',
-                      stepSize: 100,
+                      count: 5,
                       font: {
-                        size: 19,
+                        size: 16,
                         weight: '500'
                       },
                       callback: function(value) {
@@ -2175,6 +2178,7 @@ const Week3CreditCard = () => {
                 options={{
                   responsive: true,
                   maintainAspectRatio: false,
+                  layout: { padding: { top: 20 } },
                   interaction: {
                     intersect: false,
                     mode: 'index'
@@ -2185,7 +2189,7 @@ const Week3CreditCard = () => {
                       labels: {
                         color: '#000000',
                         font: {
-                          size: 18,
+                          size: 15,
                           weight: '600'
                         },
                         padding: 20,
@@ -2232,7 +2236,7 @@ const Week3CreditCard = () => {
                         text: 'Month',
                         color: '#000000',
                         font: {
-                          size: 22,
+                          size: 17,
                           weight: '700'
                         },
                         padding: {
@@ -2243,7 +2247,7 @@ const Week3CreditCard = () => {
                       ticks: {
                         color: '#000000',
                         font: {
-                          size: 19,
+                          size: 16,
                           weight: '500'
                         },
                         padding: 12
@@ -2258,7 +2262,7 @@ const Week3CreditCard = () => {
                         text: 'Payment',
                         color: '#000000',
                         font: {
-                          size: 22,
+                          size: 17,
                           weight: '700'
                         },
                         padding: {
@@ -2268,9 +2272,9 @@ const Week3CreditCard = () => {
                       },
                       ticks: {
                         color: '#000000',
-                        stepSize: 100,
+                        ...(expandedChart === 'generalLoan' ? { count: 5 } : { stepSize: 100 }),
                         font: {
-                          size: 19,
+                          size: 16,
                           weight: '500'
                         },
                         padding: 12,
