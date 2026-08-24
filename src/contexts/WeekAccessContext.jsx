@@ -2,7 +2,7 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
 const WeekAccessContext = createContext();
-export const SUPPORTED_WEEK_IDS = ['week-1', 'week-2', 'week-3', 'week-4', 'week-5', 'week-6', 'week-7', 'week-9', 'week-12'];
+export const SUPPORTED_WEEK_IDS = ['week-0', 'week-1', 'week-2', 'week-3', 'week-4', 'week-5', 'week-6', 'week-7', 'week-9', 'week-12'];
 
 // Course-week label (fixed -- reflects the syllabus week number) vs. the
 // student-facing sidebar's "Module N" position, which is admin-editable
@@ -11,6 +11,7 @@ export const SUPPORTED_WEEK_IDS = ['week-1', 'week-2', 'week-3', 'week-4', 'week
 // sidebar. Single source of truth for the topic name, used by both the
 // Week Access admin table and the sidebar.
 export const WEEK_TOPIC_LABELS = {
+  'week-0': 'Course Introduction',
   'week-1': 'Budgeting',
   'week-2': 'Savings & Emergency Funds',
   'week-3': 'Credit & Debt Management',
@@ -27,27 +28,32 @@ export const WEEK_TOPIC_LABELS = {
 // fallback until an admin sets display_order in the DB (see migration
 // 20260813000000_add_display_order_to_global_week_settings.sql).
 const DEFAULT_ORDER = {
-  'week-1': 1,
-  'week-2': 2,
-  'week-3': 3,
-  'week-4': 4,
-  'week-6': 5,
-  'week-9': 6,
-  'week-12': 7,
-  'week-7': 8,
-  'week-5': 9,
+  'week-0': 1,
+  'week-1': 2,
+  'week-2': 3,
+  'week-3': 4,
+  'week-4': 5,
+  'week-6': 6,
+  'week-9': 7,
+  'week-12': 8,
+  'week-7': 9,
+  'week-5': 10,
 };
 
 // Fallback "Week N" syllabus number derived from the weekId string itself
 // (e.g. 'week-5' -> 5) -- used until an admin sets display_week_number in
 // the DB, or if that column's migration hasn't been applied yet.
-const defaultWeekNumber = (weekId) => parseInt(weekId.replace('week-', ''), 10);
+// 'week-0' is special-cased to 1 (it's syllabus item "1. Course
+// Introduction" -- the id predates it in the numbering, not the syllabus).
+const defaultWeekNumber = (weekId) => (weekId === 'week-0' ? 1 : parseInt(weekId.replace('week-', ''), 10));
 
 const createDefaultWeekSettings = () => {
   const defaults = {};
   SUPPORTED_WEEK_IDS.forEach((weekId) => {
     defaults[weekId] = {
-      isAvailable: weekId === 'week-1',
+      // week-0 (Course Introduction) is now the first thing a new student
+      // sees -- it replaces week-1 as the sole default-unlocked module.
+      isAvailable: weekId === 'week-0',
       releaseDate: null,
       order: DEFAULT_ORDER[weekId] ?? 99,
       weekNumber: defaultWeekNumber(weekId)

@@ -5,6 +5,7 @@ import SignUp from './components/SignUp'
 import SignUpSuccess from './components/SignUpSuccess'
 import UpdatePassword from './components/UpdatePassword'
 import Dashboard from './components/Dashboard'
+import Week0CourseIntro from './components/Week0CourseIntro'
 import Week1Budgeting from './components/Week1Budgeting'
 import Week2Savings from './components/Week2Savings'
 import Week3CreditCardPage from './components/Week3CreditCardWrapper'
@@ -157,7 +158,9 @@ function App() {
           <Route path="/signup-success" element={<SignUpSuccess />} />
           <Route path="/update-password" element={<UpdatePassword />} />
           <Route path="/dashboard/*" element={<ProtectedRoute><Dashboard /></ProtectedRoute>}>
-            <Route index element={<Navigate to="/dashboard/excel/week-1" replace />} />
+            <Route index element={<Navigate to="/dashboard/excel/week-0" replace />} />
+            <Route path="excel/week-0" element={<Week0CourseIntro />} />
+            <Route path="excel/week-0/*" element={<Week0CourseIntro />} />
             <Route path="excel/week-1" element={<Week1Budgeting />} />
             <Route path="excel/week-1/*" element={<Week1Budgeting />} />
             <Route path="excel/week-2" element={<Week2Savings />} />

@@ -5,7 +5,7 @@ import { WEEK_TOPIC_LABELS } from '../../contexts/WeekAccessContext';
 
 // Fallback if the ordered list isn't passed in yet -- same default order
 // WeekAccessContext.getOrderedWeekIds() falls back to.
-const DEFAULT_WEEK_IDS = ['week-1', 'week-2', 'week-3', 'week-4', 'week-6', 'week-9', 'week-12', 'week-7', 'week-5'];
+const DEFAULT_WEEK_IDS = ['week-0', 'week-1', 'week-2', 'week-3', 'week-4', 'week-6', 'week-9', 'week-12', 'week-7', 'week-5'];
 
 export const MinimalistSidebar = ({
   sidebarCollapsed,

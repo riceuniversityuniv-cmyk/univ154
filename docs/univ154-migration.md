@@ -7,6 +7,20 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-08-24 — Module 1 "Course Introduction" added (`week-0`), not yet
+pushed.** New self-contained module (`Week0CourseIntro.jsx`, a "what income
+do you need in retirement?" wizard) ported from a standalone artifact and
+wired in as the new first module — see the dated working-log entry below
+for the full story (where the source code was found, why `week-0` instead
+of renumbering everything). `npm run build` clean, full click-through
+verified locally via Playwright (Household → New York/NYC → Housing tier
+defaults → Results), zero console errors. A third migration is now
+pending alongside the two below:
+- `supabase/migrations/20260824000000_add_week0_course_intro.sql` — seeds
+  the `week-0` row (unlocked by default, sidebar position 1, "Week 1"
+  label). Run it **after** the two below, in order, since it references
+  the `display_order`/`display_week_number` columns those add.
+
 **About to push (2026-08-17, later same day):** two more local commits on
 top of the chart-padding one — `ba02a76` (Module 1 income-row alignment,
 Module 9 portfolio input-box alignment, Brokerage chart title/axis-border
@@ -109,6 +123,16 @@ src/
                                rendered at /dashboard/admin/assumptions
     AdminPanel.jsx            Tab shell for /dashboard/admin/* (Week Access / Manage
                                Admins / Assumptions), <Outlet/> for the three above
+    Week0CourseIntro.jsx           Module 1 "Course Introduction" -- self-contained
+                               "what income do you need in retirement?" wizard.
+                               Ported from a standalone HTML/vanilla-JS artifact
+                               (verbatim copy kept at
+                               reference/week1-course-intro-retirement-planner.html)
+                               -- see the 2026-08-24 working-log entry for where it
+                               was found and why. Deliberately NOT wired into
+                               utils/taxEngine.js/useAssumptions() -- it models a
+                               hypothetical future retirement scenario with its own
+                               2026 bracket data, not the student's current income.
     Week1Budgeting.jsx, Week1FederalTax.jsx, Week1StateTax.jsx,
     Week1Summary.jsx, Week2Savings.jsx, Week3CreditCard.jsx,
     Week3CreditCardWrapper.jsx, Week4.jsx, Week5.jsx,
@@ -259,8 +283,83 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   `400 {"error_code":"validation_failed","msg":"Unsupported provider: provider is not enabled"}`
   **before the browser ever reaches Google** — a very fast way to confirm this specific
   cause vs. a redirect-URI mismatch (which would fail only after Google's consent screen).
+- **`week-0` (Course Introduction) is the new default-unlocked module**, replacing
+  `week-1`: `WeekAccessContext.jsx`'s `createDefaultWeekSettings()` fallback and the
+  `20260824000000_add_week0_course_intro.sql` migration's seed row both set
+  `is_globally_available = true` for `week-0` only. `week-1` (Budgeting) now behaves
+  like every other module — locked until an admin flips it on. Don't "fix" this back
+  to `week-1` thinking it's an accidental regression; it's deliberate now that
+  Course Introduction is Module 1.
+- **`week-0`'s syllabus number is hardcoded, not derived**: every other week id's
+  fallback "Week N" label comes from `parseInt(weekId.replace('week-',''))` in
+  `defaultWeekNumber()` — that would read `0` for `week-0`, so it's special-cased to
+  return `1` instead (it's syllabus item "1. Course Introduction"; the id numbering
+  and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-24 — Found and folded in a standalone "Retirement Income Planner" as Module 1 (Course Introduction)
+User asked to fold in an exercise app they'd built, remembering only "I think
+it's KRManning12" as a lead, plus a fresh 14-item syllabus list confirming
+Week 1 = "Course Introduction." Their own GitHub account KRManning12 only had
+4 unrelated repos — the actual code turned out to be a single standalone
+HTML file *inside* one of those repos, not a repo of its own:
+`KRManning12/Personal-Website` → `Project Artifacts/UNIV 154 - Retirement
+Salary Calculator/Retirement Salary Calculator.html`. Found via GitHub's
+code-search API scoped to that account's repo tree (searching repo names
+alone turned up nothing) after exhausting: all 4 gh-authenticated local
+accounts (`KRManning12`/`krmanningai`/`EaglePointSolutions`/
+`riceuniversityuniv-cmyk`), GitHub code/repo search for course-specific
+strings, Vercel/Netlify project lists, local disk search, and this session's
+own auto-memory (`reference_github_accounts.md` confirmed KRManning12 as the
+"personal projects, some work repos here that need to move" account, which
+narrowed the search but didn't name the file).
+
+- **What it is**: a self-contained, dependency-free vanilla-JS 13-step
+  wizard ("what income do you need in retirement?") that scales a chosen
+  lifestyle (housing/car/food/travel tiers etc.) by household size and
+  state/city cost-of-living, then solves for the gross income needed to
+  cover it after 2026 federal/state/city taxes. A natural Day 1 hook
+  exercise that foreshadows the course's later Goal/Portfolio modules.
+- **Ported, not embedded**: rebuilt from scratch as `Week0CourseIntro.jsx`
+  (`useState` + JSX) rather than an iframe/`dangerouslySetInnerHTML` wrapper
+  around the original HTML, so it behaves like every other module. Tax
+  brackets, COL multipliers, and lifestyle tier data carried over
+  byte-for-byte; the local `fmt()` helper was swapped for the shared
+  `formatCurrency` (house convention since the 2026-08-13 formatting pass).
+  Original source kept verbatim at
+  `reference/week1-course-intro-retirement-planner.html` for provenance.
+- **New week id `week-0`**, not a renumbering of the whole syllabus: added to
+  `SUPPORTED_WEEK_IDS`, `WEEK_TOPIC_LABELS`, `DEFAULT_ORDER` (position 1,
+  everything else bumped +1) in `WeekAccessContext.jsx`, plus the sidebar's
+  own `DEFAULT_WEEK_IDS` fallback array in `Option3_Minimalist.jsx`. Made it
+  the sole default-unlocked module (see gating-rules note above) and
+  special-cased its fallback syllabus number to 1. `App.jsx`'s `index`
+  redirect now points at `excel/week-0` instead of `excel/week-1`.
+  `WeekAccessAdmin.jsx` needed no changes — it already derives everything
+  from the shared constants.
+  - **Scope boundary, deliberately not done**: the user's pasted 14-item
+    syllabus (Course Introduction → Budgeting → Credit & Debt → Recruiting
+    → ... → Final Review) is bigger than the 9 (now 10) week ids actually
+    wired up — several topics (Recruiting, Onboarding, Miscellaneous, Final
+    Review) have no module yet. Didn't attempt a full syllabus
+    renumbering/realignment pass here; that's a separate future task if the
+    user wants it. This session only added the one new module and shifted
+    the rest down by one sidebar position.
+- Verified: `npm run build` clean both before and after removing a temporary
+  unauthenticated QA route (`/__qa/week-0`, added only to screenshot the
+  module without admin credentials, removed before committing); `npx eslint`
+  on every touched/new file shows only pre-existing unrelated
+  `no-unused-vars` errors (confirmed against the pre-edit file contents) plus
+  one real one this session introduced and fixed (an unused `cols` prop on
+  `TierButton`). Full Playwright click-through on `npm run dev`: Welcome →
+  Household → Location (New York, then New York City to exercise the
+  city-tax branch — correctly showed the 9-bracket/10.90%-top state note
+  and recalculated the Housing tier's `~$5,630/mo` hint off the NYC housing
+  multiplier) → Housing → ... → Results (correct gross-up, tax breakdown,
+  and expense-bar breakdown). Zero console errors/warnings across the whole
+  flow. Not yet pushed to `main` — see 🔴 ACTIVE above for the pending
+  migration.
 
 ### 2026-08-17 — Module 1 income-row alignment, Module 9 input-box alignment, Brokerage chart title/axis fix
 User follow-up after the chart-padding pass above: three more UI fixes.

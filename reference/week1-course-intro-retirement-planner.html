@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UNIV 154 · Retirement Income Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  body { font-family: 'Poppins', sans-serif; background: #F0F2F9; color: #0E1840; min-height: 100vh; }
+  select { font-family: 'Poppins', sans-serif; }
+  input { font-family: 'Poppins', sans-serif; }
+  button { font-family: 'Poppins', sans-serif; }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+// ── Constants ──
+const P = "'Poppins', sans-serif";
+const C = {
+  navy:"#1C2D6E",navyDk:"#141F52",navyMd:"#263A8A",navyLt:"#3B52A5",navyPale:"#EDF0FA",navyBdr:"#C2CAE8",
+  white:"#FFFFFF",bg:"#F0F2F9",ink:"#0E1840",sub:"#4A5580",muted:"#7B85AA",border:"#D8DCF0",faint:"#B0BAD8",
+  green:"#0F7A44",greenPale:"#E8F6EF",greenBdr:"#A8D8BE",amber:"#916200",amberPale:"#FFF8E8",amberBdr:"#E8CC80",gold:"#F5B800",red:"#B02020",
+};
+const BAR_COLORS=["#1C2D6E","#263A8A","#3B52A5","#5068C0","#6A82D5","#8099E0","#2E7D5C","#3DA374","#50C090","#C07010","#D08820","#E0A030","#7040A0","#9060C0","#5090B0","#3B8686","#B05050"];
+
+// ── Tax Data ──
+function calcFederalTax(gross, filing) {
+  if (filing === "mfj") {
+    const taxable = Math.max(0, gross - 32200);
+    const B = [[24800,.10],[100800,.12],[211400,.22],[403550,.24],[512450,.32],[768700,.35],[Infinity,.37]];
+    let tax=0, prev=0;
+    for (const [top,r] of B) { if(taxable<=prev) break; tax+=(Math.min(taxable,top)-prev)*r; prev=top; }
+    return tax;
+  }
+  const taxable = Math.max(0, gross - 16100);
+  const B = [[12400,.10],[50400,.12],[105700,.22],[201775,.24],[256225,.32],[640600,.35],[Infinity,.37]];
+  let tax=0, prev=0;
+  for (const [top,r] of B) { if(taxable<=prev) break; tax+=(Math.min(taxable,top)-prev)*r; prev=top; }
+  return tax;
+}
+
+const STATE_TAX = {"Alabama":{std:3000,brackets:[[500,.02],[3000,.04],[Infinity,.05]]},"Alaska":{std:0,brackets:[[Infinity,0]]},"Arizona":{std:8350,brackets:[[Infinity,.025]]},"Arkansas":{std:2470,brackets:[[4600,.02],[Infinity,.039]]},"California":{std:5540,brackets:[[11079,.01],[26264,.02],[41452,.04],[57542,.06],[72724,.08],[371479,.093],[445771,.103],[742953,.113],[1000000,.123],[Infinity,.133]]},"Colorado":{std:16100,brackets:[[Infinity,.044]]},"Connecticut":{std:0,personal:15000,brackets:[[10000,.02],[50000,.045],[100000,.055],[200000,.06],[250000,.065],[500000,.069],[Infinity,.0699]]},"Delaware":{std:3250,brackets:[[2000,0],[5000,.022],[10000,.039],[20000,.048],[25000,.052],[60000,.055],[Infinity,.066]]},"Florida":{std:0,brackets:[[Infinity,0]]},"Georgia":{std:12000,brackets:[[Infinity,.0519]]},"Hawaii":{std:4400,brackets:[[9600,.014],[14400,.032],[19200,.055],[24000,.064],[36000,.068],[48000,.072],[125000,.076],[175000,.079],[225000,.0825],[275000,.09],[325000,.10],[Infinity,.11]]},"Idaho":{std:16100,brackets:[[4811,0],[Infinity,.053]]},"Illinois":{std:0,personal:2925,brackets:[[Infinity,.0495]]},"Indiana":{std:0,personal:1000,brackets:[[Infinity,.0295]]},"Iowa":{std:16100,brackets:[[Infinity,.038]]},"Kansas":{std:3605,personal:9160,brackets:[[23000,.052],[Infinity,.0558]]},"Kentucky":{std:3360,brackets:[[Infinity,.035]]},"Louisiana":{std:12875,brackets:[[Infinity,.03]]},"Maine":{std:8350,brackets:[[27399,.058],[64849,.0675],[Infinity,.0715]]},"Maryland":{std:3350,personal:3200,brackets:[[1000,.02],[2000,.03],[3000,.04],[100000,.0475],[125000,.05],[150000,.0525],[250000,.055],[500000,.0575],[1000000,.0625],[Infinity,.065]]},"Massachusetts":{std:0,personal:4400,brackets:[[1083150,.05],[Infinity,.09]]},"Michigan":{std:0,personal:5900,brackets:[[Infinity,.0425]]},"Minnesota":{std:15300,brackets:[[33310,.0535],[109430,.068],[203150,.0785],[Infinity,.0985]]},"Mississippi":{std:2300,personal:6000,brackets:[[10000,0],[Infinity,.04]]},"Missouri":{std:16100,brackets:[[1348,0],[2696,.02],[4044,.025],[5392,.03],[6740,.035],[8088,.04],[9436,.045],[Infinity,.047]]},"Montana":{std:16100,brackets:[[47500,.047],[Infinity,.0565]]},"Nebraska":{std:8850,brackets:[[4130,.0246],[24760,.0351],[Infinity,.0455]]},"Nevada":{std:0,brackets:[[Infinity,0]]},"New Hampshire":{std:0,brackets:[[Infinity,0]]},"New Jersey":{std:0,personal:1000,brackets:[[20000,.014],[35000,.0175],[40000,.035],[75000,.0553],[500000,.0637],[1000000,.0897],[Infinity,.1075]]},"New Mexico":{std:16100,brackets:[[5500,.015],[16500,.032],[33500,.043],[66500,.047],[210000,.049],[Infinity,.059]]},"New York":{std:8000,brackets:[[8500,.039],[11700,.044],[13900,.0515],[80650,.054],[215400,.059],[1077550,.0685],[5000000,.0965],[25000000,.103],[Infinity,.109]]},"North Carolina":{std:12750,brackets:[[Infinity,.0399]]},"North Dakota":{std:16100,brackets:[[48475,0],[244825,.0195],[Infinity,.025]]},"Ohio":{std:0,personal:2400,brackets:[[26050,0],[Infinity,.0275]]},"Oklahoma":{std:6350,personal:1000,brackets:[[3750,0],[4900,.025],[7200,.035],[Infinity,.045]]},"Oregon":{std:2910,brackets:[[4550,.0475],[11400,.0675],[125000,.0875],[Infinity,.099]]},"Pennsylvania":{std:0,brackets:[[Infinity,.0307]]},"Rhode Island":{std:11200,personal:5250,brackets:[[82050,.0375],[186450,.0475],[Infinity,.0599]]},"South Carolina":{std:8350,brackets:[[3640,0],[18230,.03],[Infinity,.06]]},"South Dakota":{std:0,brackets:[[Infinity,0]]},"Tennessee":{std:0,brackets:[[Infinity,0]]},"Texas":{std:0,brackets:[[Infinity,0]]},"Utah":{std:0,brackets:[[Infinity,.045]]},"Vermont":{std:7650,personal:5300,brackets:[[49400,.0335],[119700,.066],[249700,.076],[Infinity,.0875]]},"Virginia":{std:8750,personal:930,brackets:[[3000,.02],[5000,.03],[17000,.05],[Infinity,.0575]]},"Washington":{std:0,brackets:[[Infinity,0]]},"West Virginia":{std:0,personal:2000,brackets:[[10000,.0222],[25000,.0296],[40000,.0333],[60000,.0444],[Infinity,.0482]]},"Wisconsin":{std:13960,brackets:[[15110,.035],[51950,.044],[332720,.053],[Infinity,.0765]]},"Wyoming":{std:0,brackets:[[Infinity,0]]},"Washington D.C.":{std:16100,brackets:[[10000,.04],[40000,.06],[60000,.065],[250000,.085],[500000,.0925],[1000000,.0975],[Infinity,.1075]]}};
+
+const CITY_TAX = {"Birmingham, AL":{state:"Alabama",flat:.01},"Bessemer, AL":{state:"Alabama",flat:.01},"Gadsden, AL":{state:"Alabama",flat:.02},"Louisville":{state:"Kentucky",flat:.022},"Lexington":{state:"Kentucky",flat:.0225},"Covington, KY":{state:"Kentucky",flat:.025},"Newport, KY":{state:"Kentucky",flat:.025},"Bowling Green, KY":{state:"Kentucky",flat:.0185},"Owensboro, KY":{state:"Kentucky",flat:.015},"Florence, KY":{state:"Kentucky",flat:.02},"Baltimore":{state:"Maryland",flat:.032},"Anne Arundel Co.":{state:"Maryland",flat:.0281},"Baltimore Co.":{state:"Maryland",flat:.032},"Frederick Co.":{state:"Maryland",flat:.0296},"Harford Co.":{state:"Maryland",flat:.0306},"Howard Co.":{state:"Maryland",flat:.032},"Montgomery Co.":{state:"Maryland",flat:.032},"Prince George's Co.":{state:"Maryland",flat:.032},"Worcester Co.":{state:"Maryland",flat:.0225},"Detroit":{state:"Michigan",flat:.024},"Grand Rapids":{state:"Michigan",flat:.015},"Highland Park, MI":{state:"Michigan",flat:.02},"Saginaw":{state:"Michigan",flat:.015},"Lansing":{state:"Michigan",flat:.01},"Flint":{state:"Michigan",flat:.01},"Jackson, MI":{state:"Michigan",flat:.01},"Battle Creek":{state:"Michigan",flat:.01},"Pontiac":{state:"Michigan",flat:.01},"Muskegon":{state:"Michigan",flat:.01},"East Lansing":{state:"Michigan",flat:.01},"Port Huron":{state:"Michigan",flat:.01},"Walker, MI":{state:"Michigan",flat:.01},"Kansas City":{state:"Missouri",flat:.01},"St. Louis":{state:"Missouri",flat:.01},"Newark, NJ":{state:"New Jersey",flat:.01},"New York City":{state:"New York",brackets:[[12000,.03078],[25000,.03762],[50000,.03819],[Infinity,.03876]]},"Yonkers":{state:"New York",flat:.016975},"Columbus":{state:"Ohio",flat:.025},"Cleveland":{state:"Ohio",flat:.02},"Cincinnati":{state:"Ohio",flat:.018},"Toledo":{state:"Ohio",flat:.0225},"Akron":{state:"Ohio",flat:.025},"Dayton":{state:"Ohio",flat:.025},"Canton":{state:"Ohio",flat:.025},"Youngstown":{state:"Ohio",flat:.0275},"Parma":{state:"Ohio",flat:.025},"Lorain":{state:"Ohio",flat:.025},"Hamilton, OH":{state:"Ohio",flat:.02},"Springfield, OH":{state:"Ohio",flat:.02},"Mansfield, OH":{state:"Ohio",flat:.02},"Lima, OH":{state:"Ohio",flat:.015},"Newark, OH":{state:"Ohio",flat:.015},"Zanesville":{state:"Ohio",flat:.02},"Portland, OR":{state:"Oregon",flat:.01},"Philadelphia":{state:"Pennsylvania",flat:.038809},"Pittsburgh":{state:"Pennsylvania",flat:.03},"Reading, PA":{state:"Pennsylvania",flat:.036},"Scranton":{state:"Pennsylvania",flat:.034},"Wilkes-Barre":{state:"Pennsylvania",flat:.03},"Allentown":{state:"Pennsylvania",flat:.0185},"Bethlehem, PA":{state:"Pennsylvania",flat:.0185},"Erie, PA":{state:"Pennsylvania",flat:.0165},"Harrisburg":{state:"Pennsylvania",flat:.02},"Lancaster, PA":{state:"Pennsylvania",flat:.0185},"York, PA":{state:"Pennsylvania",flat:.0185},"Indianapolis":{state:"Indiana",flat:.02},"Fort Wayne":{state:"Indiana",flat:.015},"Evansville, IN":{state:"Indiana",flat:.012},"South Bend":{state:"Indiana",flat:.0175}};
+
+const CITIES_BY_STATE = {};
+Object.entries(CITY_TAX).forEach(([city,{state}]) => {
+  (CITIES_BY_STATE[state] = CITIES_BY_STATE[state]||[]).push(city);
+});
+
+function calcStateTax(gross, name) {
+  const s=STATE_TAX[name]; if(!s) return 0;
+  const taxable=Math.max(0, gross-(s.std||0)-(s.personal||0));
+  let tax=0, prev=0;
+  for(const [top,r] of s.brackets){if(taxable<=prev)break; tax+=(Math.min(taxable,top)-prev)*r; prev=top;}
+  return tax;
+}
+function calcCityTax(gross, city) {
+  if(!city) return 0;
+  const c=CITY_TAX[city]; if(!c) return 0;
+  if(c.flat) return gross*c.flat;
+  let tax=0,prev=0;
+  for(const [top,r] of c.brackets){if(gross<=prev)break; tax+=(Math.min(gross,top)-prev)*r; prev=top;}
+  return tax;
+}
+
+const STATES = Object.keys(STATE_TAX).sort();
+const fmt = n => "$"+Math.round(n).toLocaleString();
+const pct = (a,b) => b>0?(a/b*100).toFixed(1)+"%" : "0%";
+
+const COL = {"Alabama":[0.70,0.88],"Alaska":[1.30,1.22],"Arizona":[1.05,1.08],"Arkansas":[0.72,0.89],"California":[2.10,1.32],"Colorado":[1.18,1.02],"Connecticut":[1.30,1.10],"Delaware":[1.05,1.00],"Florida":[1.10,1.01],"Georgia":[0.88,0.92],"Hawaii":[3.15,1.65],"Idaho":[0.98,0.99],"Illinois":[0.90,0.94],"Indiana":[0.78,0.91],"Iowa":[0.76,0.90],"Kansas":[0.73,0.88],"Kentucky":[0.75,0.92],"Louisiana":[0.80,0.92],"Maine":[1.12,1.10],"Maryland":[1.25,1.13],"Massachusetts":[1.75,1.30],"Michigan":[0.80,0.90],"Minnesota":[0.90,0.94],"Mississippi":[0.66,0.87],"Missouri":[0.78,0.89],"Montana":[0.96,0.95],"Nebraska":[0.80,0.92],"Nevada":[1.02,1.00],"New Hampshire":[1.20,1.09],"New Jersey":[1.35,1.13],"New Mexico":[0.84,0.93],"New York":[1.60,1.22],"North Carolina":[0.88,0.97],"North Dakota":[0.82,0.91],"Ohio":[0.76,0.94],"Oklahoma":[0.70,0.86],"Oregon":[1.20,1.10],"Pennsylvania":[0.92,0.97],"Rhode Island":[1.20,1.08],"South Carolina":[0.86,0.94],"South Dakota":[0.80,0.92],"Tennessee":[0.82,0.90],"Texas":[0.88,0.92],"Utah":[1.05,1.01],"Vermont":[1.15,1.11],"Virginia":[1.05,1.00],"Washington":[1.30,1.12],"Washington D.C.":[2.00,1.35],"West Virginia":[0.68,0.88],"Wisconsin":[0.82,0.97],"Wyoming":[0.88,0.93]};
+
+const CITY_HOUSING_PREMIUM = {"New York City":2.20,"Yonkers":1.30,"Philadelphia":1.10,"Pittsburgh":0.85,"Detroit":0.65,"Grand Rapids":0.90,"Baltimore":1.15,"Montgomery Co.":1.40,"Howard Co.":1.35,"Prince George's Co.":1.05,"Kansas City":0.90,"St. Louis":0.80,"Columbus":0.88,"Cleveland":0.75,"Cincinnati":0.85,"Toledo":0.70,"Akron":0.70,"Dayton":0.65,"Portland, OR":1.30,"Louisville":0.80,"Lexington":0.85,"Indianapolis":0.80,"Fort Wayne":0.70,"South Bend":0.65,"Reading, PA":0.70,"Scranton":0.65,"Erie, PA":0.60,"Newark, NJ":1.05};
+
+function getMultipliers(stateName, cityName) {
+  const base = COL[stateName] || [1.0, 1.0];
+  let housing = base[0];
+  const general = base[1];
+  if (cityName && CITY_HOUSING_PREMIUM[cityName]) housing = housing * CITY_HOUSING_PREMIUM[cityName];
+  return { housing, general };
+}
+
+const r5 = n => Math.round(n / 5) * 5;
+const MORTGAGE_ADDERS = { modest:800, comfortable:1200, upscale:2000, luxury:3500 };
+const SPOUSE_ADDERS = {housing:0,homeCare:0,car:0.60,food:0.50,healthcare:1.00,fitness:0.75,therapy:1.00,lifestyle:0.30,vacation:0.50,clothing:1.00,personalCare:1.00,streaming:0.25,gifts:0.30};
+const CHILD_ADDERS = { food:300, healthcare:250, clothing:100, personalCare:50, streaming:50 };
+
+const TIERS = {
+  housingOwn:{modest:{label:"Modest",sub:"Smaller home, lower-cost area",eg:"3BR ranch in a mid-size Midwest city",base:900},comfortable:{label:"Comfortable",sub:"Mid-size home, suburban area",eg:"4BR colonial in a nice suburb",base:1600},upscale:{label:"Upscale",sub:"Large home in a desirable area",eg:"5BR in a premier suburb or coastal town",base:2800},luxury:{label:"Luxury",sub:"Estate, penthouse, resort home",eg:"Oceanfront home or gated community",base:6000}},
+  housingRent:{modest:{label:"Modest",sub:"Studio/1BR in affordable area",eg:"Cozy 1BR in a mid-tier city",base:1100},comfortable:{label:"Comfortable",sub:"1\u20132BR in a mid-tier city",eg:"Modern 2BR in a walkable neighborhood",base:1800},upscale:{label:"Upscale",sub:"2\u20133BR in a desirable area",eg:"Renovated 3BR near beach or downtown",base:3200},luxury:{label:"Luxury",sub:"Full-service, premium location",eg:"White-glove doorman building in a top city",base:7000}},
+  homeCare:{none:{label:"None",sub:"DIY everything",eg:"Mow your own lawn, clean yourself",base:0},basic:{label:"Basic",sub:"Lawn care + occasional cleaning",eg:"Biweekly maid, monthly lawn service",base:250},full:{label:"Full-Service",sub:"Housekeeper, landscaper, handyman",eg:"Weekly cleaning, full yard care, repairs",base:600},premium:{label:"Premium",sub:"Full staff or concierge service",eg:"Daily housekeeper, pool service, gardener",base:1500}},
+  carOwn:{none:{label:"No Car",sub:"Transit, Uber & walking",eg:"Walkable city, no car at all",base:200},economy:{label:"Economy",sub:"Paid-off older reliable vehicle",eg:"10-yr-old Camry \u2014 just gas, insurance, maintenance",base:350},midrange:{label:"Mid-Range",sub:"Financed mainstream vehicle",eg:"New Honda CR-V with a 5-year loan",base:650},luxury:{label:"Luxury",sub:"Premium vehicle, full coverage",eg:"BMW 5-Series or Mercedes E-Class",base:1200},ultra:{label:"Ultra",sub:"Multiple or exotic vehicles",eg:"Porsche + daily driver",base:2800}},
+  carLease:{none:{label:"No Car",sub:"Transit, Uber & walking",eg:"Walkable city, no car at all",base:200},economy:{label:"Economy",sub:"Basic lease + insurance & gas",eg:"Leased Corolla or Civic",base:500},midrange:{label:"Mid-Range",sub:"Mid-tier lease + insurance & gas",eg:"Leased RAV4 or CR-V",base:800},luxury:{label:"Luxury",sub:"Premium lease, full coverage",eg:"Leased BMW 5-Series or Audi A6",base:1500},ultra:{label:"Ultra",sub:"Multiple or exotic leases",eg:"Leased Porsche + daily driver",base:3500}},
+  food:{frugal:{label:"Frugal",sub:"Primarily cooking at home",eg:"Farmers market, occasional takeout",base:350},balanced:{label:"Balanced",sub:"Home cooking + dining out",eg:"3\u20134 restaurant meals per week",base:600},social:{label:"Social",sub:"Frequent dining & delivery",eg:"Daily coffee shops, regular fine dining",base:1000},luxury:{label:"Luxury",sub:"High-end restaurants, premium food",eg:"Michelin-starred meals, private chef nights",base:2500}},
+  fitness:{none:{label:"None",sub:"Parks, walks, outdoor only",eg:"Free trails and outdoor activities",base:0},basic:{label:"Basic",sub:"Standard gym or YMCA",eg:"Planet Fitness or local rec center",base:50},premium:{label:"Premium",sub:"High-end gym + trainer",eg:"Equinox + weekly trainer sessions",base:550},luxury:{label:"Luxury",sub:"Country club, spa, coaching",eg:"Golf club membership + weekly massage",base:1200}},
+  therapy:{none:{label:"None",sub:"No regular therapy",eg:"",base:0},occasional:{label:"Occasional",sub:"~2x per month",eg:"Biweekly check-ins",base:400},regular:{label:"Regular",sub:"Weekly sessions",eg:"Standard weekly therapy",base:800}},
+  lifestyle:{minimal:{label:"Minimal",sub:"Simple hobbies, local activities",eg:"Reading, gardening, local events",base:300},active:{label:"Active",sub:"Regular hobbies & experiences",eg:"Golf, concerts, sports tickets",base:800},abundant:{label:"Abundant",sub:"Rich & frequent experiences",eg:"Season tickets, theatre, wine club",base:1800},luxury:{label:"Luxury",sub:"Premium experiences without limits",eg:"Private events, yacht club, art collecting",base:5000}},
+  vacation:{none:{label:"None",sub:"No planned travel",eg:"",base:0},domestic:{label:"Domestic",sub:"1\u20132 US trips/year",eg:"Road trips, national parks, family visits",base:300},international:{label:"International",sub:"1\u20132 intl trips/year",eg:"Europe or Caribbean once a year",base:700},frequent:{label:"Frequent",sub:"Multiple premium trips",eg:"Business class, 3\u20134 trips, luxury hotels",base:2500},luxury:{label:"Luxury",sub:"First-class, private travel",eg:"Private jets, yacht charters, villa rentals",base:8000}},
+  streaming:{minimal:{label:"Basic",sub:"Phone, internet & 1\u20132 streaming services",eg:"Phone bill + Netflix or one other service",base:120},standard:{label:"Standard",sub:"Phone, internet, streaming bundle & music",eg:"Phone, home internet, Netflix/Hulu/HBO, Spotify, NYT",base:250},full:{label:"Connected",sub:"Full suite: streaming, software, cloud",eg:"All streaming + Adobe/software subs + cloud storage upgrades",base:400},luxury:{label:"Tech-Forward",sub:"Premium devices, services, smart home",eg:"Latest iPhone, smart home devices, all services, device upgrades",base:700}},
+  gifts:{minimal:{label:"Minimal",sub:"Close family only",eg:"Christmas and birthdays for immediate family",base:50},generous:{label:"Generous",sub:"Family & friends, holidays",eg:"Thoughtful gifts for ~15 people/year",base:400},lavish:{label:"Lavish",sub:"Frequent & generous giving",eg:"Luxury gifts, surprise trips for loved ones",base:1200}},
+  clothing:{minimal:{label:"Minimal",sub:"Basics & replacements only",eg:"Replace worn items, thrift shops",base:75},moderate:{label:"Moderate",sub:"Seasonal wardrobe updates",eg:"A few new outfits each season",base:200},stylish:{label:"Stylish",sub:"Regular shopping, quality brands",eg:"Department stores, name brands",base:500},luxury:{label:"Luxury",sub:"Designer, tailored, high-end",eg:"Designer labels, custom tailoring",base:1200}},
+  personalCare:{minimal:{label:"Minimal",sub:"Basics \u2014 haircuts & hygiene",eg:"Great Clips, drugstore products",base:50},moderate:{label:"Moderate",sub:"Regular grooming & products",eg:"Salon haircuts, quality skincare",base:150},premium:{label:"Premium",sub:"Spa visits, premium products",eg:"Monthly facials, premium brands",base:400},luxury:{label:"Luxury",sub:"Full personal care regimen",eg:"Weekly spa, dermatologist, luxury products",base:900}},
+  pets:{none:{label:"No Pets",sub:"No pet expenses",eg:"",base:0},basic:{label:"Basic",sub:"One low-maintenance pet",eg:"Cat or small dog \u2014 food, litter, annual vet",base:150},premium:{label:"Premium",sub:"One or more pets, quality care",eg:"Dog with grooming, insurance, quality food",base:350},luxury:{label:"Luxury",sub:"Multiple pets or premium services",eg:"Dog walker, pet insurance, boarding, specialty vet",base:700}},
+  charity:{none:{label:"None",sub:"No planned giving",pct:0},occasional:{label:"~1%",sub:"Occasional giving",pct:.01},intentional:{label:"~5%",sub:"Intentional giving",pct:.05},tithing:{label:"~10%",sub:"Tithing",pct:.10}},
+};
+
+const STEP_NAMES = ["Welcome","Household","Location","Housing","Transportation","Food","Healthcare","Wellness","Lifestyle","Pets","Appearance","Technology","Giving","Results"];
+const LAST_INPUT = STEP_NAMES.length - 2;
+const RESULTS_STEP = STEP_NAMES.length - 1;
+
+// ── App State ──
+let step = 0;
+let form = getInitialForm();
+
+function getInitialForm() {
+  return {
+    name:"", household:"single", numDependents:1,
+    retireState:"", retireCity:"",
+    housingType:"own", mortgagePaidOff:"yes", housingTier:"comfortable", housingAmt:"",
+    homeCareTier:"none", homeCareAmt:"",
+    carType:"own", carTier:"midrange", carAmt:"",
+    foodTier:"balanced", foodAmt:"",
+    healthcareAmt:833,
+    fitnessTier:"basic", fitnessAmt:"",
+    therapyTier:"none", therapyAmt:"",
+    lifestyleTier:"active", lifestyleAmt:"",
+    vacationTier:"domestic", vacationAmt:"",
+    clothingTier:"moderate", clothingAmt:"",
+    personalCareTier:"moderate", personalCareAmt:"",
+    petsTier:"none", petsAmt:"",
+    streamTier:"standard", streamAmt:"",
+    giftsTier:"generous", giftsAmt:"",
+    charityTier:"occasional",
+  };
+}
+
+function setField(k, v) { form[k] = v; }
+
+// ── Derived state helpers ──
+function hasSpouse() { return form.household==="couple"||form.household==="family"; }
+function numChildren() { return form.household==="family"?(parseInt(form.numDependents)||1):0; }
+function filing() { return hasSpouse()?"mfj":"single"; }
+function getHousingBase(tierKey,housingType,mortgagePaidOff) {
+  const tierSet=housingType==="own"?TIERS.housingOwn:TIERS.housingRent;
+  let base=tierSet[tierKey]?.base||0;
+  if(housingType==="own"&&mortgagePaidOff==="no") base+=(MORTGAGE_ADDERS[tierKey]||0);
+  return base;
+}
+function getCarTiers() { return form.carType==="lease"?TIERS.carLease:TIERS.carOwn; }
+function householdLabel() {
+  const nc = numChildren();
+  return form.household==="single"?"Individual":form.household==="couple"?"Couple":`Family (2 adults + ${nc} dependent${nc>1?"s":""})`;
+}
+function incomeLabel() { return form.household==="single"?"Required Annual Retirement Income":"Required Household Retirement Income"; }
+
+function applyTierDefaults() {
+  const {housing:hm, general:gm} = getMultipliers(form.retireState, form.retireCity);
+  const hBase = getHousingBase(form.housingTier, form.housingType, form.mortgagePaidOff);
+  const carT = form.carType==="lease"?TIERS.carLease:TIERS.carOwn;
+  form.housingAmt = hBase>0?r5(hBase*hm):0;
+  form.homeCareAmt = TIERS.homeCare[form.homeCareTier]?.base??0;
+  form.foodAmt = r5((TIERS.food[form.foodTier]?.base||0)*gm);
+  form.fitnessAmt = r5((TIERS.fitness[form.fitnessTier]?.base||0)*gm);
+  form.lifestyleAmt = r5((TIERS.lifestyle[form.lifestyleTier]?.base||0)*gm);
+  form.clothingAmt = r5((TIERS.clothing[form.clothingTier]?.base||0)*gm);
+  form.personalCareAmt = r5((TIERS.personalCare[form.personalCareTier]?.base||0)*gm);
+  form.petsAmt = TIERS.pets[form.petsTier]?.base??0;
+  form.carAmt = carT[form.carTier]?.base??0;
+  form.therapyAmt = TIERS.therapy[form.therapyTier]?.base??0;
+  form.vacationAmt = TIERS.vacation[form.vacationTier]?.base??0;
+  form.streamAmt = TIERS.streaming[form.streamTier]?.base??0;
+  form.giftsAmt = TIERS.gifts[form.giftsTier]?.base??0;
+}
+
+function calcResults() {
+  const base = {housing:parseFloat(form.housingAmt)||0,homeCare:parseFloat(form.homeCareAmt)||0,car:parseFloat(form.carAmt)||0,food:parseFloat(form.foodAmt)||0,healthcare:parseFloat(form.healthcareAmt)||0,fitness:parseFloat(form.fitnessAmt)||0,therapy:parseFloat(form.therapyAmt)||0,lifestyle:parseFloat(form.lifestyleAmt)||0,vacation:parseFloat(form.vacationAmt)||0,streaming:parseFloat(form.streamAmt)||0,gifts:parseFloat(form.giftsAmt)||0,clothing:parseFloat(form.clothingAmt)||0,personalCare:parseFloat(form.personalCareAmt)||0,pets:parseFloat(form.petsAmt)||0};
+  const mo = {...base};
+  if(hasSpouse()){for(const [key,pctA] of Object.entries(SPOUSE_ADDERS)){if(mo[key]!==undefined)mo[key]=Math.round(mo[key]*(1+pctA));}}
+  const nc = numChildren();
+  if(nc>0){for(const [key,flatA] of Object.entries(CHILD_ADDERS)){if(mo[key]!==undefined)mo[key]+=flatA*nc;}}
+  const annual = Object.values(mo).reduce((a,b)=>a+b,0)*12;
+  const cPct = TIERS.charity[form.charityTier].pct||0;
+  const f = filing();
+  let gross = annual*1.5;
+  for(let i=0;i<20;i++){const fed=calcFederalTax(gross,f),st=calcStateTax(gross,form.retireState),ct=calcCityTax(gross,form.retireCity),ch=gross*cPct;gross=annual+fed+st+ct+ch;}
+  gross = Math.ceil(gross/500)*500;
+  const fedTax=calcFederalTax(gross,f),stateTax=calcStateTax(gross,form.retireState),cityTax=calcCityTax(gross,form.retireCity),charity=gross*cPct;
+  return {gross,fedTax,stateTax,cityTax,charity,takeHome:gross-fedTax-stateTax-cityTax-charity,mo,base,cPct};
+}
+
+// ── HTML Helpers ──
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function pillHtml(text) {
+  return `<div style="display:inline-flex;align-items:center;gap:7px;background:${C.navyPale};border:1px solid ${C.navyBdr};border-radius:20px;padding:5px 14px;margin-bottom:18px"><div style="width:7px;height:7px;border-radius:50%;background:${C.navyMd};flex-shrink:0"></div><span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${C.navyMd}">${esc(text)}</span></div>`;
+}
+
+function noteHtml(content, type="blue") {
+  const map = {blue:{bg:C.navyPale,bdr:C.navyBdr,txt:C.navy,icon:"\u2139"},amber:{bg:C.amberPale,bdr:C.amberBdr,txt:C.amber,icon:"\u26A0"},green:{bg:C.greenPale,bdr:C.greenBdr,txt:C.green,icon:"\u2713"}};
+  const m = map[type]||map.blue;
+  return `<div style="display:flex;gap:11px;background:${m.bg};border:1px solid ${m.bdr};border-radius:10px;padding:13px 16px;margin-bottom:18px"><span style="font-size:14px;color:${m.txt};flex-shrink:0;margin-top:1px">${m.icon}</span><div style="font-size:12.5px;color:${m.txt};line-height:1.75;font-weight:400">${content}</div></div>`;
+}
+
+function labelHtml(text) {
+  return `<div style="font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:${C.sub};margin-bottom:8px">${text}</div>`;
+}
+
+function inputHtml(fieldKey, placeholder="0", dollar=true) {
+  const val = form[fieldKey] !== undefined && form[fieldKey] !== "" ? form[fieldKey] : "";
+  return `<div style="position:relative">${dollar?`<span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);color:${C.faint};font-size:14px;pointer-events:none">$</span>`:''}<input type="number" value="${esc(String(val))}" placeholder="${esc(placeholder)}" data-field="${esc(fieldKey)}" style="width:100%;box-sizing:border-box;background:${C.white};border:1.5px solid ${C.border};border-radius:8px;color:${C.ink};font-size:14px;padding:${dollar?'11px 13px 11px 28px':'11px 13px'};outline:none;font-weight:400;transition:border-color .18s"/></div>`;
+}
+
+function selectHtml(fieldKey, options) {
+  let html = `<div style="position:relative"><select data-field="${esc(fieldKey)}" style="width:100%;box-sizing:border-box;appearance:none;background:${C.white};border:1.5px solid ${C.border};border-radius:8px;color:${C.ink};font-size:14px;padding:11px 36px 11px 13px;outline:none;font-weight:400;cursor:pointer;transition:border-color .18s">`;
+  for (const opt of options) {
+    html += `<option value="${esc(opt.value)}"${form[fieldKey]===opt.value?' selected':''}>${esc(opt.label)}</option>`;
+  }
+  html += `</select><span style="position:absolute;right:13px;top:50%;transform:translateY(-50%);pointer-events:none;color:${C.muted};font-size:12px">\u25BE</span></div>`;
+  return html;
+}
+
+function hintHtml(text) {
+  return `<div style="font-size:11px;color:${C.faint};margin-top:5px;line-height:1.5">${text}</div>`;
+}
+
+function tierBtnHtml(tierKey, fieldKey, t, selected, hint, cols) {
+  return `<div data-tier="${esc(tierKey)}" data-tierfield="${esc(fieldKey)}" style="border:2px solid ${selected?C.navyMd:C.border};background:${selected?C.navyPale:C.white};border-radius:10px;padding:13px 14px;cursor:pointer;transition:all .15s;box-shadow:${selected?`0 0 0 3px ${C.navyBdr}`:'none'}"><div style="font-size:13px;font-weight:600;color:${selected?C.navy:C.ink};margin-bottom:2px">${esc(t.label)}</div><div style="font-size:11px;color:${C.sub};line-height:1.4">${esc(t.sub)}</div>${t.eg?`<div style="font-size:10px;color:${selected?C.navyLt:C.faint};font-style:italic;margin-top:4px;line-height:1.35">${esc(t.eg)}</div>`:''}${hint?`<div style="font-size:11px;font-weight:600;color:${selected?C.navyMd:C.muted};margin-top:6px">${esc(hint)}</div>`:''}</div>`;
+}
+
+function tierGridHtml(tiersObj, fieldKey, cols, mult) {
+  mult = mult || 1.0;
+  const entries = Object.entries(tiersObj);
+  const actualCols = Math.min(cols||4, entries.length);
+  let html = `<div style="display:grid;grid-template-columns:repeat(${actualCols},1fr);gap:10px;margin-bottom:14px">`;
+  for (const [k,t] of entries) {
+    const adjustedBase = t.base!==undefined&&t.base>0?r5(t.base*mult):t.base;
+    const hint = adjustedBase!==undefined&&adjustedBase>0?`~${fmt(adjustedBase)}/mo`:adjustedBase===0?"Free":t.pct!=null?`${(t.pct*100).toFixed(0)}% of income`:undefined;
+    html += tierBtnHtml(k, fieldKey, t, form[fieldKey]===k, hint, actualCols);
+  }
+  html += '</div>';
+  return html;
+}
+
+function housingTierGridHtml() {
+  const tierSet = form.housingType==="own"?TIERS.housingOwn:TIERS.housingRent;
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  let html = `<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px">`;
+  for (const [k,t] of Object.entries(tierSet)) {
+    const eb = getHousingBase(k, form.housingType, form.mortgagePaidOff);
+    const adj = eb>0?r5(eb*mults.housing):0;
+    const hint = adj>0?`~${fmt(adj)}/mo`:"Free";
+    html += tierBtnHtml(k, "housingTier", t, form.housingTier===k, hint, 2);
+  }
+  html += '</div>';
+  return html;
+}
+
+// ── Step Renderers ──
+function renderStep0() {
+  return pillHtml("Getting Started")
+    + `<h1 style="font-size:28px;font-weight:700;color:${C.ink};margin:0 0 10px;line-height:1.25">What income do you need<br/>in retirement?</h1>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 22px;line-height:1.75">Figure out how much gross income your household needs in retirement \u2014 based on where you live, how you spend, and 2026 tax brackets.</p>`
+    + noteHtml("We'll walk you through each spending category. Pick the lifestyle level that fits, and we'll do the math \u2014 including taxes.")
+    + labelHtml("Your First Name (optional)")
+    + `<input value="${esc(form.name)}" data-field="name" placeholder="e.g. Jordan" style="width:100%;border:1.5px solid ${C.border};border-radius:8px;color:${C.ink};font-size:14px;padding:11px 13px;outline:none;background:${C.white}"/>`;
+}
+
+function renderStep1() {
+  let html = pillHtml("Household")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Who are you planning for?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 22px;line-height:1.75">Tell us your household size. You'll enter your own lifestyle preferences \u2014 we'll scale the total automatically.</p>`
+    + `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">`;
+  const hhOpts = [{k:"single",label:"Just Me",sub:"Single person",eg:"Only planning for yourself"},{k:"couple",label:"Me + Spouse/Partner",sub:"Two adults, one household",eg:"Shared housing, separate personal costs"},{k:"family",label:"Spouse + Dependents",sub:"Includes a spouse/partner AND dependents",eg:"Supporting adult children, aging parents, etc."}];
+  for (const o of hhOpts) {
+    html += tierBtnHtml(o.k, "household", o, form.household===o.k, undefined, 3);
+  }
+  html += '</div>';
+  if (form.household==="family") {
+    html += `<div style="margin-top:10px">${labelHtml("How many dependents beyond your spouse?")}<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">`;
+    for (const n of [1,2,3]) {
+      html += `<div data-tier="${n}" data-tierfield="numDependents" style="border:2px solid ${form.numDependents===n?C.navyMd:C.border};background:${form.numDependents===n?C.navyPale:C.white};border-radius:10px;padding:13px 14px;cursor:pointer;transition:all .15s;box-shadow:${form.numDependents===n?`0 0 0 3px ${C.navyBdr}`:'none'}"><div style="font-size:13px;font-weight:600;color:${form.numDependents===n?C.navy:C.ink};margin-bottom:2px">${n===3?"3+":n}</div><div style="font-size:11px;color:${C.sub};line-height:1.4">${n===1?"One dependent":n===2?"Two dependents":"Three or more"}</div></div>`;
+    }
+    html += '</div></div>';
+  }
+  if (form.household!=="single") {
+    let noteContent = `<strong>How it works:</strong> Enter your own preferences \u2014 we'll scale for your household automatically.`;
+    if (hasSpouse()) noteContent += ` Spouse adds to per-person costs (healthcare, clothing, therapy) and partially to shared costs (food, transportation). Housing stays the same.`;
+    if (numChildren()>0) noteContent += ` Each dependent adds $300 food, $250 healthcare, $100 clothing, $50 personal care, $50 tech per month.`;
+    html += noteHtml(noteContent, "blue");
+  }
+  if (hasSpouse()) {
+    html += noteHtml(`Tax filing set to <strong>Married Filing Jointly</strong> (bigger brackets, $32,200 standard deduction).`, "green");
+  }
+  return html;
+}
+
+function renderStep2() {
+  let html = pillHtml("Location")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Where will you retire?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 22px;line-height:1.75">Your state and city determine how much of your income goes to taxes.</p>`
+    + labelHtml("Retirement State");
+  const stateOpts = [{value:"",label:"Select state\u2026"}].concat(STATES.map(s=>({value:s,label:s})));
+  html += selectHtml("retireState", stateOpts);
+  if (form.retireState) {
+    const hasNoTax = STATE_TAX[form.retireState]?.brackets?.every(([,r])=>r===0);
+    const top = STATE_TAX[form.retireState]?.brackets?.slice(-1)[0]?.[1];
+    const bracketCount = STATE_TAX[form.retireState]?.brackets?.filter(([,r])=>r>0).length||0;
+    const colIdx = COL[form.retireState]?Math.round(COL[form.retireState][1]*100):100;
+    const housingIdx = COL[form.retireState]?Math.round(COL[form.retireState][0]*100):100;
+    const colDesc = colIdx>=115?"significantly above":colIdx>=105?"above":colIdx<=85?"significantly below":colIdx<=95?"below":"near";
+    if (hasNoTax) {
+      html += noteHtml(`<strong>${esc(form.retireState)}</strong> has <strong>no state income tax</strong> \u2014 your tax bill here will only include federal (and city, if applicable). \uD83C\uDF89`, "green");
+    } else {
+      html += noteHtml(`<strong>${esc(form.retireState)}</strong> uses a <strong>progressive ${bracketCount}-bracket system</strong> with a top marginal rate of <strong>${(top*100).toFixed(2)}%</strong>.`, "blue");
+    }
+    html += noteHtml(`<strong>Cost of living:</strong> ${esc(form.retireState)} is <strong>${colDesc} the national average</strong> (general: ${colIdx} \u00B7 housing: ${housingIdx}, where 100 = US avg). Tier estimates will reflect local costs.`, "blue");
+    const cities = CITIES_BY_STATE[form.retireState]||[];
+    if (cities.length>0) {
+      html += `<div style="margin-top:18px">${labelHtml("Living in one of these cities? (adds city income tax)")}`;
+      const cityOpts = [{value:"",label:"No city tax / outside these cities"}].concat(cities.map(c=>({value:c,label:`${c} (${CITY_TAX[c].flat?(CITY_TAX[c].flat*100).toFixed(3)+"%":"progressive"})`})));
+      html += selectHtml("retireCity", cityOpts) + '</div>';
+    }
+  }
+  return html;
+}
+
+function renderStep3() {
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  const sp = hasSpouse();
+  let html = pillHtml("Housing")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Where will you live?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">Typically your biggest retirement expense.${sp?" Housing is shared \u2014 no extra cost for your spouse.":""}</p>`
+    + labelHtml("Own or rent?")
+    + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">`;
+  html += tierBtnHtml("own","housingType",{label:"Own a Home",sub:"Property taxes, maintenance, insurance",eg:""},form.housingType==="own",undefined,2);
+  html += tierBtnHtml("rent","housingType",{label:"Rent",sub:"Monthly rent payments",eg:""},form.housingType==="rent",undefined,2);
+  html += '</div>';
+  if (form.housingType==="own") {
+    html += `<div style="margin-bottom:20px">${labelHtml("Mortgage paid off?")}<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">`;
+    html += tierBtnHtml("yes","mortgagePaidOff",{label:"Paid Off",sub:"Taxes, insurance & maintenance only",eg:""},form.mortgagePaidOff==="yes",undefined,2);
+    html += tierBtnHtml("no","mortgagePaidOff",{label:"Still Paying",sub:"Mortgage + taxes, insurance & maintenance",eg:""},form.mortgagePaidOff==="no",undefined,2);
+    html += '</div></div>';
+  }
+  html += labelHtml(`Lifestyle level${form.retireState?`<span style="margin-left:8px;font-size:10px;font-weight:600;background:${C.navyPale};color:${C.navyMd};border:1px solid ${C.navyBdr};border-radius:10px;padding:2px 8px;vertical-align:middle">\uD83D\uDCCD ${esc(form.retireState)}</span>`:''}`)
+    + housingTierGridHtml()
+    + labelHtml("Monthly housing cost")
+    + inputHtml("housingAmt")
+    + hintHtml(form.housingType==="own"?(form.mortgagePaidOff==="yes"?"Includes property taxes, insurance, HOA, and maintenance":"Includes mortgage payment, property taxes, insurance, HOA, and maintenance"):"Monthly rent including utilities and renter's insurance")
+    + `<div style="margin-top:26px">${labelHtml("Home Care (housekeeper, landscaper, handyman)")}`
+    + tierGridHtml(TIERS.homeCare, "homeCareTier", 2, 1.0)
+    + inputHtml("homeCareAmt")
+    + hintHtml("Cleaning, lawn care, pool service, handyman, snow removal, etc.")
+    + '</div>';
+  return html;
+}
+
+function renderStep4() {
+  const sp = hasSpouse();
+  let html = pillHtml("Transportation")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">How will you get around?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">Each tier covers everything: payment, fuel, insurance, and upkeep.${sp?" Spouse car costs (+60%) added in results.":""}</p>`
+    + labelHtml("Own or lease?")
+    + `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px">`;
+  html += tierBtnHtml("own","carType",{label:"Own",sub:"Purchase/finance \u2014 lower monthly once paid off",eg:""},form.carType==="own",undefined,2);
+  html += tierBtnHtml("lease","carType",{label:"Lease",sub:"Higher monthly \u2014 always driving something new",eg:""},form.carType==="lease",undefined,2);
+  html += '</div>';
+  html += noteHtml(`All tiers include <strong>fuel, insurance, maintenance, and ${form.carType==="own"?"loan payment (if any)":"lease payment"}</strong> in one number.`, "blue");
+  html += tierGridHtml(getCarTiers(), "carTier", 3, 1.0);
+  html += labelHtml(`Monthly transportation budget (all-in)${sp?" \u2014 your vehicle":""}`)
+    + inputHtml("carAmt")
+    + hintHtml(`Includes ${form.carType==="own"?"payment/loan":"lease payment"}, insurance, fuel, maintenance, and occasional rideshare`);
+  return html;
+}
+
+function renderStep5() {
+  const sp = hasSpouse();
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  let html = pillHtml("Food & Dining")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">How do you like to eat?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">Groceries, restaurants, coffee, and takeout.${sp?" Spouse food (+50%) added in results.":""}</p>`;
+  if (form.retireState) html += noteHtml(`Costs adjusted for <strong>${esc(form.retireState)}</strong> regional cost of living.`, "blue");
+  html += tierGridHtml(TIERS.food, "foodTier", 2, mults.general)
+    + labelHtml(`Monthly food & dining budget${sp?" \u2014 your share":""}`)
+    + inputHtml("foodAmt");
+  return html;
+}
+
+function renderStep6() {
+  const sp = hasSpouse();
+  return pillHtml("Healthcare")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Healthcare in retirement</h2>`
+    + noteHtml(`Default: <strong>$833/mo ($10,000/yr)</strong> \u2014 covers Medicare, supplements, dental, vision, prescriptions, and out-of-pocket.${sp?" Per-person \u2014 spouse healthcare (+100%) added automatically.":""} Adjust to fit your situation.`, "blue")
+    + labelHtml(`Total Monthly Healthcare Budget${sp?" \u2014 per person":""}`)
+    + inputHtml("healthcareAmt", "833")
+    + hintHtml("All-in: Medicare premiums, supplement, dental, vision, prescriptions, and out-of-pocket \u00B7 Default: $10,000/yr");
+}
+
+function renderStep7() {
+  const sp = hasSpouse();
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  let html = pillHtml("Wellness")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 20px">Staying healthy & well</h2>`
+    + `<div style="margin-bottom:26px">`
+    + labelHtml(`Fitness & Exercise${form.retireState?`<span style="margin-left:8px;font-size:10px;font-weight:600;background:${C.navyPale};color:${C.navyMd};border:1px solid ${C.navyBdr};border-radius:10px;padding:2px 8px;vertical-align:middle">\uD83D\uDCCD ${esc(form.retireState)}</span>`:''}`)
+    + tierGridHtml(TIERS.fitness, "fitnessTier", 2, mults.general)
+    + inputHtml("fitnessAmt")
+    + (sp?hintHtml("Spouse fitness (+75%) added automatically in results"):'')
+    + '</div><div>'
+    + labelHtml("Therapy & Mental Health")
+    + tierGridHtml(TIERS.therapy, "therapyTier", 3, 1.0)
+    + inputHtml("therapyAmt")
+    + (sp?hintHtml("Per-person \u2014 spouse therapy (+100%) added automatically"):'')
+    + '</div>';
+  return html;
+}
+
+function renderStep8() {
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  let html = pillHtml("Lifestyle & Travel")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">How do you want to spend your time?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">How you'll fill your free time \u2014 hobbies, entertainment, and travel.</p>`;
+  if (form.retireState) html += noteHtml(`Entertainment costs adjusted for <strong>${esc(form.retireState)}</strong>. Travel is not location-adjusted.`, "blue");
+  html += `<div style="margin-bottom:26px">${labelHtml("Hobbies, Entertainment & Experiences")}`
+    + tierGridHtml(TIERS.lifestyle, "lifestyleTier", 2, mults.general)
+    + inputHtml("lifestyleAmt") + '</div>'
+    + `<div>${labelHtml("Travel & Vacation")}`
+    + tierGridHtml(TIERS.vacation, "vacationTier", 3, 1.0)
+    + inputHtml("vacationAmt")
+    + hintHtml("Averaged monthly \u2014 e.g. $9,000/yr \u00F7 12 = $750/mo")
+    + '</div>';
+  return html;
+}
+
+function renderStep9() {
+  return pillHtml("Pets & Pet Care")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Do you have pets?</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">Food, vet bills, grooming, insurance, and boarding add up. No pets? Select "No Pets" and move on.</p>`
+    + labelHtml("Pet Care Level")
+    + tierGridHtml(TIERS.pets, "petsTier", 2, 1.0)
+    + labelHtml("Monthly pet care budget")
+    + inputHtml("petsAmt")
+    + hintHtml("Covers food, vet visits, insurance, grooming, boarding/pet-sitting, toys & supplies");
+}
+
+function renderStep10() {
+  const sp = hasSpouse();
+  const mults = getMultipliers(form.retireState, form.retireCity);
+  let html = pillHtml("Appearance & Personal Care")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Looking & feeling your best</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 20px;line-height:1.75">Clothing, haircuts, skincare, and grooming.${sp?" Per-person \u2014 spouse amounts added automatically.":""}</p>`;
+  if (form.retireState) html += noteHtml(`Costs adjusted for <strong>${esc(form.retireState)}</strong> cost of living.`, "blue");
+  html += `<div style="margin-bottom:26px">${labelHtml("Clothing & Fashion")}`
+    + tierGridHtml(TIERS.clothing, "clothingTier", 2, mults.general)
+    + inputHtml("clothingAmt")
+    + hintHtml("Wardrobe updates, shoes, seasonal shopping, dry cleaning")
+    + '</div><div>'
+    + labelHtml("Personal Care & Grooming")
+    + tierGridHtml(TIERS.personalCare, "personalCareTier", 2, mults.general)
+    + inputHtml("personalCareAmt")
+    + hintHtml("Haircuts, skincare, spa visits, grooming products, cosmetics")
+    + '</div>';
+  return html;
+}
+
+function renderStep11() {
+  return pillHtml("Technology & Subscriptions")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 20px">Tech, streaming & subscriptions</h2>`
+    + `<div style="margin-bottom:26px">${labelHtml("Phone, Internet, Streaming & Software")}`
+    + tierGridHtml(TIERS.streaming, "streamTier", 2, 1.0)
+    + inputHtml("streamAmt")
+    + hintHtml("Phone bill, home internet, streaming, software, cloud storage, device upgrades")
+    + '</div><div>'
+    + labelHtml("Gifts (Birthdays, Holidays, Weddings)")
+    + tierGridHtml(TIERS.gifts, "giftsTier", 3, 1.0)
+    + inputHtml("giftsAmt")
+    + '</div>';
+}
+
+function renderStep12() {
+  return pillHtml("Charitable Giving")
+    + `<h2 style="font-size:24px;font-weight:700;color:${C.ink};margin:0 0 10px">Giving back</h2>`
+    + `<p style="font-size:14px;color:${C.sub};margin:0 0 22px;line-height:1.75">Calculated as a percentage of your gross income.</p>`
+    + labelHtml("Charitable Giving")
+    + tierGridHtml(TIERS.charity, "charityTier", 4, 1.0);
+}
+
+function renderResults() {
+  const r = calcResults();
+  const sp = hasSpouse();
+  const nc = numChildren();
+  const f = filing();
+  const cats = [
+    {l:"Housing",v:r.mo.housing},{l:"Home Care",v:r.mo.homeCare},{l:"Transportation",v:r.mo.car},
+    {l:"Food & Dining",v:r.mo.food},{l:"Healthcare",v:r.mo.healthcare},{l:"Fitness",v:r.mo.fitness},
+    {l:"Therapy",v:r.mo.therapy},{l:"Lifestyle",v:r.mo.lifestyle},{l:"Travel",v:r.mo.vacation},
+    {l:"Pets",v:r.mo.pets},{l:"Clothing",v:r.mo.clothing},{l:"Personal Care",v:r.mo.personalCare},{l:"Technology",v:r.mo.streaming},
+    {l:"Gifts",v:r.mo.gifts},
+  ].filter(x=>x.v>0).map((x,i)=>({...x,color:BAR_COLORS[i%BAR_COLORS.length]}));
+  const totalMo = cats.reduce((s,x)=>s+x.v,0);
+  const taxPct = r.gross>0?((r.fedTax+r.stateTax+r.cityTax)/r.gross*100).toFixed(1):"0.0";
+
+  let html = pillHtml("Your Results");
+
+  // Hero
+  html += `<div style="background:linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%);border-radius:14px;padding:26px 28px;margin-bottom:22px;box-shadow:0 6px 24px rgba(20,31,82,.25)">`;
+  html += `<div style="font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-bottom:6px">${form.name?esc(form.name)+"'s "+incomeLabel():incomeLabel()}</div>`;
+  html += `<div style="font-size:56px;font-weight:800;color:${C.white};letter-spacing:-2px;line-height:1">${fmt(r.gross)}</div>`;
+  html += `<div style="font-size:13px;color:rgba(255,255,255,.5);margin-top:6px">gross annual \u00B7 ${esc(householdLabel())} \u00B7 ${esc(form.retireCity||form.retireState)}</div>`;
+  html += `<div style="display:flex;gap:0;margin-top:20px;border-top:1px solid rgba(255,255,255,.12);padding-top:18px">`;
+  const heroItems = [{label:"Gross / Month",val:fmt(r.gross/12)},{label:"Take-Home / Month",val:fmt(r.takeHome/12)},{label:"Total Tax Rate",val:taxPct+"%"},{label:"After-Tax / Year",val:fmt(r.takeHome)}];
+  heroItems.forEach((item,i)=>{
+    html += `<div style="flex:1;text-align:center;${i>0?'border-left:1px solid rgba(255,255,255,.12);':''}padding:0 8px"><div style="font-size:17px;font-weight:700;color:${C.gold}">${esc(item.val)}</div><div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:3px">${esc(item.label)}</div></div>`;
+  });
+  html += '</div></div>';
+
+  // Household note
+  if (form.household!=="single") {
+    let noteContent = `<strong>Household adjustments applied:</strong> Your individual selections have been scaled for a <strong>${esc(householdLabel().toLowerCase())}</strong> household.`;
+    if (sp) noteContent += ` Spouse adds: +60% transportation, +50% food/vacation, +100% healthcare/clothing/personal care/therapy, +75% fitness, +30% lifestyle/gifts, +25% tech.`;
+    if (nc>0) noteContent += ` Each of ${nc} dependent(s) adds $300 food, $250 healthcare, $100 clothing, $50 personal care, $50 tech/mo.`;
+    noteContent += ` Filing: <strong>${f==="mfj"?"Married Filing Jointly":"Single"}</strong>.`;
+    html += noteHtml(noteContent, "blue");
+  }
+
+  // Tax table
+  html += `<div style="border:1px solid ${C.border};border-radius:12px;overflow:hidden;margin-bottom:18px">`;
+  html += `<div style="background:${C.navy};padding:12px 20px;display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${C.gold}"></div><span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.8)">Tax & Obligations Breakdown</span></div>`;
+  const taxRows = [
+    {label:`Federal Income Tax (${f==="mfj"?"MFJ":"Single"})`,val:r.fedTax,note:`${pct(r.fedTax,r.gross)} effective \u00B7 2026 brackets`},
+    {label:`${form.retireState} State Tax`,val:r.stateTax,note:`${pct(r.stateTax,r.gross)} effective`},
+    form.retireCity?{label:`${form.retireCity} City Tax`,val:r.cityTax,note:`${pct(r.cityTax,r.gross)} effective`}:null,
+    r.cPct>0?{label:`Charitable Giving (${(r.cPct*100).toFixed(0)}%)`,val:r.charity,note:"Giving back"}:null,
+    {label:"Available for Living Expenses",val:r.takeHome,note:`${fmt(r.takeHome/12)}/month`,bold:true,hi:true},
+  ].filter(Boolean);
+  taxRows.forEach((row,i)=>{
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:13px 20px;${i>0?`border-top:1px solid ${C.border};`:''}background:${row.hi?C.navyPale:C.white}"><div><div style="font-size:13px;font-weight:${row.bold?600:400};color:${row.hi?C.navy:C.ink}">${esc(row.label)}</div><div style="font-size:11px;color:${C.faint}">${esc(row.note)}</div></div><div style="font-size:15px;font-weight:${row.bold?700:500};color:${row.hi?C.navy:C.sub};white-space:nowrap">${fmt(row.val)}<span style="font-size:11px;font-weight:400;color:${C.muted}">/yr</span></div></div>`;
+  });
+  html += '</div>';
+
+  // Expense breakdown
+  html += `<div style="border:1px solid ${C.border};border-radius:12px;overflow:hidden;margin-bottom:18px">`;
+  html += `<div style="background:${C.navy};padding:12px 20px;display:flex;align-items:center;gap:8px"><div style="width:8px;height:8px;border-radius:50%;background:${C.gold}"></div><span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.8)">Monthly Expense Breakdown${form.household!=="single"?" (Household Total)":""}</span></div>`;
+  html += '<div style="padding:18px 20px">';
+  cats.forEach(item=>{
+    const p = totalMo>0?item.v/totalMo*100:0;
+    html += `<div style="margin-bottom:11px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="font-weight:500;color:${C.ink}">${esc(item.l)}</span><span style="font-weight:600;color:${item.color}">${fmt(item.v)}<span style="font-weight:400;color:${C.muted}">/mo</span></span></div><div style="height:7px;background:${C.bg};border-radius:4px;overflow:hidden"><div style="height:100%;width:${p}%;background:${item.color};border-radius:4px;transition:width .5s ease"></div></div></div>`;
+  });
+  html += `<div style="border-top:2px solid ${C.navy};padding-top:12px;margin-top:6px;display:flex;justify-content:space-between;font-weight:700;font-size:14px;color:${C.navy}"><span>Total Monthly Expenses</span><span>${fmt(totalMo)}/mo</span></div>`;
+  html += '</div></div>';
+
+  if (r.stateTax===0) html += noteHtml(`<strong>${esc(form.retireState)}</strong> has no state income tax.`, "green");
+  if (form.retireCity) html += noteHtml(`<strong>${esc(form.retireCity)}</strong> adds <strong>${fmt(r.cityTax)}/yr</strong> in city income tax.`, "amber");
+
+  html += `<div style="display:flex;gap:12px;margin-top:6px"><button data-action="back" style="background:transparent;border:2px solid ${C.border};color:${C.sub};border-radius:8px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer">\u2190 Back</button><button data-action="startover" style="background:transparent;border:2px solid ${C.border};color:${C.sub};border-radius:8px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer">\u21BA Start Over</button></div>`;
+  return html;
+}
+
+// ── Main Render ──
+function render() {
+  const canNext = step===2?!!form.retireState:true;
+
+  // Header
+  let headerDots = '';
+  STEP_NAMES.forEach((s,i)=>{
+    headerDots += `<div style="flex:1;text-align:center"><div style="height:3px;background:${i<step?C.gold:i===step?'rgba(245,184,0,.6)':'rgba(255,255,255,.15)'};transition:background .3s"></div><div style="padding:5px 2px 6px;font-size:8px;font-weight:${i===step?700:400};color:${i===step?C.gold:i<step?'rgba(255,255,255,.6)':'rgba(255,255,255,.3)'};overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${i<step?'\u2713':i===step?s.toUpperCase():'\u00B7'}</div></div>`;
+  });
+
+  let html = `<div style="background:linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%);box-shadow:0 3px 20px rgba(20,31,82,.3)"><div style="max-width:760px;margin:0 auto;padding:20px 28px 0"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px"><div><div style="font-size:10px;font-weight:600;letter-spacing:2.5px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:5px">UNIV 154 \u00B7 Financial Literacy for Life</div><div style="font-size:22px;font-weight:700;color:${C.white};letter-spacing:-.3px">Retirement Income Planner</div></div><div style="text-align:right;padding-top:2px"><div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:3px">Step ${step+1} of ${STEP_NAMES.length}</div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">${esc(STEP_NAMES[step])}</div></div></div><div style="display:flex;gap:0">${headerDots}</div></div></div>`;
+
+  // Card
+  html += `<div style="max-width:760px;margin:28px auto 40px;padding:0 16px"><div style="background:${C.white};border-radius:16px;border:1px solid ${C.border};box-shadow:0 4px 28px rgba(28,45,110,.09);overflow:hidden"><div style="height:5px;background:linear-gradient(90deg,${C.navyDk},${C.navyMd} 60%,${C.gold})"></div><div style="padding:34px 42px">`;
+
+  // Step content
+  const stepRenderers = [renderStep0,renderStep1,renderStep2,renderStep3,renderStep4,renderStep5,renderStep6,renderStep7,renderStep8,renderStep9,renderStep10,renderStep11,renderStep12,renderResults];
+  html += stepRenderers[step]();
+
+  // Navigation (not on results)
+  if (step < RESULTS_STEP) {
+    html += `<div style="display:flex;justify-content:space-between;margin-top:34px;padding-top:22px;border-top:1px solid ${C.border}">`;
+    if (step>0) {
+      html += `<button data-action="back" style="background:transparent;border:2px solid ${C.border};color:${C.sub};border-radius:8px;padding:11px 24px;font-size:13px;font-weight:600;cursor:pointer">\u2190 Back</button>`;
+    } else {
+      html += '<div></div>';
+    }
+    html += `<button data-action="next" ${canNext?'':`disabled`} style="background:${canNext?`linear-gradient(135deg,${C.navyDk},${C.navyMd})`:C.border};color:${canNext?C.white:C.faint};border:none;border-radius:8px;padding:12px 32px;font-size:14px;font-weight:700;cursor:${canNext?'pointer':'not-allowed'};box-shadow:${canNext?'0 4px 16px rgba(28,45,110,.28)':'none'};transition:all .2s">${step===LAST_INPUT?'See My Results \u2192':'Continue \u2192'}</button>`;
+    html += '</div>';
+  }
+
+  html += '</div></div>';
+  html += `<div style="text-align:center;margin-top:14px;font-size:11px;color:${C.faint}">UNIV 154 \u00B7 For educational planning purposes only \u00B7 2026 tax data via Tax Foundation</div></div>`;
+
+  document.getElementById('app').innerHTML = html;
+  attachEvents();
+}
+
+// ── Event Handling ──
+function attachEvents() {
+  // Input/select change events
+  document.querySelectorAll('[data-field]').forEach(el => {
+    const field = el.dataset.field;
+    const handler = (e) => {
+      const oldVal = form[field];
+      form[field] = e.target.value;
+      // If state changed, clear city and reapply defaults
+      if (field === 'retireState') {
+        form.retireCity = '';
+        if (form.retireState) applyTierDefaults();
+        render();
+      } else if (field === 'retireCity') {
+        if (form.retireState) applyTierDefaults();
+        render();
+      } else {
+        // Don't re-render for simple input typing, just update state
+        // But for selects, re-render
+        if (el.tagName === 'SELECT') render();
+      }
+    };
+    if (el.tagName === 'SELECT') {
+      el.addEventListener('change', handler);
+    } else {
+      el.addEventListener('input', handler);
+    }
+    // Focus/blur styling for inputs
+    el.addEventListener('focus', () => { el.style.borderColor = C.navyMd; el.style.background = '#FAFBFF'; });
+    el.addEventListener('blur', () => { el.style.borderColor = C.border; el.style.background = C.white; });
+  });
+
+  // Tier button clicks
+  document.querySelectorAll('[data-tier]').forEach(el => {
+    el.addEventListener('click', () => {
+      const field = el.dataset.tierfield;
+      let val = el.dataset.tier;
+      // numDependents is a number
+      if (field === 'numDependents') val = parseInt(val);
+      form[field] = val;
+      // Apply tier defaults for tier changes that affect amounts
+      const tierAmtFields = ['housingTier','housingType','mortgagePaidOff','homeCareTier','carTier','carType','foodTier','fitnessTier','therapyTier','lifestyleTier','vacationTier','streamTier','giftsTier','clothingTier','personalCareTier','petsTier'];
+      if (tierAmtFields.includes(field)) {
+        // Update the corresponding amount
+        const mults = getMultipliers(form.retireState, form.retireCity);
+        if (field==='housingTier'||field==='housingType'||field==='mortgagePaidOff') {
+          const base = getHousingBase(form.housingTier, form.housingType, form.mortgagePaidOff);
+          form.housingAmt = base>0?r5(base*mults.housing):0;
+        }
+        if (field==='homeCareTier') form.homeCareAmt = TIERS.homeCare[form.homeCareTier]?.base??0;
+        if (field==='carTier'||field==='carType') { const ct=getCarTiers(); form.carAmt = ct[form.carTier]?.base??0; }
+        if (field==='foodTier') form.foodAmt = r5((TIERS.food[form.foodTier]?.base||0)*mults.general);
+        if (field==='fitnessTier') form.fitnessAmt = r5((TIERS.fitness[form.fitnessTier]?.base||0)*mults.general);
+        if (field==='therapyTier') form.therapyAmt = TIERS.therapy[form.therapyTier]?.base??0;
+        if (field==='lifestyleTier') form.lifestyleAmt = r5((TIERS.lifestyle[form.lifestyleTier]?.base||0)*mults.general);
+        if (field==='vacationTier') form.vacationAmt = TIERS.vacation[form.vacationTier]?.base??0;
+        if (field==='streamTier') form.streamAmt = TIERS.streaming[form.streamTier]?.base??0;
+        if (field==='giftsTier') form.giftsAmt = TIERS.gifts[form.giftsTier]?.base??0;
+        if (field==='clothingTier') form.clothingAmt = r5((TIERS.clothing[form.clothingTier]?.base||0)*mults.general);
+        if (field==='personalCareTier') form.personalCareAmt = r5((TIERS.personalCare[form.personalCareTier]?.base||0)*mults.general);
+        if (field==='petsTier') form.petsAmt = TIERS.pets[form.petsTier]?.base??0;
+      }
+      render();
+    });
+  });
+
+  // Nav buttons
+  document.querySelectorAll('[data-action]').forEach(el => {
+    el.addEventListener('click', () => {
+      const action = el.dataset.action;
+      if (action === 'next') { step++; render(); window.scrollTo(0,0); }
+      else if (action === 'back') { step--; render(); window.scrollTo(0,0); }
+      else if (action === 'startover') { form = getInitialForm(); step = 0; render(); window.scrollTo(0,0); }
+    });
+  });
+}
+
+// ── Boot ──
+render();
+</script>
+</body>
+</html>

@@ -284,7 +284,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
   const handlePreviewAsStudentChange = (next) => {
     onPreviewAsStudentChange(next)
     if (next && location.pathname.startsWith('/dashboard/admin')) {
-      navigate('/dashboard/excel/week-1')
+      navigate('/dashboard/excel/week-0')
     }
   }
 
