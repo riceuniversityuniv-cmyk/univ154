@@ -351,47 +351,47 @@ const Week4 = () => {
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Pre-tax Income</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxIncome)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxIncome, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Standard Deduction (Single Filer)</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.standardDeduction)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.standardDeduction, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Pre-Tax Expenses (Health Insurance, Tr. 401k, Tr. IRA)</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxExpenses)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.preTaxExpenses, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Taxable Income</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.taxableIncome)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.taxableIncome, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Income Tax Payment</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.federalIncomeTax)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalIncomeTax, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Social Security Tax Payment</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.federalSocialSecurityTax)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalSocialSecurityTax, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Federal Medicare Tax Payment</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.federalMedicareTax)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.federalMedicareTax, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>State Income Tax Payment</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.stateIncomeTax)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.stateIncomeTax, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>NY City Income Tax Payment</span>
-              <span style={styles.dataValue}>{formatCurrency(week4Data.nyCityIncomeTax)}</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.nyCityIncomeTax, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.highlightRow}>
@@ -412,7 +412,7 @@ const Week4 = () => {
                 textAlign: 'right',
                 boxShadow: '0 2px 8px 0 rgba(13, 26, 75, 0.15)',
               }}>
-                {formatCurrency(week4Data.afterTaxIncome)}
+                {formatCurrency(week4Data.afterTaxIncome, { decimals: 0 })}
               </span>
             </div>
           </div>
@@ -510,12 +510,12 @@ const Week4 = () => {
                       }}
                     >
                       <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
-                      <td style={styles.tableCell}>{formatCurrency(bracket.lower)}</td>
+                      <td style={styles.tableCell}>{formatCurrency(bracket.lower, { decimals: 0 })}</td>
                       <td style={styles.tableCell}>
-                        {bracket.upper >= 1e12 ? '…' : `${formatCurrency(bracket.upper)}`}
+                        {bracket.upper >= 1e12 ? '…' : `${formatCurrency(bracket.upper, { decimals: 0 })}`}
                       </td>
                       <td style={styles.tableCell}>
-                        {formatCurrency(bracket.taxInBracket)}
+                        {formatCurrency(bracket.taxInBracket, { decimals: 0 })}
                       </td>
                     </tr>
                   ))}

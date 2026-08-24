@@ -1161,33 +1161,33 @@ const Week9 = () => {
                 <tbody>
                   <tr>
                     <td style={{ ...styles.td, fontWeight: 600, textAlign: 'left', color: '#0d1a4b', width: 240, maxWidth: 240 }}>Future Value Account Balance</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.futureValueAccountBalance))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.futureValueAccountBalance))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.futureValueAccountBalance))}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.futureValueAccountBalance), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.futureValueAccountBalance), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.futureValueAccountBalance), { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ ...styles.td, fontWeight: 600, textAlign: 'left', color: '#0d1a4b', width: 240, maxWidth: 240 }}>Value of Account in Today&apos;s Dollars</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.valueInTodaysDollars))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.valueInTodaysDollars))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.valueInTodaysDollars))}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.valueInTodaysDollars), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.valueInTodaysDollars), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.valueInTodaysDollars), { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ ...styles.td, fontWeight: 600, textAlign: 'left', color: '#0d1a4b', width: 240, maxWidth: 240 }}>Total Gross Withdrawals</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalGrossWithdrawals))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalGrossWithdrawals))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalGrossWithdrawals))}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalGrossWithdrawals), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalGrossWithdrawals), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalGrossWithdrawals), { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ ...styles.td, fontWeight: 600, textAlign: 'left', color: '#0d1a4b', width: 240, maxWidth: 240 }}>Total Taxes</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalTaxes))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalTaxes))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalTaxes))}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalTaxes), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalTaxes), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalTaxes), { decimals: 0 })}</td>
                   </tr>
                   <tr>
                     <td style={{ ...styles.td, fontWeight: 600, textAlign: 'left', color: '#0d1a4b', width: 240, maxWidth: 240 }}>Total Net Withdrawals (post-taxes)</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalNetWithdrawals))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalNetWithdrawals))}</td>
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalNetWithdrawals))}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario1Metrics.totalNetWithdrawals), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario2Metrics.totalNetWithdrawals), { decimals: 0 })}</td>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: 'rgba(249, 250, 251, 0.8)', width: 150, maxWidth: 150 }}>{formatCurrency(Math.round(scenario3Metrics.totalNetWithdrawals), { decimals: 0 })}</td>
                   </tr>
                 </tbody>
               </table>

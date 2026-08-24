@@ -178,11 +178,11 @@ export default function Login() {
               animationFillMode: 'forwards'
             }}
           >
-            <img 
-              src={riceLogo} 
-              alt="Rice University Logo" 
+            <img
+              src={riceLogo}
+              alt="Rice University Logo"
               style={{ height: '100px', width: 'auto', marginBottom: '32px' }}
-              className="object-contain drop-shadow-sm"
+              className="object-contain"
             />
           </div>
           
