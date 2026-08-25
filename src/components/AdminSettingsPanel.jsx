@@ -11,17 +11,21 @@ import {
 import { MdCheckCircle, MdCancel, MdWarning, MdDelete, MdPersonAdd, MdSwapHoriz } from 'react-icons/md';
 import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
-// Same styling pattern as WeekAccessAdmin.jsx, for visual consistency
-// between the two admin pages.
+// Same glass-card styling as WeekAccessAdmin.jsx / AssumptionsAdmin.jsx --
+// standard convention shared with every module page, canonical reference
+// BudgetForm.jsx -- for visual consistency across the admin tabs.
 const styles = {
   table: {
     width: '100%',
     borderCollapse: 'separate',
     borderSpacing: 0,
+    marginTop: 0,
+  },
+  tableWrap: {
     marginTop: 20,
-    borderRadius: '12px',
+    borderRadius: '16px',
     overflow: 'hidden',
-    border: '1px solid #e0e0e0'
+    border: '1px solid rgba(17, 24, 39, 0.08)',
   },
   th: {
     ...tableHeaderStyle,
@@ -38,15 +42,26 @@ const styles = {
     maxWidth: 900,
     margin: '0 auto',
     padding: 24,
-    backgroundColor: '#fdfdfd',
     color: '#333'
+  },
+  card: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    padding: '32px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
   },
   section: {
     marginTop: '32px',
     padding: '20px',
-    backgroundColor: '#fff',
-    border: '1px solid #e0e0e0',
-    borderRadius: '12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '16px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
   },
   sectionHeader: {
     fontSize: '16px',
@@ -236,6 +251,7 @@ export default function AdminSettingsPanel() {
 
   return (
     <div style={styles.container}>
+      <div style={styles.card}>
       <div style={{ textAlign: 'center', marginBottom: '24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Manage Admins</h1>
@@ -281,6 +297,7 @@ export default function AdminSettingsPanel() {
             <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#002060', marginBottom: '8px', textAlign: 'center' }}>
               Current Admins
             </h2>
+            <div style={styles.tableWrap}>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -320,6 +337,7 @@ export default function AdminSettingsPanel() {
                 })}
               </tbody>
             </table>
+            </div>
           </div>
 
           {/* Add admin -- any admin can do this */}
@@ -383,6 +401,7 @@ export default function AdminSettingsPanel() {
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

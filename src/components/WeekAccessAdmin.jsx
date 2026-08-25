@@ -16,15 +16,23 @@ const styles = {
     padding: 24,
     color: '#111827',
   },
+  // Standard glass-card look shared with every module page (BudgetForm.jsx
+  // is the canonical reference) -- wraps the whole tab (header, bulk
+  // actions, table), not just the table, so there's no bare background
+  // showing behind the "Week Access" heading.
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
     backdropFilter: 'blur(10px)',
     WebkitBackdropFilter: 'blur(10px)',
     borderRadius: '16px',
-    padding: '8px 8px',
-    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.08), 0 4px 16px 0 rgba(0, 0, 0, 0.06)',
-    border: '1px solid rgba(255, 255, 255, 0.4)',
+    padding: '32px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+  },
+  tableWrap: {
+    borderRadius: '16px',
     overflow: 'hidden',
+    border: '1px solid rgba(17, 24, 39, 0.08)',
   },
   table: {
     width: '100%',
@@ -193,80 +201,81 @@ export default function WeekAccessAdmin() {
 
   return (
     <div style={styles.container}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0d1a4b', margin: 0 }}>Week Access</h1>
-        <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
-          Order sets the module position students see in the sidebar. Week # sets the syllabus label shown below -- the two are independent.
-        </p>
-      </div>
-
-      {/* Message Display */}
-      {message && (
-        <div style={{
-          padding: '12px 16px',
-          borderRadius: '10px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          marginBottom: '20px',
-          ...(messageType === 'success'
-            ? { backgroundColor: 'rgba(13, 26, 75, 0.05)', color: '#0d1a4b', border: '1px solid rgba(13, 26, 75, 0.15)' }
-            : { backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }
-          )
-        }}>
-          {messageType === 'success' ? <MdCheckCircle style={{ fontSize: '18px' }} /> : <MdCancel style={{ fontSize: '18px' }} />}
-          <span style={{ fontSize: '13px' }}>{message}</span>
-        </div>
-      )}
-
-      {/* Bulk actions -- operate on every week directly, no selection needed */}
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
-        <button
-          onClick={handleEnableAll}
-          disabled={isUpdating}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'transparent',
-            color: '#0d1a4b',
-            borderRadius: '8px',
-            border: '1px solid rgba(13, 26, 75, 0.25)',
-            cursor: isUpdating ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: '500',
-            opacity: isUpdating ? 0.5 : 1,
-            transition: 'background-color 0.2s',
-          }}
-          onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(13, 26, 75, 0.06)')}
-          onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
-        >
-          Open all weeks
-        </button>
-        <button
-          onClick={handleDisableAll}
-          disabled={isUpdating}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'transparent',
-            color: '#6b7280',
-            borderRadius: '8px',
-            border: '1px solid rgba(107, 114, 128, 0.3)',
-            cursor: isUpdating ? 'not-allowed' : 'pointer',
-            fontSize: '13px',
-            fontWeight: '500',
-            opacity: isUpdating ? 0.5 : 1,
-            transition: 'background-color 0.2s',
-          }}
-          onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.08)')}
-          onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
-        >
-          Close all weeks
-        </button>
-      </div>
-
-      {/* Week Table */}
       <div style={styles.card}>
-        <table style={styles.table}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0d1a4b', margin: 0 }}>Week Access</h1>
+          <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
+            Order sets the module position students see in the sidebar. Week # sets the syllabus label shown below -- the two are independent.
+          </p>
+        </div>
+
+        {/* Message Display */}
+        {message && (
+          <div style={{
+            padding: '12px 16px',
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            marginBottom: '20px',
+            ...(messageType === 'success'
+              ? { backgroundColor: 'rgba(13, 26, 75, 0.05)', color: '#0d1a4b', border: '1px solid rgba(13, 26, 75, 0.15)' }
+              : { backgroundColor: '#fef2f2', color: '#991b1b', border: '1px solid #fecaca' }
+            )
+          }}>
+            {messageType === 'success' ? <MdCheckCircle style={{ fontSize: '18px' }} /> : <MdCancel style={{ fontSize: '18px' }} />}
+            <span style={{ fontSize: '13px' }}>{message}</span>
+          </div>
+        )}
+
+        {/* Bulk actions -- operate on every week directly, no selection needed */}
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', marginBottom: '20px' }}>
+          <button
+            onClick={handleEnableAll}
+            disabled={isUpdating}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              color: '#0d1a4b',
+              borderRadius: '8px',
+              border: '1px solid rgba(13, 26, 75, 0.25)',
+              cursor: isUpdating ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              opacity: isUpdating ? 0.5 : 1,
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(13, 26, 75, 0.06)')}
+            onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Open all weeks
+          </button>
+          <button
+            onClick={handleDisableAll}
+            disabled={isUpdating}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'transparent',
+              color: '#6b7280',
+              borderRadius: '8px',
+              border: '1px solid rgba(107, 114, 128, 0.3)',
+              cursor: isUpdating ? 'not-allowed' : 'pointer',
+              fontSize: '13px',
+              fontWeight: '500',
+              opacity: isUpdating ? 0.5 : 1,
+              transition: 'background-color 0.2s',
+            }}
+            onMouseOver={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'rgba(107, 114, 128, 0.08)')}
+            onMouseOut={(e) => !isUpdating && (e.currentTarget.style.backgroundColor = 'transparent')}
+          >
+            Close all weeks
+          </button>
+        </div>
+
+        {/* Week Table */}
+        <div style={styles.tableWrap}>
+          <table style={styles.table}>
           <thead>
             <tr>
               <th style={{ ...styles.th, width: '70px', textAlign: 'center' }}>Order</th>
@@ -384,7 +393,8 @@ export default function WeekAccessAdmin() {
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     </div>
   );

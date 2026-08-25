@@ -1045,9 +1045,6 @@ const Week12 = () => {
             background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.06) 0%, rgba(13, 26, 75, 0.02) 100%)',
             border: '1px solid rgba(13, 26, 75, 0.12)',
             textAlign: 'center',
-            position: 'sticky',
-            top: '16px',
-            zIndex: 40,
             boxShadow: '0 8px 24px 0 rgba(13, 26, 75, 0.1)',
           }}>
             <div style={{ fontSize: '13px', fontWeight: '600', color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>

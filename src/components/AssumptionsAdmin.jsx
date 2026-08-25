@@ -18,15 +18,32 @@ const styles = {
     maxWidth: 900,
     margin: '0 auto',
     padding: 24,
-    backgroundColor: '#fdfdfd',
     color: '#333',
+  },
+  // Standard glass-card look shared with every module page and the other
+  // admin tabs (BudgetForm.jsx is the canonical reference) -- wraps the
+  // page title so it doesn't sit on bare background, and every section
+  // panel below it.
+  headerCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    borderRadius: '16px',
+    padding: '20px 32px',
+    marginBottom: '24px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    textAlign: 'center',
   },
   section: {
     marginTop: '24px',
     padding: '20px',
-    backgroundColor: '#fff',
-    border: '1px solid #e0e0e0',
-    borderRadius: '12px',
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    borderRadius: '16px',
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
   },
   sectionHeader: {
     fontSize: '16px',
@@ -44,9 +61,9 @@ const styles = {
     borderCollapse: 'separate',
     borderSpacing: 0,
     marginTop: 12,
-    borderRadius: '10px',
+    borderRadius: '12px',
     overflow: 'hidden',
-    border: '1px solid #e0e0e0',
+    border: '1px solid rgba(17, 24, 39, 0.08)',
   },
   th: {
     ...tableHeaderStyle,
@@ -397,7 +414,7 @@ export default function AssumptionsAdmin() {
 
   return (
     <div style={styles.container}>
-      <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+      <div style={styles.headerCard}>
         <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#002060', margin: 0 }}>Assumptions</h1>
       </div>
 
