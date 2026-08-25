@@ -1031,7 +1031,6 @@ export default function Week0CourseIntro() {
             )}
           </div>
         </div>
-        <div style={{ textAlign: 'center', marginTop: 14, fontSize: 11, color: C.faint }}>UNIV 154 · For educational planning purposes only · 2026 tax data via Tax Foundation</div>
       </div>
     </div>
   );
