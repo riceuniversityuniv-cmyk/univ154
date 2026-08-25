@@ -7,9 +7,34 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-08-25 — Module 1 restyled to the shared "glass card" look (fifth
+round this session, pushed).** User said the page "looks nothing like the
+white card + yellow glow format like the rest of the weeks" and attached
+screenshots of `BudgetForm.jsx` next to Module 1 for comparison. The prior
+round (cream-gradient page background) was necessary but not sufficient --
+the real visible mismatch was structural: every other module nests its navy
+title bar *inside* a padded, translucent, blurred white card (visible white
+margin on all sides, soft shadow, rounded corners), where Module 1's navy
+header was still its own edge-to-edge block sitting directly on the page
+background with hard square top corners. Fixed by wrapping the header in a
+`glassCard` style object (`backgroundColor: rgba(255,255,255,.75)`,
+`backdropFilter: blur(10px)`, `borderRadius: 16`, soft box-shadow, hairline
+border -- lifted from `BudgetForm.jsx`'s `sectionContainer`) and rendering
+the navy gradient banner *inside* that card's padding instead of as the
+card itself; applied the same `glassCard` style to the step-content card
+below it, and dropped the old navy-to-gold top accent stripe since the
+reference modules don't have one. Same round also (from earlier in this
+session, now folded into the same commit history): Compare Job Offers cards
+now flex-grow to actually fill the row instead of stopping at a fixed
+pixel width; `DollarInput` comma-formats while typing; the 3 real emoji in
+the app (📍 🎉 ❌) were removed, and the page background itself was swapped
+from a flat lavender tint to the shared cream/yellow-to-white gradient. See
+the dated working-log entries below for each. `npm run build` and `npx
+eslint` clean on every round; verified live via the same temporary
+`/__qa/dashboard/*` route pattern, removed before finishing each time.
+
 **2026-08-25 — Module 1's own edge-to-edge bleed trick removed; it now
-frames like every other module (fourth round this session, not yet
-pushed).** User sent a third screenshot: still a "weird little wide gap" on
+frames like every other module.** User sent a third screenshot: still a "weird little wide gap" on
 the right at 1920px, and said the framing still didn't look consistent with
 the other modules. Root cause was different from the two prior width fixes —
 `Week0CourseIntro.jsx`'s outer div used a `margin: '-32px -32px 0'` +
@@ -367,6 +392,53 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Module 1: adopt the shared glass-card look, card fill, commas, no emoji
+Fifth round in the same session as the entries directly below (which cover
+the width/framing history in detail). Three separate small requests landed
+in this round, in order:
+
+1. **Cards not actually wider** ("you did not make it wider. make wider"):
+   the 320px→400px bump from the round before was a fixed number, and with
+   only 1-2 offer cards that still left visible dead space. Changed the
+   scenario card style from `flex: '0 0 400px'` to `flex: '1 1 420px',
+   maxWidth: 640` so cards flex-grow to actually fill the row (capped so a
+   single card doesn't stretch edge-to-edge by itself).
+2. **No emojis in the tool**: grepped the whole `src/` tree for the emoji
+   Unicode ranges. Found and removed 3 real emoji: the 📍 pin on Module 1's
+   location badge (`FieldLabel`'s `badge` prop), the 🎉 on the "no state
+   income tax" note, and a conditional ❌ prefix in `Week7.jsx`'s plan-
+   comparison line. Deliberately left the plain checkmark/warning-
+   triangle/info-circle glyphs used as functional icons across
+   Login/SignUp/UpdatePassword/BudgetForm/SavingsForm/Dashboard alone --
+   those are a different, non-colorful icon set the rest of the app already
+   relies on, not decorative emoji, and touching them would have been a
+   much larger, out-of-scope change across 7 files.
+3. **Commas in dollar inputs**: `DollarInput` used `type="number"`, which
+   cannot render thousands separators natively. Switched it to `type="text"
+   inputMode="decimal"` with a `commaFormat()` display helper; the value
+   passed to `onChange` stays a plain unformatted digit string (commas and
+   any non-digit/non-decimal characters stripped on input), so every
+   caller's existing `parseFloat(value)` math elsewhere in the file is
+   unaffected -- only the display layer changed. Applies everywhere
+   `DollarInput` is used (confirmed the auto-computed Housing Cost field
+   still populates correctly), not just Annual Salary.
+
+Then, after seeing it live, the user said the page background still "looks
+nothing like the white card + yellow glow format" and attached
+`BudgetForm.jsx` screenshots directly next to Module 1's. The real gap: the
+navy header was still its own flush block, not nested inside a padded white
+card like every other module's navy title bar. Fixed via a shared
+`glassCard` style constant (translucent white + `backdropFilter: blur`,
+`borderRadius: 16`, soft shadow, hairline border, matching
+`BudgetForm.jsx`'s `sectionContainer`) applied to both the header wrapper
+(navy banner now rendered *inside* that card's padding, its own smaller
+`borderRadius: 12`) and the step-content card below it; removed the old
+navy-to-gold top accent stripe on the content card since the reference
+modules don't have one. Verified via the same temporary `/__qa/dashboard/*`
+route pattern as prior rounds (Welcome step and full Results page,
+including the widened Compare Job Offers cards), removed before finishing.
+`npm run build` and `npx eslint` clean throughout.
 
 ### 2026-08-25 — Module 1: remove the edge-to-edge bleed trick
 Fourth round in the same session as the three entries directly below. User

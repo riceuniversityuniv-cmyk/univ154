@@ -1005,42 +1005,57 @@ export default function Week0CourseIntro() {
   // stretching it to fill the freed space -- it canceled the left inset but
   // left the right inset doubled, which is what showed up as an asymmetric
   // gap on wide screens.)
+  // Shared "glass card" look every other module uses (BudgetForm.jsx's
+  // sectionContainer etc.): translucent white, blurred backdrop, soft
+  // shadow, hairline border -- floating on the page's cream gradient
+  // instead of a flat opaque white box butted against the page edges.
+  const glassCard = {
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    borderRadius: 16,
+    boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.1), 0 4px 16px 0 rgba(0, 0, 0, 0.08)',
+    border: '1px solid rgba(255, 255, 255, 0.5)',
+  };
+
   return (
     // Page background matches the other modules' convention (BudgetForm.jsx
     // etc.): a soft cream/yellow-to-white diagonal gradient instead of this
     // module's own flat lavender C.bg tint (still used at line ~872 for the
     // expense-bar track, which is unrelated and unchanged).
     <div style={{ fontFamily: FONT, background: 'linear-gradient(135deg, rgba(255, 253, 231, 0.27) 0%, rgb(255, 252, 240) 50%, rgb(255, 255, 255) 100%)', color: C.ink, minHeight: '100vh', padding: '0 0 40px' }}>
-      {/* Header / progress */}
-      <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, boxShadow: '0 3px 20px rgba(20,31,82,.3)' }}>
-        <div style={{ maxWidth: 1500, margin: '0 auto', padding: '20px 28px 0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2.5, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', marginBottom: 5 }}>UNIV 154 · Financial Literacy for Life</div>
-              <div style={{ fontSize: 22, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Retirement Income Planner</div>
-            </div>
-            <div style={{ textAlign: 'right', paddingTop: 2 }}>
-              <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>Step {step + 1} of {STEP_NAMES.length}</div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.85)' }}>{STEP_NAMES[step]}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 0 }}>
-            {STEP_NAMES.map((s, i) => (
-              <div key={s} style={{ flex: 1, textAlign: 'center' }}>
-                <div style={{ height: 3, background: i < step ? C.gold : i === step ? 'rgba(245,184,0,.6)' : 'rgba(255,255,255,.15)' }} />
-                <div style={{ padding: '5px 2px 6px', fontSize: 8, fontWeight: i === step ? 700 : 400, color: i === step ? C.gold : i < step ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {i < step ? '✓' : i === step ? s.toUpperCase() : ''}
-                </div>
+      <div style={{ maxWidth: 1500, margin: '0 auto', padding: '28px 16px 0' }}>
+        {/* Header / progress -- the navy banner now sits INSET inside a
+            white glass card (padding on all sides) instead of stretching
+            edge-to-edge itself, matching how every other module nests its
+            navy title bar inside its own white card. */}
+        <div style={{ ...glassCard, padding: 20, marginBottom: 24 }}>
+          <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 12, boxShadow: '0 3px 20px rgba(20,31,82,.3)', padding: '20px 24px 14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2.5, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', marginBottom: 5 }}>UNIV 154 · Financial Literacy for Life</div>
+                <div style={{ fontSize: 22, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Retirement Income Planner</div>
               </div>
-            ))}
+              <div style={{ textAlign: 'right', paddingTop: 2 }}>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>Step {step + 1} of {STEP_NAMES.length}</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.85)' }}>{STEP_NAMES[step]}</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 0 }}>
+              {STEP_NAMES.map((s, i) => (
+                <div key={s} style={{ flex: 1, textAlign: 'center' }}>
+                  <div style={{ height: 3, background: i < step ? C.gold : i === step ? 'rgba(245,184,0,.6)' : 'rgba(255,255,255,.15)' }} />
+                  <div style={{ padding: '5px 2px 6px', fontSize: 8, fontWeight: i === step ? 700 : 400, color: i === step ? C.gold : i < step ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {i < step ? '✓' : i === step ? s.toUpperCase() : ''}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Card */}
-      <div style={{ maxWidth: 1500, margin: '28px auto 40px', padding: '0 16px' }}>
-        <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, boxShadow: '0 4px 28px rgba(28,45,110,.09)', overflow: 'hidden' }}>
-          <div style={{ height: 5, background: `linear-gradient(90deg,${C.navyDk},${C.navyMd} 60%,${C.gold})` }} />
+        {/* Card */}
+        <div style={{ ...glassCard, marginBottom: 40, overflow: 'hidden' }}>
           <div style={{ padding: '34px 42px' }}>
             {stepRenderers[step]()}
             {step < RESULTS_STEP && (
