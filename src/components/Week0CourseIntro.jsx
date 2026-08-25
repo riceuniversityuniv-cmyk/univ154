@@ -14,7 +14,7 @@
 // utils/taxEngine.js or useAssumptions() (those model current-year income
 // for the budgeting/tax modules). Keeping this independent means it can't
 // drift from, or accidentally corrupt, the shared tax engine's assumptions.
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { formatCurrency } from '../utils/formatters';
 
 // ── Palette (kept from the original artifact -- already matches the site's
@@ -271,15 +271,6 @@ function calcScenario(form, scenario) {
 }
 
 // ── Presentational helpers ──
-function Pill({ text }) {
-  return (
-    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, background: C.navyPale, border: `1px solid ${C.navyBdr}`, borderRadius: 20, padding: '5px 14px', marginBottom: 18 }}>
-      <div style={{ width: 7, height: 7, borderRadius: '50%', background: C.navyMd, flexShrink: 0 }} />
-      <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: C.navyMd }}>{text}</span>
-    </div>
-  );
-}
-
 const NOTE_MAP = {
   blue: { bg: C.navyPale, bdr: C.navyBdr, txt: C.navy, icon: 'ℹ' },
   amber: { bg: C.amberPale, bdr: C.amberBdr, txt: C.amber, icon: '⚠' },
@@ -472,13 +463,29 @@ export default function Week0CourseIntro() {
 
   const goNext = () => { setStep((s) => s + 1); window.scrollTo(0, 0); };
   const goBack = () => { setStep((s) => s - 1); window.scrollTo(0, 0); };
-  const startOver = () => { setForm(getInitialForm()); setStep(0); window.scrollTo(0, 0); };
+  const startOver = () => { setForm(getInitialForm()); setStep(0); setScenarios([]); window.scrollTo(0, 0); };
+
+  // The first time a student reaches Results, pre-populate two example job
+  // offers (same salary/location the wizard just calculated, one maxing out
+  // the 401(k) and one contributing $200/mo less) so the side-by-side
+  // comparison is immediately visible without needing to click "+ Add
+  // Offer" first. Only fires once (guarded on scenarios.length === 0), so
+  // it never overwrites cards the student has already added or edited.
+  useEffect(() => {
+    if (step === RESULTS_STEP && scenarios.length === 0 && form.retireState) {
+      const gross = String(Math.round(calcResults(form).gross));
+      setScenarios([
+        { id: nextScenarioId.current++, label: 'Max Out 401(k)', salary: gross, state: form.retireState, city: form.retireCity, mode: 'max', reduceAmount: '' },
+        { id: nextScenarioId.current++, label: 'Reduce Contribution', salary: gross, state: form.retireState, city: form.retireCity, mode: 'reduce', reduceAmount: '2400' },
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // ── Steps ──
   function renderStep0() {
     return (
       <>
-        <Pill text="Getting Started" />
         <h1 style={{ fontSize: 28, fontWeight: 700, color: C.ink, margin: '0 0 10px', lineHeight: 1.25 }}>What income do you need<br />in retirement?</h1>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Figure out how much gross income your household needs in retirement, based on where you live, how you spend, and 2026 tax brackets.</p>
         <Note>We'll walk you through each spending category. Pick the lifestyle level that fits, and we'll do the math, including taxes.</Note>
@@ -501,7 +508,6 @@ export default function Week0CourseIntro() {
     ];
     return (
       <>
-        <Pill text="Household" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Who are you planning for?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Tell us your household size. You'll enter your own lifestyle preferences, and we'll scale the total automatically.</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
@@ -547,7 +553,6 @@ export default function Week0CourseIntro() {
     const cities = form.retireState ? (CITIES_BY_STATE[form.retireState] || []) : [];
     return (
       <>
-        <Pill text="Location" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Where will you retire?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Your state and city determine how much of your income goes to taxes.</p>
         <FieldLabel>Retirement State</FieldLabel>
@@ -581,7 +586,6 @@ export default function Week0CourseIntro() {
   function renderStep3() {
     return (
       <>
-        <Pill text="Housing" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Where will you live?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Typically your biggest retirement expense.{hasSpouse ? ' Housing is shared, no extra cost for your spouse.' : ''}</p>
         <FieldLabel>Own or rent?</FieldLabel>
@@ -616,7 +620,6 @@ export default function Week0CourseIntro() {
   function renderStep4() {
     return (
       <>
-        <Pill text="Transportation" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>How will you get around?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Each tier covers everything: payment, fuel, insurance, and upkeep.{hasSpouse ? ' Spouse car costs (+60%) added in results.' : ''}</p>
         <FieldLabel>Own or lease?</FieldLabel>
@@ -637,7 +640,6 @@ export default function Week0CourseIntro() {
     const mults = getMultipliers(form.retireState, form.retireCity);
     return (
       <>
-        <Pill text="Food & Dining" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>How do you like to eat?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Groceries, restaurants, coffee, and takeout.{hasSpouse ? ' Spouse food (+50%) added in results.' : ''}</p>
         {form.retireState && <Note>Costs adjusted for <strong>{form.retireState}</strong> regional cost of living.</Note>}
@@ -651,7 +653,6 @@ export default function Week0CourseIntro() {
   function renderStep6() {
     return (
       <>
-        <Pill text="Healthcare" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Healthcare in retirement</h2>
         <Note>Default: <strong>$833/mo ($10,000/yr)</strong>, covers Medicare, supplements, dental, vision, prescriptions, and out-of-pocket.{hasSpouse ? ' Per-person, spouse healthcare (+100%) added automatically.' : ''} Adjust to fit your situation.</Note>
         <FieldLabel>Total Monthly Healthcare Budget{hasSpouse ? ', per person' : ''}</FieldLabel>
@@ -665,7 +666,6 @@ export default function Week0CourseIntro() {
     const mults = getMultipliers(form.retireState, form.retireCity);
     return (
       <>
-        <Pill text="Wellness" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 20px' }}>Staying healthy & well</h2>
         <div style={{ marginBottom: 26 }}>
           <FieldLabel badge={form.retireState || undefined}>Fitness & Exercise</FieldLabel>
@@ -687,7 +687,6 @@ export default function Week0CourseIntro() {
     const mults = getMultipliers(form.retireState, form.retireCity);
     return (
       <>
-        <Pill text="Lifestyle & Travel" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>How do you want to spend your time?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>How you'll fill your free time: hobbies, entertainment, and travel.</p>
         {form.retireState && <Note>Entertainment costs adjusted for <strong>{form.retireState}</strong>. Travel is not location-adjusted.</Note>}
@@ -709,7 +708,6 @@ export default function Week0CourseIntro() {
   function renderStep9() {
     return (
       <>
-        <Pill text="Pets & Pet Care" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Do you have pets?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Food, vet bills, grooming, insurance, and boarding add up. No pets? Select "No Pets" and move on.</p>
         <FieldLabel>Pet Care Level</FieldLabel>
@@ -725,7 +723,6 @@ export default function Week0CourseIntro() {
     const mults = getMultipliers(form.retireState, form.retireCity);
     return (
       <>
-        <Pill text="Appearance & Personal Care" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Looking & feeling your best</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Clothing, haircuts, skincare, and grooming.{hasSpouse ? ' Per-person, spouse amounts added automatically.' : ''}</p>
         {form.retireState && <Note>Costs adjusted for <strong>{form.retireState}</strong> cost of living.</Note>}
@@ -748,7 +745,6 @@ export default function Week0CourseIntro() {
   function renderStep11() {
     return (
       <>
-        <Pill text="Technology & Subscriptions" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 20px' }}>Tech, streaming & subscriptions</h2>
         <div style={{ marginBottom: 26 }}>
           <FieldLabel>Phone, Internet, Streaming & Software</FieldLabel>
@@ -768,7 +764,6 @@ export default function Week0CourseIntro() {
   function renderStep12() {
     return (
       <>
-        <Pill text="Charitable Giving" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Giving back</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Calculated as a percentage of your gross income.</p>
         <FieldLabel>Charitable Giving</FieldLabel>
@@ -804,7 +799,6 @@ export default function Week0CourseIntro() {
 
     return (
       <>
-        <Pill text="Your Results" />
         <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 14, padding: '26px 28px', marginBottom: 22, boxShadow: '0 6px 24px rgba(20,31,82,.25)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,.5)', marginBottom: 6 }}>{form.name ? `${form.name}'s ${incomeLabel}` : incomeLabel}</div>
           <div style={{ fontSize: 56, fontWeight: 800, color: C.white, letterSpacing: -2, lineHeight: 1 }}>{fmt(r.gross)}</div>
@@ -1007,7 +1001,7 @@ export default function Week0CourseIntro() {
               <div key={s} style={{ flex: 1, textAlign: 'center' }}>
                 <div style={{ height: 3, background: i < step ? C.gold : i === step ? 'rgba(245,184,0,.6)' : 'rgba(255,255,255,.15)' }} />
                 <div style={{ padding: '5px 2px 6px', fontSize: 8, fontWeight: i === step ? 700 : 400, color: i === step ? C.gold : i < step ? 'rgba(255,255,255,.6)' : 'rgba(255,255,255,.3)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {i < step ? '✓' : i === step ? s.toUpperCase() : '·'}
+                  {i < step ? '✓' : i === step ? s.toUpperCase() : ''}
                 </div>
               </div>
             ))}

@@ -7,14 +7,24 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**2026-08-24/25 — Module 1 em dashes removed + "Compare Job Offers" feature
-added to the Results step, not yet pushed.** See the dated working-log entry
-below ("Module 1: em-dash cleanup + Compare Job Offers scenario comparison")
-for the full design/verification story. `npm run build` and `npx eslint`
-both clean, verified live via a temporary unauthenticated `/__qa/week-0`
-route + Playwright (removed before this state was reached, per the
-established pattern — see the 2026-08-24 Module 1 entry further down for
-precedent).
+**2026-08-25 — Dashboard-wide sidebar layout bug fixed + Module 1 polish,
+pushed to `main` as `28985f6` then a follow-up commit same session.** User
+reported (with a screenshot) that on wide monitors the whole Dashboard shell
+shows a large dead gutter on the right, worst with the sidebar expanded
+(content visibly shifted ~360px off-true-center). Root cause and fix are in
+the 2026-08-25 working-log entry ("Dashboard sidebar-overlay centering bug +
+Module 1 polish") below — **`Dashboard.jsx`'s Main Content div now reserves
+`marginLeft` for the sidebar's actual width**, not just Module 1's own
+`Week0CourseIntro.jsx`. Also removed the `<Pill>` eyebrow labels and the
+per-step "·" placeholder dots from Module 1's header (both were flagged as
+visual clutter), and the "Compare Job Offers" section now auto-populates two
+example scenarios on first reaching Results instead of starting empty, so
+the feature is immediately visible. `npm run build` and `npx eslint` clean;
+verified live via a temporary unauthenticated `/__qa/dashboard/*` route
+rendering the real `<Dashboard/>` shell (not just the bare module) at a
+1920px viewport, both sidebar states, removed before finishing — see that
+entry for why the bare-component `/__qa/week-0` route from the prior entry
+couldn't have caught this bug at all.
 
 **2026-08-24 — Module 1 "Course Introduction" (`week-0`) pushed to `main`,
 commit `9ae2fdc`.** New self-contained module (`Week0CourseIntro.jsx`, a
@@ -314,6 +324,82 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Dashboard sidebar-overlay centering bug + Module 1 polish
+Follow-up in the same session as the entry directly below. User sent a
+screenshot showing a large white gutter on the right side of Module 1, and
+asked to delete the "Getting Started" pill and the step-indicator dots, plus
+said they were still unsure the Compare Job Offers feature actually answered
+their boss's original ask.
+
+- **The white-bar bug, and why it wasn't Module 1's fault**: `Dashboard.jsx`
+  renders the sidebar as `position:fixed`, which takes it out of normal flow
+  entirely — so "Main Content" (the flex sibling holding `<Outlet/>`) always
+  renders at the FULL window width underneath it, sidebar or no sidebar.
+  Every centered layout inside Main Content (this file's own now-removed
+  `max-w-[1760px]` wrapper, or a module's own internal centering, e.g.
+  Module 1's 760px wizard card) was computing its center against the whole
+  window, not the space actually visible past the sidebar. With the sidebar
+  collapsed this is a small, genuinely symmetric ~80px margin per side (easy
+  to misread as one-sided since the sidebar-toggle button sits inside the
+  left one, making it look "occupied" while the right one looks like dead
+  space) — reproduced and measured with an isolated static-HTML harness
+  (real compiled Tailwind CSS, no app/auth involved) to confirm the math
+  before touching any component. With the sidebar **expanded**, though, it's
+  a real bug: content shifts a full ~360px off true-center, reading as a
+  huge dead gutter. **My first attempted fix (dropping `Dashboard.jsx`'s
+  `max-w-[1760px]` cap) was a no-op for Module 1** — that cap was never the
+  binding constraint, since Module 1's own internal 760px wizard-card width
+  is far narrower than 1760px regardless. Caught this by actually rendering
+  the real `<Dashboard/>` shell (not just the bare `Week0CourseIntro`
+  component) via a temporary unauthenticated `/__qa/dashboard/*` route at a
+  1920px viewport in both sidebar states — the bare-component
+  `/__qa/week-0` route used in the entry below structurally cannot surface
+  this bug at all, since it skips the sidebar entirely. **Real fix**:
+  `marginLeft: showSidebar ? '360px' : '0px'` (with a transition matched to
+  the sidebar's own 0.3s slide) on Main Content, so it reserves the
+  sidebar's actual footprint and every downstream centering calculation
+  (Dashboard-level or module-level) measures against the space that's
+  actually visible, not the full window. Verified both sidebar states
+  render correctly at 1920px afterward. The `max-w-[1760px]` removal was
+  kept anyway (harmless, and correct in spirit per the 2026-08-17 round-3
+  entry's original intent of not adding dead gutters on wide monitors) but
+  the marginLeft fix is what actually matters here.
+- **Module 1 declutter**: removed the `<Pill text="..."/>` eyebrow-label
+  component from all 14 call sites (every step + Results) and deleted the
+  now-unused `Pill` component definition; changed the header's per-step
+  progress row so upcoming steps render nothing instead of a `·` placeholder
+  character (checkmarks for completed steps and the current step's name in
+  gold are unchanged — only the "weird dots" for steps not yet reached were
+  removed).
+- **Compare Job Offers made visible by default**: was requiring a click on
+  "+ Add Offer" before showing anything, which read as "nothing was added"
+  at a glance. Added a `useEffect` keyed on `step === RESULTS_STEP` that
+  auto-populates two example scenarios the first time a student reaches
+  Results (same salary/location the wizard just calculated, one card Maxing
+  Out the 401(k), one Reducing Contribution by $200/mo) — guarded on
+  `scenarios.length === 0` so it never overwrites anything the student has
+  already added, removed, or edited. Also fixed `startOver()`, which reset
+  `form`/`step` but not `scenarios` — a student starting over previously
+  kept stale scenario cards computed against the old lifestyle tiers.
+- **Answering "does this actually address the boss's comments" directly**,
+  since the user said they were still unsure: "different salaries/locations
+  for different jobs" → each scenario card has its own salary + state + city
+  field, independently editable. "Compare... maxing out retirement account
+  or if they reduce by x amount, side by side" → the Max Out / Reduce By $
+  toggle per card plus the horizontal card row *is* that comparison, now
+  visible by default instead of requiring a click first. "Check the math on
+  whether the annual expenses number is right with taxes" → covered in the
+  entry below (verified correct, two named simplifications flagged, not
+  changed).
+- **Verification**: `npm run build` and `npx eslint` clean. Live-verified via
+  a temporary unauthenticated `/__qa/dashboard/*` route (rendering the real
+  `<Dashboard/>` component tree, not a bare-component shortcut) at a 1920px
+  viewport: sidebar expanded (header now starts flush at the sidebar's right
+  edge, no shift), sidebar collapsed (small symmetric margins, toggle button
+  sitting in the left one), and a full click-through confirming the two
+  auto-populated scenario cards render with correct math. Route removed
+  before finishing, per the established pattern.
 
 ### 2026-08-25 — Module 1: em-dash cleanup + "Compare Job Offers" scenario comparison
 User forwarded boss feedback on Module 1 (`Week0CourseIntro.jsx`): remove all

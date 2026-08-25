@@ -349,8 +349,22 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
         {showSidebar ? <MdChevronLeft size={22} /> : <MdChevronRight size={22} />}
       </button>
 
-      {/* Main Content */}
-      <div className="flex-1 h-full overflow-y-auto">
+      {/* Main Content. The sidebar above is `position:fixed`, so it's out of
+          normal flow and this div always renders at the FULL window width
+          underneath it -- any centering inside here (this file's own
+          max-width wrapper, or a module's own internal centered layout,
+          e.g. Module 1's 760px wizard card) was computing its center against
+          the whole window, not the space actually visible past the sidebar.
+          With the sidebar open that shoved everything ~360px left of true
+          center, reading as a big dead gutter on the right (see
+          docs/univ154-migration.md's 2026-08-25 "white bar" working-log
+          entry). marginLeft here reserves the sidebar's real footprint so
+          all downstream centering measures against the space that's
+          actually visible. */}
+      <div
+        className="flex-1 h-full overflow-y-auto"
+        style={{ marginLeft: showSidebar ? '360px' : '0px', transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}
+      >
         {/* Top Bar - DISABLED */}
         {/* 
         <div className="bg-white border-b border-gray-100 px-8" style={{ height: '80px' }}>
@@ -505,8 +519,14 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
           </div>
           */}
 
-          {/* Render nested routes */}
-          <div className="w-full max-w-[1760px]">
+          {/* Render nested routes. No outer max-width here -- each module
+              sets its own internal width convention (760px for Module 1's
+              wizard card, 1520px for most others), so this wrapper just
+              fills the real available width instead of adding a second,
+              redundant cap that left dead gutters on wide monitors (see
+              docs/univ154-migration.md's working log for the 2026-08-25
+              "white bar" report this fixed). */}
+          <div className="w-full">
             <BudgetProvider>
               <Outlet />
             </BudgetProvider>
