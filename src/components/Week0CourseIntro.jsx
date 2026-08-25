@@ -977,8 +977,17 @@ export default function Week0CourseIntro() {
 
   const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7, renderStep8, renderStep9, renderStep10, renderStep11, renderStep12, renderResults];
 
+  // No negative-margin "cancel Dashboard's padding" trick here -- every
+  // other module (Week9.jsx etc.) just renders inside Dashboard's normal
+  // py-8/px-8 content padding with its own maxWidth centered inside that,
+  // so this does the same for consistent framing. (The old trick also had a
+  // real bug: width:'100%' is a fixed percentage of the ORIGINAL padded
+  // container, so the negative margins only shifted the box instead of
+  // stretching it to fill the freed space -- it canceled the left inset but
+  // left the right inset doubled, which is what showed up as an asymmetric
+  // gap on wide screens.)
   return (
-    <div style={{ fontFamily: FONT, background: C.bg, color: C.ink, minHeight: '100vh', width: '100%', margin: '-32px -32px 0', padding: '0 0 40px' }}>
+    <div style={{ fontFamily: FONT, background: C.bg, color: C.ink, minHeight: '100vh', padding: '0 0 40px' }}>
       {/* Header / progress */}
       <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, boxShadow: '0 3px 20px rgba(20,31,82,.3)' }}>
         <div style={{ maxWidth: 1500, margin: '0 auto', padding: '20px 28px 0' }}>

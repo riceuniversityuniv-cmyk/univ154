@@ -7,8 +7,32 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-08-25 — Module 1's own edge-to-edge bleed trick removed; it now
+frames like every other module (fourth round this session, not yet
+pushed).** User sent a third screenshot: still a "weird little wide gap" on
+the right at 1920px, and said the framing still didn't look consistent with
+the other modules. Root cause was different from the two prior width fixes —
+`Week0CourseIntro.jsx`'s outer div used a `margin: '-32px -32px 0'` +
+`width: '100%'` trick to cancel Dashboard's `py-8 px-8` padding so its navy
+header could bleed to the true viewport edge. That trick had a real bug:
+`width: '100%'` resolves once against the *original* padded container's
+content width, so the negative margins only slid the fixed-width box left
+instead of stretching it into the space they freed — canceling the left
+32px inset but leaving the right one effectively doubled. No other module
+does this bleed trick (`Week9.jsx` etc. just render inside Dashboard's
+normal padding with their own centered max-width), so it was also *why*
+Module 1 read as differently-framed. Fix: deleted the trick entirely —
+Module 1 now sits inset in Dashboard's standard padding exactly like every
+other module, confirmed via live measurement against `Week1Budgeting.jsx`
+(~200px gutters on both, 1920px viewport, sidebar collapsed, difference
+within scrollbar-width noise). See the dated working-log entry below
+("Module 1: remove the edge-to-edge bleed trick") for the measurements.
+`npm run build` and `npx eslint` clean; verified via the same temporary
+`/__qa/dashboard/*` route pattern as prior entries, removed before
+finishing.
+
 **2026-08-25 — Module 1 Results page widened + last section-header dots
-removed (third round this session, not yet pushed).** User sent a second
+removed (third round this session).** User sent a second
 screenshot: still a gold dot to the left of "Compare Job Offers" (and the two
 other Results section headers had the same dot — user said "all of the
 topics on that results page"), and the whole page read as too narrow versus
@@ -343,6 +367,51 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Module 1: remove the edge-to-edge bleed trick
+Fourth round in the same session as the three entries directly below. User
+sent a third screenshot: gap still there on the right at 1920px, and the
+framing still didn't match the rest of the app. The two prior width fixes
+(760→1500, then card wrapping/centering) were both real but hadn't reached
+the actual cause here, which was structural rather than a max-width number.
+
+- **Root cause**: `Week0CourseIntro.jsx`'s outer div was
+  `{ ..., width: '100%', margin: '-32px -32px 0', padding: '0 0 40px' }` —
+  a trick to cancel Dashboard's `py-8 px-8` (32px) content padding so the
+  navy header band could bleed to the literal viewport edge. Measured live
+  (`getBoundingClientRect` on the header/card wrappers at 1920px, sidebar
+  collapsed): left gap 172px, right gap 248px — clearly not the symmetric
+  centering `margin: '0 auto'` should produce. Traced it to the CSS box
+  model: `width: '100%'` is a percentage resolved once against the
+  *containing block's content width* (1844px, i.e. the width Dashboard's
+  padding had already carved out) — it does not recompute when negative
+  margins are applied. So the negative margins only *slid* that
+  already-fixed-1844px box 32px to the left; they didn't stretch it to fill
+  the 64px they freed up. Net effect: the left inset got canceled correctly,
+  but the right inset ended up as the original 32px *plus* the 32px the box
+  should have grown into but didn't — an invisible-to-static-reading, only
+  reproducible-by-measuring bug.
+- **Why this also explains "doesn't look like the other modules"**: no other
+  module does this bleed trick at all — `Week9.jsx` and the rest just render
+  inside Dashboard's standard padding with their own centered max-width
+  inside that. Module 1 was structurally unique (padding-cancel + full-bleed
+  header band) as well as visibly broken.
+- **Fix**: deleted the trick — removed `width: '100%'` and the negative
+  `margin`, so the outer div is a plain block that just sits inside
+  Dashboard's normal padding like every other module. The navy header band
+  and white card (both still `maxWidth: 1500, margin: '0 auto'` from the
+  prior round) now center inside that inset area instead of a full 1920px
+  window. Re-measured after the fix: 204px left / 216px right at 1920px
+  (sidebar collapsed) — the remaining ~12px is ordinary vertical-scrollbar
+  width, not a layout bug (confirmed against `Week1Budgeting.jsx` measured
+  the same way: ~196px/~208px, same scrollbar-driven rounding, same order of
+  magnitude). Also re-verified the Results page and an early tier-grid step
+  (Housing) still read correctly with the new inset framing.
+- Verified via the same temporary `/__qa/dashboard/*` route pattern as prior
+  entries (this time also mounting `excel/week-1` alongside `week-0` for the
+  side-by-side gap comparison), removed before finishing — confirmed via
+  `git diff src/App.jsx` showing no changes. `npm run build` and `npx eslint
+  src/components/Week0CourseIntro.jsx src/App.jsx` both clean.
 
 ### 2026-08-25 — Module 1: widen to match app + remove remaining section-header dots
 Third round in the same session as the two entries directly below. User sent
