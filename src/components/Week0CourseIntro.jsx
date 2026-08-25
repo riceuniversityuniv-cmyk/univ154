@@ -292,7 +292,7 @@ function FieldLabel({ children, badge }) {
       {children}
       {badge && (
         <span style={{ marginLeft: 8, fontSize: 10, fontWeight: 600, background: C.navyPale, color: C.navyMd, border: `1px solid ${C.navyBdr}`, borderRadius: 10, padding: '2px 8px', verticalAlign: 'middle', textTransform: 'none', letterSpacing: 0 }}>
-          {'📍'} {badge}
+          {badge}
         </span>
       )}
     </div>
@@ -577,7 +577,7 @@ export default function Week0CourseIntro() {
         {form.retireState && (
           <>
             {hasNoTax ? (
-              <Note type="green"><strong>{form.retireState}</strong> has <strong>no state income tax</strong>, so your tax bill here will only include federal (and city, if applicable). 🎉</Note>
+              <Note type="green"><strong>{form.retireState}</strong> has <strong>no state income tax</strong>, so your tax bill here will only include federal (and city, if applicable).</Note>
             ) : (
               <Note><strong>{form.retireState}</strong> uses a <strong>progressive {bracketCount}-bracket system</strong> with a top marginal rate of <strong>{(top * 100).toFixed(2)}%</strong>.</Note>
             )}
@@ -901,17 +901,19 @@ export default function Week0CourseIntro() {
                 </p>
                 {/* Wraps onto new rows instead of horizontal-scrolling now that the
                     Results page is wide (matches the other modules' ~1500px
-                    convention) -- a fixed-width scrolling row would otherwise leave a
-                    big empty gap to the right of just 1-2 cards. paddingTop still
-                    gives the "Best Cushion" badge's negative top offset room to
-                    render without being clipped. */}
+                    convention). Cards use flex-grow (not a fixed width) so 1-2
+                    of them actually stretch to fill the row's width instead of
+                    leaving a big empty gap to the right -- capped at maxWidth so
+                    a single card doesn't stretch to the full row by itself.
+                    paddingTop still gives the "Best Cushion" badge's negative
+                    top offset room to render without being clipped. */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: scenarios.length > 3 ? 'flex-start' : 'center', gap: 28, paddingTop: 14, paddingBottom: 6 }}>
                   {scenarios.map((sc) => {
                     const res = calcScenario(form, sc);
                     const isBest = scenarios.length > 1 && sc.state && scenarios.every((other) => other.id === sc.id || calcScenario(form, other).monthlySurplus <= res.monthlySurplus);
                     const scCities = sc.state ? (CITIES_BY_STATE[sc.state] || []) : [];
                     return (
-                      <div key={sc.id} style={{ flex: '0 0 400px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
+                      <div key={sc.id} style={{ flex: '1 1 420px', maxWidth: 640, border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
                         {isBest && <div style={{ position: 'absolute', top: -10, left: 12, background: C.gold, color: C.navyDk, fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 10 }}>Best Cushion</div>}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <input

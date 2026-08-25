@@ -962,7 +962,7 @@ const Week7 = () => {
               fontSize: '15px',
               fontWeight: '600'
             }}>
-              {savings > 0 ? '' : '❌ '} {cheaperPlan} is cheaper by {formatCurrency(Math.abs(savings), { decimals: 0 })}
+              {cheaperPlan} is cheaper by {formatCurrency(Math.abs(savings), { decimals: 0 })}
             </div>
           </div>
 
