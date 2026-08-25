@@ -7,6 +7,25 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-08-25 — Module 1 Results page widened + last section-header dots
+removed (third round this session, not yet pushed).** User sent a second
+screenshot: still a gold dot to the left of "Compare Job Offers" (and the two
+other Results section headers had the same dot — user said "all of the
+topics on that results page"), and the whole page read as too narrow versus
+the rest of the app ("too much negative space to the left and right...make
+it wide enough so it mimics the other modules correctly"). Asked the user
+whether to widen just the Results page or the entire wizard; **they chose
+the entire wizard**. See the dated working-log entry below ("Module 1: widen
+to match app + remove remaining section-header dots") for the specifics —
+container maxWidth 760→1500 (matches Week9's 1520 convention), all 3 gold
+dots removed, scenario cards 260px→320px and switched from a horizontal-
+scroll row to a wrapping, centered-when-≤3-cards flex row (fixes the
+lopsided dead space to the right of just 2 cards). `npm run build` and `npx
+eslint` clean; verified live via the same temporary `/__qa/dashboard/*`
+route pattern as the prior entry, both an early wizard step (Housing, at
+1920px) and the Results/Compare Job Offers section, then removed before
+finishing.
+
 **2026-08-25 — Dashboard-wide sidebar layout bug fixed + Module 1 polish,
 pushed to `main` as `28985f6` then a follow-up commit same session.** User
 reported (with a screenshot) that on wide monitors the whole Dashboard shell
@@ -324,6 +343,52 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Module 1: widen to match app + remove remaining section-header dots
+Third round in the same session as the two entries directly below. User sent
+a new screenshot of just the Compare Job Offers box: still a gold dot next
+to the header, and a large empty patch of white to the right of the two
+scenario cards inside the box. Asked for the dot gone "for all of the topics
+on that results page" (not just Compare Job Offers) and for the page widened
+to match the rest of the app.
+
+- **Dots**: `Week0CourseIntro.jsx` had exactly 3 of the small gold
+  `width:8,height:8,borderRadius:'50%'` dots, all on the Results step, one
+  each on "Tax & Obligations Breakdown", "Monthly Expense Breakdown", and
+  "Compare Job Offers". Removed all 3 (confirmed via grep there were no
+  others in the file) — this is separate from the `<Pill>`/"·" dots removed
+  in the entry below; those were step-progress chrome, these were section-
+  header bullets.
+- **Width, whole wizard vs Results-only**: The wizard's header bar and card
+  wrapper share one `maxWidth: 760` used on every step (`Week0CourseIntro.jsx`
+  had two literal occurrences, one for the navy header, one for the white
+  card). Asked the user whether to widen only the Results page or the entire
+  wizard from Welcome onward; they chose the **entire wizard**. Changed both
+  to `maxWidth: 1500` (matches the ~1520px convention `Week9.jsx` uses for
+  its outer card). Verified live at 1920px that an early single-field step
+  (Welcome) and a multi-column tier-grid step (Housing) both still read fine
+  wide — no restructuring of the tier grids themselves was needed.
+- **Scenario cards were the real source of the "negative space" complaint**:
+  the dead white area the user screenshotted wasn't page-margin at all — the
+  Compare Job Offers box already spanned the container; the empty space was
+  to the *right of the 2 cards inside it*, because the row was a left-
+  aligned, fixed-260px-per-card, horizontally-scrolling flex row not
+  designed to fill a much wider box. Fixed two ways: bumped card width
+  260px→320px (user asked for "widened a little bit"), and switched the row
+  from `overflowX:'auto'` to `flexWrap:'wrap'`. Wrapping alone would still
+  leave 2 cards flush-left with a lopsided gap on the right, so also added
+  `justifyContent: scenarios.length > 3 ? 'flex-start' : 'center'` — few
+  cards center as a balanced group under the header (reads as intentional,
+  not unfinished), many cards left-align so wrapped rows stay in normal
+  reading order instead of each row re-centering independently. The
+  paddingTop:14 CSS-overflow-y fix for the "Best Cushion" badge (see the
+  2026-08-25 "em-dash cleanup" entry below) still applies and was re-verified
+  unclipped at the new card width.
+- Verified via the same temporary `/__qa/dashboard/*` route pattern as the
+  prior entry (added, screenshotted through the full click-through at
+  1920px, removed before finishing — confirmed via `git diff src/App.jsx`
+  showing no changes). `npm run build` and `npx eslint
+  src/components/Week0CourseIntro.jsx` both clean.
 
 ### 2026-08-25 — Dashboard sidebar-overlay centering bug + Module 1 polish
 Follow-up in the same session as the entry directly below. User sent a

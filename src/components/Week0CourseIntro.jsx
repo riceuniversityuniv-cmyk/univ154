@@ -823,8 +823,7 @@ export default function Week0CourseIntro() {
         )}
 
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
-          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
+          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Tax & Obligations Breakdown</span>
           </div>
           {taxRows.map((row, i) => (
@@ -841,8 +840,7 @@ export default function Week0CourseIntro() {
         </div>
 
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
-          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
+          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Monthly Expense Breakdown{form.household !== 'single' ? ' (Household Total)' : ''}</span>
           </div>
           <div style={{ padding: '18px 20px' }}>
@@ -870,11 +868,8 @@ export default function Week0CourseIntro() {
         {form.retireCity && <Note type="amber"><strong>{form.retireCity}</strong> adds <strong>{fmt(r.cityTax)}/yr</strong> in city income tax.</Note>}
 
         <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
-          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
-              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Compare Job Offers</span>
-            </div>
+          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Compare Job Offers</span>
             <button onClick={addScenario} style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', color: C.white, borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Add Offer</button>
           </div>
           <div style={{ padding: '18px 20px' }}>
@@ -887,18 +882,19 @@ export default function Week0CourseIntro() {
                 <p style={{ fontSize: 12, color: C.faint, lineHeight: 1.6, margin: '0 0 16px' }}>
                   Each offer re-prices the lifestyle tiers you picked earlier for its own state and city cost of living, then compares take-home pay after taxes and your chosen 401(k) contribution. Healthcare stays fixed since that field isn't location-adjusted.
                 </p>
-                {/* overflowX:'auto' implicitly forces overflow-y to 'auto' too (CSS
-                    spec: overflow-y can't stay 'visible' once overflow-x isn't), which
-                    would clip the "Best Cushion" badge's negative top offset with no way
-                    to scroll up and reveal it -- paddingTop here gives that offset room
-                    to live inside the scrollable box instead. */}
-                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingTop: 14, paddingBottom: 6 }}>
+                {/* Wraps onto new rows instead of horizontal-scrolling now that the
+                    Results page is wide (matches the other modules' ~1500px
+                    convention) -- a fixed-width scrolling row would otherwise leave a
+                    big empty gap to the right of just 1-2 cards. paddingTop still
+                    gives the "Best Cushion" badge's negative top offset room to
+                    render without being clipped. */}
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: scenarios.length > 3 ? 'flex-start' : 'center', gap: 16, paddingTop: 14, paddingBottom: 6 }}>
                   {scenarios.map((sc) => {
                     const res = calcScenario(form, sc);
                     const isBest = scenarios.length > 1 && sc.state && scenarios.every((other) => other.id === sc.id || calcScenario(form, other).monthlySurplus <= res.monthlySurplus);
                     const scCities = sc.state ? (CITIES_BY_STATE[sc.state] || []) : [];
                     return (
-                      <div key={sc.id} style={{ flex: '0 0 260px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
+                      <div key={sc.id} style={{ flex: '0 0 320px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
                         {isBest && <div style={{ position: 'absolute', top: -10, left: 12, background: C.gold, color: C.navyDk, fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 10 }}>Best Cushion</div>}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <input
@@ -985,7 +981,7 @@ export default function Week0CourseIntro() {
     <div style={{ fontFamily: FONT, background: C.bg, color: C.ink, minHeight: '100vh', width: '100%', margin: '-32px -32px 0', padding: '0 0 40px' }}>
       {/* Header / progress */}
       <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, boxShadow: '0 3px 20px rgba(20,31,82,.3)' }}>
-        <div style={{ maxWidth: 760, margin: '0 auto', padding: '20px 28px 0' }}>
+        <div style={{ maxWidth: 1500, margin: '0 auto', padding: '20px 28px 0' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2.5, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', marginBottom: 5 }}>UNIV 154 · Financial Literacy for Life</div>
@@ -1010,7 +1006,7 @@ export default function Week0CourseIntro() {
       </div>
 
       {/* Card */}
-      <div style={{ maxWidth: 760, margin: '28px auto 40px', padding: '0 16px' }}>
+      <div style={{ maxWidth: 1500, margin: '28px auto 40px', padding: '0 16px' }}>
         <div style={{ background: C.white, borderRadius: 16, border: `1px solid ${C.border}`, boxShadow: '0 4px 28px rgba(28,45,110,.09)', overflow: 'hidden' }}>
           <div style={{ height: 5, background: `linear-gradient(90deg,${C.navyDk},${C.navyMd} 60%,${C.gold})` }} />
           <div style={{ padding: '34px 42px' }}>
