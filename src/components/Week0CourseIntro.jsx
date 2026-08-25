@@ -1045,16 +1045,17 @@ export default function Week0CourseIntro() {
             edge-to-edge itself, matching how every other module nests its
             navy title bar inside its own white card. */}
         <div style={{ ...glassCard, padding: 32, marginBottom: 24 }}>
-          <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 12, boxShadow: '0 3px 20px rgba(20,31,82,.3)', padding: '20px 24px 14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2.5, color: 'rgba(255,255,255,.5)', textTransform: 'uppercase', marginBottom: 5 }}>UNIV 154 · Financial Literacy for Life</div>
-                <div style={{ fontSize: 22, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Retirement Income Planner</div>
-              </div>
-              <div style={{ textAlign: 'right', paddingTop: 2 }}>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,.4)', marginBottom: 3 }}>Step {step + 1} of {STEP_NAMES.length}</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,.85)' }}>{STEP_NAMES[step]}</div>
-              </div>
+          <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 12, boxShadow: '0 3px 20px rgba(20,31,82,.3)', padding: '24px 24px 14px' }}>
+            {/* Centered, title-only banner -- matches the rest of the app's
+                navy banner style (BudgetForm.jsx's enhancedHeader etc.: just
+                a centered title, no eyebrow subtext or metadata column).
+                The per-step progress line below is Module 1-specific (it's
+                the only wizard among the modules) and stays exactly as
+                before; it already surfaces the current step's name via its
+                own highlighted label, so dropping the redundant "Step X of
+                Y" text here doesn't lose information. */}
+            <div style={{ textAlign: 'center', marginBottom: 14 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: C.white, letterSpacing: -0.3 }}>Goal Calculator</div>
             </div>
             <div style={{ display: 'flex', gap: 0 }}>
               {STEP_NAMES.map((s, i) => (
