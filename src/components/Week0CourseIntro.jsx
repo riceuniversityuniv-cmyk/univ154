@@ -14,7 +14,7 @@
 // utils/taxEngine.js or useAssumptions() (those model current-year income
 // for the budgeting/tax modules). Keeping this independent means it can't
 // drift from, or accidentally corrupt, the shared tax engine's assumptions.
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { formatCurrency } from '../utils/formatters';
 
 // ── Palette (kept from the original artifact -- already matches the site's
@@ -73,10 +73,18 @@ function calcCityTax(gross, city) {
 }
 
 const STATES = Object.keys(STATE_TAX).sort();
+const STATE_OPTS = [{ value: '', label: 'Select state…' }, ...STATES.map((s) => ({ value: s, label: s }))];
 // House convention: shared formatCurrency (whole-dollar, matches the
 // artifact's original Math.round behavior) instead of a local fmt().
 const fmt = (n) => formatCurrency(n, { decimals: 0 });
 const pct = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '0%');
+
+// 2026 traditional 401(k) annual employee contribution limit, matching
+// config/assumptionsDefaults.js's limit_401k. Kept as a local constant
+// rather than imported: this module is deliberately independent of
+// useAssumptions() (see file header), same reasoning as the tax brackets
+// above.
+const LIMIT_401K = 24500;
 
 const COL = { "Alabama": [0.70, 0.88], "Alaska": [1.30, 1.22], "Arizona": [1.05, 1.08], "Arkansas": [0.72, 0.89], "California": [2.10, 1.32], "Colorado": [1.18, 1.02], "Connecticut": [1.30, 1.10], "Delaware": [1.05, 1.00], "Florida": [1.10, 1.01], "Georgia": [0.88, 0.92], "Hawaii": [3.15, 1.65], "Idaho": [0.98, 0.99], "Illinois": [0.90, 0.94], "Indiana": [0.78, 0.91], "Iowa": [0.76, 0.90], "Kansas": [0.73, 0.88], "Kentucky": [0.75, 0.92], "Louisiana": [0.80, 0.92], "Maine": [1.12, 1.10], "Maryland": [1.25, 1.13], "Massachusetts": [1.75, 1.30], "Michigan": [0.80, 0.90], "Minnesota": [0.90, 0.94], "Mississippi": [0.66, 0.87], "Missouri": [0.78, 0.89], "Montana": [0.96, 0.95], "Nebraska": [0.80, 0.92], "Nevada": [1.02, 1.00], "New Hampshire": [1.20, 1.09], "New Jersey": [1.35, 1.13], "New Mexico": [0.84, 0.93], "New York": [1.60, 1.22], "North Carolina": [0.88, 0.97], "North Dakota": [0.82, 0.91], "Ohio": [0.76, 0.94], "Oklahoma": [0.70, 0.86], "Oregon": [1.20, 1.10], "Pennsylvania": [0.92, 0.97], "Rhode Island": [1.20, 1.08], "South Carolina": [0.86, 0.94], "South Dakota": [0.80, 0.92], "Tennessee": [0.82, 0.90], "Texas": [0.88, 0.92], "Utah": [1.05, 1.01], "Vermont": [1.15, 1.11], "Virginia": [1.05, 1.00], "Washington": [1.30, 1.12], "Washington D.C.": [2.00, 1.35], "West Virginia": [0.68, 0.88], "Wisconsin": [0.82, 0.97], "Wyoming": [0.88, 0.93] };
 
@@ -99,7 +107,7 @@ const TIERS = {
   housingOwn: { modest: { label: 'Modest', sub: 'Smaller home, lower-cost area', eg: '3BR ranch in a mid-size Midwest city', base: 900 }, comfortable: { label: 'Comfortable', sub: 'Mid-size home, suburban area', eg: '4BR colonial in a nice suburb', base: 1600 }, upscale: { label: 'Upscale', sub: 'Large home in a desirable area', eg: '5BR in a premier suburb or coastal town', base: 2800 }, luxury: { label: 'Luxury', sub: 'Estate, penthouse, resort home', eg: 'Oceanfront home or gated community', base: 6000 } },
   housingRent: { modest: { label: 'Modest', sub: 'Studio/1BR in affordable area', eg: 'Cozy 1BR in a mid-tier city', base: 1100 }, comfortable: { label: 'Comfortable', sub: '1–2BR in a mid-tier city', eg: 'Modern 2BR in a walkable neighborhood', base: 1800 }, upscale: { label: 'Upscale', sub: '2–3BR in a desirable area', eg: 'Renovated 3BR near beach or downtown', base: 3200 }, luxury: { label: 'Luxury', sub: 'Full-service, premium location', eg: 'White-glove doorman building in a top city', base: 7000 } },
   homeCare: { none: { label: 'None', sub: 'DIY everything', eg: 'Mow your own lawn, clean yourself', base: 0 }, basic: { label: 'Basic', sub: 'Lawn care + occasional cleaning', eg: 'Biweekly maid, monthly lawn service', base: 250 }, full: { label: 'Full-Service', sub: 'Housekeeper, landscaper, handyman', eg: 'Weekly cleaning, full yard care, repairs', base: 600 }, premium: { label: 'Premium', sub: 'Full staff or concierge service', eg: 'Daily housekeeper, pool service, gardener', base: 1500 } },
-  carOwn: { none: { label: 'No Car', sub: 'Transit, Uber & walking', eg: 'Walkable city, no car at all', base: 200 }, economy: { label: 'Economy', sub: 'Paid-off older reliable vehicle', eg: '10-yr-old Camry — just gas, insurance, maintenance', base: 350 }, midrange: { label: 'Mid-Range', sub: 'Financed mainstream vehicle', eg: 'New Honda CR-V with a 5-year loan', base: 650 }, luxury: { label: 'Luxury', sub: 'Premium vehicle, full coverage', eg: 'BMW 5-Series or Mercedes E-Class', base: 1200 }, ultra: { label: 'Ultra', sub: 'Multiple or exotic vehicles', eg: 'Porsche + daily driver', base: 2800 } },
+  carOwn: { none: { label: 'No Car', sub: 'Transit, Uber & walking', eg: 'Walkable city, no car at all', base: 200 }, economy: { label: 'Economy', sub: 'Paid-off older reliable vehicle', eg: '10-yr-old Camry, just gas, insurance, maintenance', base: 350 }, midrange: { label: 'Mid-Range', sub: 'Financed mainstream vehicle', eg: 'New Honda CR-V with a 5-year loan', base: 650 }, luxury: { label: 'Luxury', sub: 'Premium vehicle, full coverage', eg: 'BMW 5-Series or Mercedes E-Class', base: 1200 }, ultra: { label: 'Ultra', sub: 'Multiple or exotic vehicles', eg: 'Porsche + daily driver', base: 2800 } },
   carLease: { none: { label: 'No Car', sub: 'Transit, Uber & walking', eg: 'Walkable city, no car at all', base: 200 }, economy: { label: 'Economy', sub: 'Basic lease + insurance & gas', eg: 'Leased Corolla or Civic', base: 500 }, midrange: { label: 'Mid-Range', sub: 'Mid-tier lease + insurance & gas', eg: 'Leased RAV4 or CR-V', base: 800 }, luxury: { label: 'Luxury', sub: 'Premium lease, full coverage', eg: 'Leased BMW 5-Series or Audi A6', base: 1500 }, ultra: { label: 'Ultra', sub: 'Multiple or exotic leases', eg: 'Leased Porsche + daily driver', base: 3500 } },
   food: { frugal: { label: 'Frugal', sub: 'Primarily cooking at home', eg: 'Farmers market, occasional takeout', base: 350 }, balanced: { label: 'Balanced', sub: 'Home cooking + dining out', eg: '3–4 restaurant meals per week', base: 600 }, social: { label: 'Social', sub: 'Frequent dining & delivery', eg: 'Daily coffee shops, regular fine dining', base: 1000 }, luxury: { label: 'Luxury', sub: 'High-end restaurants, premium food', eg: 'Michelin-starred meals, private chef nights', base: 2500 } },
   fitness: { none: { label: 'None', sub: 'Parks, walks, outdoor only', eg: 'Free trails and outdoor activities', base: 0 }, basic: { label: 'Basic', sub: 'Standard gym or YMCA', eg: 'Planet Fitness or local rec center', base: 50 }, premium: { label: 'Premium', sub: 'High-end gym + trainer', eg: 'Equinox + weekly trainer sessions', base: 550 }, luxury: { label: 'Luxury', sub: 'Country club, spa, coaching', eg: 'Golf club membership + weekly massage', base: 1200 } },
@@ -109,8 +117,8 @@ const TIERS = {
   streaming: { minimal: { label: 'Basic', sub: 'Phone, internet & 1–2 streaming services', eg: 'Phone bill + Netflix or one other service', base: 120 }, standard: { label: 'Standard', sub: 'Phone, internet, streaming bundle & music', eg: 'Phone, home internet, Netflix/Hulu/HBO, Spotify, NYT', base: 250 }, full: { label: 'Connected', sub: 'Full suite: streaming, software, cloud', eg: 'All streaming + Adobe/software subs + cloud storage upgrades', base: 400 }, luxury: { label: 'Tech-Forward', sub: 'Premium devices, services, smart home', eg: 'Latest iPhone, smart home devices, all services, device upgrades', base: 700 } },
   gifts: { minimal: { label: 'Minimal', sub: 'Close family only', eg: 'Christmas and birthdays for immediate family', base: 50 }, generous: { label: 'Generous', sub: 'Family & friends, holidays', eg: 'Thoughtful gifts for ~15 people/year', base: 400 }, lavish: { label: 'Lavish', sub: 'Frequent & generous giving', eg: 'Luxury gifts, surprise trips for loved ones', base: 1200 } },
   clothing: { minimal: { label: 'Minimal', sub: 'Basics & replacements only', eg: 'Replace worn items, thrift shops', base: 75 }, moderate: { label: 'Moderate', sub: 'Seasonal wardrobe updates', eg: 'A few new outfits each season', base: 200 }, stylish: { label: 'Stylish', sub: 'Regular shopping, quality brands', eg: 'Department stores, name brands', base: 500 }, luxury: { label: 'Luxury', sub: 'Designer, tailored, high-end', eg: 'Designer labels, custom tailoring', base: 1200 } },
-  personalCare: { minimal: { label: 'Minimal', sub: 'Basics — haircuts & hygiene', eg: 'Great Clips, drugstore products', base: 50 }, moderate: { label: 'Moderate', sub: 'Regular grooming & products', eg: 'Salon haircuts, quality skincare', base: 150 }, premium: { label: 'Premium', sub: 'Spa visits, premium products', eg: 'Monthly facials, premium brands', base: 400 }, luxury: { label: 'Luxury', sub: 'Full personal care regimen', eg: 'Weekly spa, dermatologist, luxury products', base: 900 } },
-  pets: { none: { label: 'No Pets', sub: 'No pet expenses', eg: '', base: 0 }, basic: { label: 'Basic', sub: 'One low-maintenance pet', eg: 'Cat or small dog — food, litter, annual vet', base: 150 }, premium: { label: 'Premium', sub: 'One or more pets, quality care', eg: 'Dog with grooming, insurance, quality food', base: 350 }, luxury: { label: 'Luxury', sub: 'Multiple pets or premium services', eg: 'Dog walker, pet insurance, boarding, specialty vet', base: 700 } },
+  personalCare: { minimal: { label: 'Minimal', sub: 'Basics, haircuts & hygiene', eg: 'Great Clips, drugstore products', base: 50 }, moderate: { label: 'Moderate', sub: 'Regular grooming & products', eg: 'Salon haircuts, quality skincare', base: 150 }, premium: { label: 'Premium', sub: 'Spa visits, premium products', eg: 'Monthly facials, premium brands', base: 400 }, luxury: { label: 'Luxury', sub: 'Full personal care regimen', eg: 'Weekly spa, dermatologist, luxury products', base: 900 } },
+  pets: { none: { label: 'No Pets', sub: 'No pet expenses', eg: '', base: 0 }, basic: { label: 'Basic', sub: 'One low-maintenance pet', eg: 'Cat or small dog, food, litter, annual vet', base: 150 }, premium: { label: 'Premium', sub: 'One or more pets, quality care', eg: 'Dog with grooming, insurance, quality food', base: 350 }, luxury: { label: 'Luxury', sub: 'Multiple pets or premium services', eg: 'Dog walker, pet insurance, boarding, specialty vet', base: 700 } },
   charity: { none: { label: 'None', sub: 'No planned giving', pct: 0 }, occasional: { label: '~1%', sub: 'Occasional giving', pct: .01 }, intentional: { label: '~5%', sub: 'Intentional giving', pct: .05 }, tithing: { label: '~10%', sub: 'Tithing', pct: .10 } },
 };
 
@@ -210,6 +218,56 @@ function calcResults(form) {
   gross = Math.ceil(gross / 500) * 500;
   const fedTax = calcFederalTax(gross, f), stateTax = calcStateTax(gross, form.retireState), cityTax = calcCityTax(gross, form.retireCity), charity = gross * cPct;
   return { gross, fedTax, stateTax, cityTax, charity, takeHome: gross - fedTax - stateTax - cityTax - charity, mo, base, cPct };
+}
+
+// ── Job offer comparison (Compare Job Offers section, Results step) ──
+// Re-prices the lifestyle tiers the student already picked using a
+// DIFFERENT state/city's cost-of-living multipliers, so a job offer in a
+// cheaper or pricier market shows its own realistic monthly cost. Ignores
+// any manual $ overrides typed into the earlier steps' DollarInputs (there's
+// no principled way to rescale a hand-typed number to a new market) except
+// for healthcareAmt, which is never location-adjusted anywhere in this file.
+function calcScenarioMonthlyCost(form, state, city) {
+  const priced = applyAllTierDefaults({ ...form, retireState: state, retireCity: city });
+  const base = {
+    housing: parseFloat(priced.housingAmt) || 0, homeCare: parseFloat(priced.homeCareAmt) || 0,
+    car: parseFloat(priced.carAmt) || 0, food: parseFloat(priced.foodAmt) || 0,
+    healthcare: parseFloat(form.healthcareAmt) || 0, fitness: parseFloat(priced.fitnessAmt) || 0,
+    therapy: parseFloat(priced.therapyAmt) || 0, lifestyle: parseFloat(priced.lifestyleAmt) || 0,
+    vacation: parseFloat(priced.vacationAmt) || 0, streaming: parseFloat(priced.streamAmt) || 0,
+    gifts: parseFloat(priced.giftsAmt) || 0, clothing: parseFloat(priced.clothingAmt) || 0,
+    personalCare: parseFloat(priced.personalCareAmt) || 0, pets: parseFloat(priced.petsAmt) || 0,
+  };
+  const mo = { ...base };
+  const hasSpouse = form.household === 'couple' || form.household === 'family';
+  if (hasSpouse) { for (const [key, pctA] of Object.entries(SPOUSE_ADDERS)) { if (mo[key] !== undefined) mo[key] = Math.round(mo[key] * (1 + pctA)); } }
+  const nc = form.household === 'family' ? (parseInt(form.numDependents) || 1) : 0;
+  if (nc > 0) { for (const [key, flatA] of Object.entries(CHILD_ADDERS)) { if (mo[key] !== undefined) mo[key] += flatA * nc; } }
+  return Object.values(mo).reduce((a, b) => a + b, 0);
+}
+
+// One job-offer scenario: salary + location + a Traditional 401(k)
+// contribution (pre-tax, either maxed out or reduced by a chosen dollar
+// amount), taxed with the same bracket functions as the main results, then
+// compared against that location's re-priced monthly lifestyle cost.
+function calcScenario(form, scenario) {
+  const salary = parseFloat(scenario.salary) || 0;
+  const hasSpouse = form.household === 'couple' || form.household === 'family';
+  const filing = hasSpouse ? 'mfj' : 'single';
+  const cPct = TIERS.charity[form.charityTier]?.pct || 0;
+  const desiredContribution = scenario.mode === 'reduce'
+    ? Math.max(0, LIMIT_401K - (parseFloat(scenario.reduceAmount) || 0))
+    : LIMIT_401K;
+  const contribution = Math.min(desiredContribution, LIMIT_401K, salary);
+  const taxableGross = Math.max(0, salary - contribution);
+  const fedTax = calcFederalTax(taxableGross, filing);
+  const stateTax = calcStateTax(taxableGross, scenario.state);
+  const cityTax = calcCityTax(taxableGross, scenario.city);
+  const charity = taxableGross * cPct;
+  const takeHome = taxableGross - fedTax - stateTax - cityTax - charity;
+  const monthlyLifestyle = scenario.state ? calcScenarioMonthlyCost(form, scenario.state, scenario.city) : 0;
+  const monthlySurplus = takeHome / 12 - monthlyLifestyle;
+  return { salary, contribution, taxableGross, fedTax, stateTax, cityTax, charity, takeHome, monthlyLifestyle, monthlySurplus };
 }
 
 // ── Presentational helpers ──
@@ -344,6 +402,8 @@ function HousingTierGrid({ form, onSelect }) {
 export default function Week0CourseIntro() {
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(getInitialForm);
+  const [scenarios, setScenarios] = useState([]);
+  const nextScenarioId = useRef(0);
 
   const setField = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -372,6 +432,35 @@ export default function Week0CourseIntro() {
     });
   };
 
+  // ── Compare Job Offers (Results step) ──
+  const addScenario = () => {
+    setScenarios((prev) => [...prev, {
+      id: nextScenarioId.current++,
+      label: `Offer ${prev.length + 1}`,
+      salary: form.retireState ? String(Math.round(calcResults(form).gross)) : '',
+      state: form.retireState || '',
+      city: form.retireCity || '',
+      mode: 'max',
+      reduceAmount: '',
+    }]);
+  };
+  const duplicateScenario = (id) => {
+    setScenarios((prev) => {
+      const src = prev.find((s) => s.id === id);
+      if (!src) return prev;
+      return [...prev, { ...src, id: nextScenarioId.current++, label: `${src.label} copy` }];
+    });
+  };
+  const removeScenario = (id) => setScenarios((prev) => prev.filter((s) => s.id !== id));
+  const updateScenario = (id, field, value) => {
+    setScenarios((prev) => prev.map((s) => {
+      if (s.id !== id) return s;
+      const next = { ...s, [field]: value };
+      if (field === 'state') next.city = '';
+      return next;
+    }));
+  };
+
   const hasSpouse = form.household === 'couple' || form.household === 'family';
   const numChildren = form.household === 'family' ? (parseInt(form.numDependents) || 1) : 0;
   const filing = hasSpouse ? 'mfj' : 'single';
@@ -391,8 +480,8 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Getting Started" />
         <h1 style={{ fontSize: 28, fontWeight: 700, color: C.ink, margin: '0 0 10px', lineHeight: 1.25 }}>What income do you need<br />in retirement?</h1>
-        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Figure out how much gross income your household needs in retirement — based on where you live, how you spend, and 2026 tax brackets.</p>
-        <Note>We'll walk you through each spending category. Pick the lifestyle level that fits, and we'll do the math — including taxes.</Note>
+        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Figure out how much gross income your household needs in retirement, based on where you live, how you spend, and 2026 tax brackets.</p>
+        <Note>We'll walk you through each spending category. Pick the lifestyle level that fits, and we'll do the math, including taxes.</Note>
         <FieldLabel>Your First Name (optional)</FieldLabel>
         <input
           value={form.name}
@@ -414,7 +503,7 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Household" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Who are you planning for?</h2>
-        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Tell us your household size. You'll enter your own lifestyle preferences — we'll scale the total automatically.</p>
+        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Tell us your household size. You'll enter your own lifestyle preferences, and we'll scale the total automatically.</p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 20 }}>
           {hhOpts.map((o) => (
             <TierButton key={o.k} selected={form.household === o.k} label={o.label} sub={o.sub} onClick={() => handleTierClick('household', o.k)} />
@@ -438,7 +527,7 @@ export default function Week0CourseIntro() {
         )}
         {form.household !== 'single' && (
           <Note>
-            <strong>How it works:</strong> Enter your own preferences — we'll scale for your household automatically.
+            <strong>How it works:</strong> Enter your own preferences, and we'll scale for your household automatically.
             {hasSpouse && ' Spouse adds to per-person costs (healthcare, clothing, therapy) and partially to shared costs (food, transportation). Housing stays the same.'}
             {numChildren > 0 && ` Each dependent adds $300 food, $250 healthcare, $100 clothing, $50 personal care, $50 tech per month.`}
           </Note>
@@ -449,7 +538,6 @@ export default function Week0CourseIntro() {
   }
 
   function renderStep2() {
-    const stateOpts = [{ value: '', label: 'Select state…' }, ...STATES.map((s) => ({ value: s, label: s }))];
     const hasNoTax = form.retireState && STATE_TAX[form.retireState]?.brackets?.every(([, r]) => r === 0);
     const top = form.retireState ? STATE_TAX[form.retireState]?.brackets?.slice(-1)[0]?.[1] : null;
     const bracketCount = form.retireState ? (STATE_TAX[form.retireState]?.brackets?.filter(([, r]) => r > 0).length || 0) : 0;
@@ -463,11 +551,11 @@ export default function Week0CourseIntro() {
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Where will you retire?</h2>
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 22px', lineHeight: 1.75 }}>Your state and city determine how much of your income goes to taxes.</p>
         <FieldLabel>Retirement State</FieldLabel>
-        <FieldSelect value={form.retireState} options={stateOpts} onChange={(v) => handleFieldChange('retireState', v)} />
+        <FieldSelect value={form.retireState} options={STATE_OPTS} onChange={(v) => handleFieldChange('retireState', v)} />
         {form.retireState && (
           <>
             {hasNoTax ? (
-              <Note type="green"><strong>{form.retireState}</strong> has <strong>no state income tax</strong> — your tax bill here will only include federal (and city, if applicable). 🎉</Note>
+              <Note type="green"><strong>{form.retireState}</strong> has <strong>no state income tax</strong>, so your tax bill here will only include federal (and city, if applicable). 🎉</Note>
             ) : (
               <Note><strong>{form.retireState}</strong> uses a <strong>progressive {bracketCount}-bracket system</strong> with a top marginal rate of <strong>{(top * 100).toFixed(2)}%</strong>.</Note>
             )}
@@ -495,7 +583,7 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Housing" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Where will you live?</h2>
-        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Typically your biggest retirement expense.{hasSpouse ? ' Housing is shared — no extra cost for your spouse.' : ''}</p>
+        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Typically your biggest retirement expense.{hasSpouse ? ' Housing is shared, no extra cost for your spouse.' : ''}</p>
         <FieldLabel>Own or rent?</FieldLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
           <TierButton selected={form.housingType === 'own'} label="Own a Home" sub="Property taxes, maintenance, insurance" onClick={() => handleTierClick('housingType', 'own')} />
@@ -533,12 +621,12 @@ export default function Week0CourseIntro() {
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Each tier covers everything: payment, fuel, insurance, and upkeep.{hasSpouse ? ' Spouse car costs (+60%) added in results.' : ''}</p>
         <FieldLabel>Own or lease?</FieldLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
-          <TierButton selected={form.carType === 'own'} label="Own" sub="Purchase/finance — lower monthly once paid off" onClick={() => handleTierClick('carType', 'own')} />
-          <TierButton selected={form.carType === 'lease'} label="Lease" sub="Higher monthly — always driving something new" onClick={() => handleTierClick('carType', 'lease')} />
+          <TierButton selected={form.carType === 'own'} label="Own" sub="Purchase/finance, lower monthly once paid off" onClick={() => handleTierClick('carType', 'own')} />
+          <TierButton selected={form.carType === 'lease'} label="Lease" sub="Higher monthly, always driving something new" onClick={() => handleTierClick('carType', 'lease')} />
         </div>
         <Note>All tiers include <strong>fuel, insurance, maintenance, and {form.carType === 'own' ? 'loan payment (if any)' : 'lease payment'}</strong> in one number.</Note>
         <TierGrid tiersObj={getCarTiers()} selectedKey={form.carTier} onSelect={(k) => handleTierClick('carTier', k)} cols={3} mult={1.0} />
-        <FieldLabel>Monthly transportation budget (all-in){hasSpouse ? ' — your vehicle' : ''}</FieldLabel>
+        <FieldLabel>Monthly transportation budget (all-in){hasSpouse ? ', your vehicle' : ''}</FieldLabel>
         <DollarInput value={form.carAmt} onChange={(v) => setField('carAmt', v)} />
         <Hint>Includes {form.carType === 'own' ? 'payment/loan' : 'lease payment'}, insurance, fuel, maintenance, and occasional rideshare</Hint>
       </>
@@ -554,7 +642,7 @@ export default function Week0CourseIntro() {
         <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Groceries, restaurants, coffee, and takeout.{hasSpouse ? ' Spouse food (+50%) added in results.' : ''}</p>
         {form.retireState && <Note>Costs adjusted for <strong>{form.retireState}</strong> regional cost of living.</Note>}
         <TierGrid tiersObj={TIERS.food} selectedKey={form.foodTier} onSelect={(k) => handleTierClick('foodTier', k)} cols={2} mult={mults.general} />
-        <FieldLabel>Monthly food & dining budget{hasSpouse ? ' — your share' : ''}</FieldLabel>
+        <FieldLabel>Monthly food & dining budget{hasSpouse ? ', your share' : ''}</FieldLabel>
         <DollarInput value={form.foodAmt} onChange={(v) => setField('foodAmt', v)} />
       </>
     );
@@ -565,8 +653,8 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Healthcare" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Healthcare in retirement</h2>
-        <Note>Default: <strong>$833/mo ($10,000/yr)</strong> — covers Medicare, supplements, dental, vision, prescriptions, and out-of-pocket.{hasSpouse ? ' Per-person — spouse healthcare (+100%) added automatically.' : ''} Adjust to fit your situation.</Note>
-        <FieldLabel>Total Monthly Healthcare Budget{hasSpouse ? ' — per person' : ''}</FieldLabel>
+        <Note>Default: <strong>$833/mo ($10,000/yr)</strong>, covers Medicare, supplements, dental, vision, prescriptions, and out-of-pocket.{hasSpouse ? ' Per-person, spouse healthcare (+100%) added automatically.' : ''} Adjust to fit your situation.</Note>
+        <FieldLabel>Total Monthly Healthcare Budget{hasSpouse ? ', per person' : ''}</FieldLabel>
         <DollarInput value={form.healthcareAmt} placeholder="833" onChange={(v) => setField('healthcareAmt', v)} />
         <Hint>All-in: Medicare premiums, supplement, dental, vision, prescriptions, and out-of-pocket · Default: $10,000/yr</Hint>
       </>
@@ -589,7 +677,7 @@ export default function Week0CourseIntro() {
           <FieldLabel>Therapy & Mental Health</FieldLabel>
           <TierGrid tiersObj={TIERS.therapy} selectedKey={form.therapyTier} onSelect={(k) => handleTierClick('therapyTier', k)} cols={3} mult={1.0} />
           <DollarInput value={form.therapyAmt} onChange={(v) => setField('therapyAmt', v)} />
-          {hasSpouse && <Hint>Per-person — spouse therapy (+100%) added automatically</Hint>}
+          {hasSpouse && <Hint>Per-person, spouse therapy (+100%) added automatically</Hint>}
         </div>
       </>
     );
@@ -601,7 +689,7 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Lifestyle & Travel" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>How do you want to spend your time?</h2>
-        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>How you'll fill your free time — hobbies, entertainment, and travel.</p>
+        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>How you'll fill your free time: hobbies, entertainment, and travel.</p>
         {form.retireState && <Note>Entertainment costs adjusted for <strong>{form.retireState}</strong>. Travel is not location-adjusted.</Note>}
         <div style={{ marginBottom: 26 }}>
           <FieldLabel>Hobbies, Entertainment & Experiences</FieldLabel>
@@ -612,7 +700,7 @@ export default function Week0CourseIntro() {
           <FieldLabel>Travel & Vacation</FieldLabel>
           <TierGrid tiersObj={TIERS.vacation} selectedKey={form.vacationTier} onSelect={(k) => handleTierClick('vacationTier', k)} cols={3} mult={1.0} />
           <DollarInput value={form.vacationAmt} onChange={(v) => setField('vacationAmt', v)} />
-          <Hint>Averaged monthly — e.g. $9,000/yr ÷ 12 = $750/mo</Hint>
+          <Hint>Averaged monthly, e.g. $9,000/yr ÷ 12 = $750/mo</Hint>
         </div>
       </>
     );
@@ -639,7 +727,7 @@ export default function Week0CourseIntro() {
       <>
         <Pill text="Appearance & Personal Care" />
         <h2 style={{ fontSize: 24, fontWeight: 700, color: C.ink, margin: '0 0 10px' }}>Looking & feeling your best</h2>
-        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Clothing, haircuts, skincare, and grooming.{hasSpouse ? ' Per-person — spouse amounts added automatically.' : ''}</p>
+        <p style={{ fontSize: 14, color: C.sub, margin: '0 0 20px', lineHeight: 1.75 }}>Clothing, haircuts, skincare, and grooming.{hasSpouse ? ' Per-person, spouse amounts added automatically.' : ''}</p>
         {form.retireState && <Note>Costs adjusted for <strong>{form.retireState}</strong> cost of living.</Note>}
         <div style={{ marginBottom: 26 }}>
           <FieldLabel>Clothing & Fashion</FieldLabel>
@@ -787,6 +875,105 @@ export default function Week0CourseIntro() {
         {r.stateTax === 0 && <Note type="green"><strong>{form.retireState}</strong> has no state income tax.</Note>}
         {form.retireCity && <Note type="amber"><strong>{form.retireCity}</strong> adds <strong>{fmt(r.cityTax)}/yr</strong> in city income tax.</Note>}
 
+        <div style={{ border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18 }}>
+          <div style={{ background: C.navy, padding: '12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.gold }} />
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Compare Job Offers</span>
+            </div>
+            <button onClick={addScenario} style={{ background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', color: C.white, borderRadius: 6, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>+ Add Offer</button>
+          </div>
+          <div style={{ padding: '18px 20px' }}>
+            {scenarios.length === 0 ? (
+              <p style={{ fontSize: 13, color: C.sub, lineHeight: 1.75, margin: 0 }}>
+                Add a couple of real or hypothetical job offers, salary plus location, to see how each one covers the lifestyle you just built, and how maxing out your 401(k) versus contributing less changes your monthly budget.
+              </p>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: C.faint, lineHeight: 1.6, margin: '0 0 16px' }}>
+                  Each offer re-prices the lifestyle tiers you picked earlier for its own state and city cost of living, then compares take-home pay after taxes and your chosen 401(k) contribution. Healthcare stays fixed since that field isn't location-adjusted.
+                </p>
+                {/* overflowX:'auto' implicitly forces overflow-y to 'auto' too (CSS
+                    spec: overflow-y can't stay 'visible' once overflow-x isn't), which
+                    would clip the "Best Cushion" badge's negative top offset with no way
+                    to scroll up and reveal it -- paddingTop here gives that offset room
+                    to live inside the scrollable box instead. */}
+                <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingTop: 14, paddingBottom: 6 }}>
+                  {scenarios.map((sc) => {
+                    const res = calcScenario(form, sc);
+                    const isBest = scenarios.length > 1 && sc.state && scenarios.every((other) => other.id === sc.id || calcScenario(form, other).monthlySurplus <= res.monthlySurplus);
+                    const scCities = sc.state ? (CITIES_BY_STATE[sc.state] || []) : [];
+                    return (
+                      <div key={sc.id} style={{ flex: '0 0 260px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
+                        {isBest && <div style={{ position: 'absolute', top: -10, left: 12, background: C.gold, color: C.navyDk, fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 10 }}>Best Cushion</div>}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <input
+                            value={sc.label}
+                            onChange={(e) => updateScenario(sc.id, 'label', e.target.value)}
+                            style={{ border: 'none', borderBottom: `1px solid ${C.border}`, fontSize: 13, fontWeight: 700, color: C.ink, padding: '2px 0', width: '68%', outline: 'none', background: 'transparent' }}
+                          />
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => duplicateScenario(sc.id)} title="Duplicate to compare contribution levels" style={iconBtnStyle}>⧉</button>
+                            <button onClick={() => removeScenario(sc.id)} title="Remove" style={iconBtnStyle}>×</button>
+                          </div>
+                        </div>
+
+                        <FieldLabel>Annual Salary</FieldLabel>
+                        <DollarInput value={sc.salary} onChange={(v) => updateScenario(sc.id, 'salary', v)} />
+
+                        <div style={{ marginTop: 10 }}>
+                          <FieldLabel>State</FieldLabel>
+                          <FieldSelect value={sc.state} options={STATE_OPTS} onChange={(v) => updateScenario(sc.id, 'state', v)} />
+                        </div>
+
+                        {scCities.length > 0 && (
+                          <div style={{ marginTop: 10 }}>
+                            <FieldLabel>City</FieldLabel>
+                            <FieldSelect
+                              value={sc.city}
+                              options={[{ value: '', label: 'No city tax' }, ...scCities.map((c) => ({ value: c, label: c }))]}
+                              onChange={(v) => updateScenario(sc.id, 'city', v)}
+                            />
+                          </div>
+                        )}
+
+                        <div style={{ marginTop: 10 }}>
+                          <FieldLabel>401(k) Contribution</FieldLabel>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
+                            <TierButton selected={sc.mode === 'max'} label="Max Out" sub={`${fmt(LIMIT_401K)}/yr`} onClick={() => updateScenario(sc.id, 'mode', 'max')} />
+                            <TierButton selected={sc.mode === 'reduce'} label="Reduce By $" sub="Contribute less" onClick={() => updateScenario(sc.id, 'mode', 'reduce')} />
+                          </div>
+                          {sc.mode === 'reduce' && (
+                            <DollarInput value={sc.reduceAmount} placeholder="0" onChange={(v) => updateScenario(sc.id, 'reduceAmount', v)} />
+                          )}
+                        </div>
+
+                        <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${C.border}` }}>
+                          {[
+                            ['401(k) Contribution', `${fmt(res.contribution)}/yr`],
+                            ['Taxable Income', `${fmt(res.taxableGross)}/yr`],
+                            ['Federal + State + City Tax', `${fmt(res.fedTax + res.stateTax + res.cityTax)}/yr`],
+                            ['Take-Home Pay', `${fmt(res.takeHome / 12)}/mo`],
+                            ['Lifestyle Cost Here', `${fmt(res.monthlyLifestyle)}/mo`],
+                          ].map(([l, v]) => (
+                            <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: C.sub, marginBottom: 5 }}>
+                              <span>{l}</span><span style={{ fontWeight: 600, color: C.ink }}>{v}</span>
+                            </div>
+                          ))}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, color: res.monthlySurplus >= 0 ? C.green : C.red }}>
+                            <span>{res.monthlySurplus >= 0 ? 'Monthly Cushion' : 'Monthly Shortfall'}</span>
+                            <span>{fmt(Math.abs(res.monthlySurplus))}/mo</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
         <div style={{ display: 'flex', gap: 12, marginTop: 6 }}>
           <button onClick={goBack} style={navBtnStyle}>← Back</button>
           <button onClick={startOver} style={navBtnStyle}>↺ Start Over</button>
@@ -796,6 +983,7 @@ export default function Week0CourseIntro() {
   }
 
   const navBtnStyle = { background: 'transparent', border: `2px solid ${C.border}`, color: C.sub, borderRadius: 8, padding: '11px 24px', fontSize: 13, fontWeight: 600, cursor: 'pointer' };
+  const iconBtnStyle = { background: 'transparent', border: `1px solid ${C.border}`, color: C.sub, borderRadius: 6, width: 22, height: 22, fontSize: 12, lineHeight: 1, padding: 0, cursor: 'pointer' };
 
   const stepRenderers = [renderStep0, renderStep1, renderStep2, renderStep3, renderStep4, renderStep5, renderStep6, renderStep7, renderStep8, renderStep9, renderStep10, renderStep11, renderStep12, renderResults];
 
