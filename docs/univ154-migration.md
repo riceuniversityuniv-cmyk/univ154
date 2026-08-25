@@ -7,8 +7,33 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**2026-08-25 — Module 1 restyled to the shared "glass card" look (fifth
-round this session, pushed).** User said the page "looks nothing like the
+**2026-08-25 — Module 1's short-step "wall of yellow" fixed via vertical
+centering + Dashboard.jsx shell fallback color (sixth round this session,
+pushed).** Asked to respond in chat with the diagnosis before touching
+code (twice, since the first diagnosis was incomplete). Full story:
+
+- Round A (header padding too thin) was approved but superseded before
+  landing on its own -- see below, folded into round B.
+- Round B: user then said Module 1 "looks nothing like" Budget Planning,
+  showing the page was mostly a giant blank cream rectangle below two
+  short cards on the Welcome step, vs. Budget Planning's cards nearly
+  filling the viewport. First fix (remove `minHeight:'100vh'` so the page
+  hugs content, matching Dashboard's shell fallback color to the same
+  cream so no gray shows through) was necessary but turned out to be a
+  no-op for the actual visible proportions -- Dashboard's Main Content
+  wrapper is `h-full` (fixed to 100vh) independent of Module 1's own div,
+  so the blank area's *size* never changed, only a hypothetical fallback
+  color did. Caught this via a follow-up screenshot comparison before
+  declaring it fixed. Real fix: made Module 1's outer div a flex column
+  with `minHeight:'100vh'` again, and its content wrapper's margin set to
+  `'auto'` (all sides) -- the classic auto-margin-in-a-flex-column trick,
+  which centers short content (leftover space splits evenly above/below
+  instead of dumping below) while collapsing to normal top-aligned flow
+  once content is taller than the viewport (verified `scrollY` is still 0
+  on the Results step, no negative-offset weirdness). See the two dated
+  working-log entries below for the full detail on each piece.
+
+**2026-08-25 — Module 1 restyled to the shared "glass card" look.** User said the page "looks nothing like the
 white card + yellow glow format like the rest of the weeks" and attached
 screenshots of `BudgetForm.jsx` next to Module 1 for comparison. The prior
 round (cream-gradient page background) was necessary but not sufficient --
@@ -392,6 +417,62 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Module 1: vertical centering fixes the "wall of yellow" on short steps
+Sixth round in the same session as the entries directly below. Per the
+user's instruction, both this round and the padding round before it were
+presented in chat as a diagnosis + proposed fix and approved before any
+code changed (the brainstorming skill's bounded-task gate).
+
+**First pass (approved, but incomplete):** diagnosed the header card's
+internal padding (20px) as too thin next to Budget Planning's ~32-40px,
+making the navy banner look like it nearly filled the card rather than
+sitting inset in it. Bumped `glassCard` header padding 20px -> 32px. This
+was a real improvement but not what the user was actually reacting to in
+their follow-up screenshot.
+
+**Second pass (the real issue):** user clarified with a side-by-side: "the
+background in the other one is all yellow... instead of the white card
+format." Measured proportions in the screenshots -- Module 1's Welcome step
+was roughly 60% cards / 40% solid blank cream rectangle below them, vs.
+Budget Planning's cards filling nearly the whole view. Root cause: Module 1
+is a step-by-step wizard, so most steps (Welcome especially) are short --
+a title, one field, a button -- and the outer div's `minHeight:'100vh'`
+forced the page to fill the full viewport regardless, dumping all the
+leftover space as one giant cream block below the cards. Budget Planning
+never hits this because its content happens to always be tall enough.
+
+- First attempted fix: drop `minHeight:'100vh'` entirely so the div sizes
+  to its content (like Budget Planning effectively does), and change
+  `Dashboard.jsx`'s shell fallback color from `bg-gray-50` to the same
+  cream gradient, so that if a short page doesn't fill the viewport, what
+  shows through is still cream and not a mismatched gray. Verified this
+  compiled and looked internally consistent -- but a follow-up screenshot
+  showed the blank area was still exactly the same size. Traced it to
+  `Dashboard.jsx`'s Main Content wrapper being `flex-1 h-full
+  overflow-y-auto` -- `h-full` fixes it to 100vh independent of whatever
+  height Module 1's own inner div computes to, so removing Module 1's own
+  minHeight was a no-op for the actual visible proportions. (The
+  Dashboard.jsx fallback-color change is still correct/kept regardless --
+  it's a legitimate safety net, just not sufficient alone.)
+- Real fix: put `minHeight:'100vh'` back on Module 1's outer div, made it
+  `display:'flex', flexDirection:'column'`, and changed the content
+  wrapper's `margin: '0 auto'` to `margin: 'auto'` (all four sides). This
+  is the standard auto-margin-in-a-flex-column centering trick: when
+  content is shorter than the 100vh box, the leftover vertical space
+  splits evenly into the top/bottom auto margins (cards read as
+  deliberately centered, not stranded at the top of a mostly-empty page);
+  when content is taller than the box (Results etc.), auto margins
+  collapse to 0 and it behaves exactly like normal top-aligned flow with
+  no overflow/negative-offset weirdness. Confirmed via `window.scrollY ===
+  0` on landing on the Results step, plus a visual check that the header
+  row still renders flush at the very top there.
+- Verified via the same temporary `/__qa/dashboard/*` route pattern as
+  prior entries (Welcome step, and the Results step for the
+  tall-content/no-regression check), removed before finishing. `npm run
+  build` and `npx eslint` clean on both `Week0CourseIntro.jsx` and
+  `Dashboard.jsx` (confirmed the 5 pre-existing Dashboard.jsx lint errors,
+  lines 178-179 and 249, are untouched by this diff).
 
 ### 2026-08-25 — Module 1: adopt the shared glass-card look, card fill, commas, no emoji
 Fifth round in the same session as the entries directly below (which cover

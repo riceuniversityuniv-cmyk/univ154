@@ -292,7 +292,16 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
   const showSidebar = !sidebarCollapsed
 
   return (
-    <div className="h-screen w-screen flex bg-gray-50 overflow-hidden">
+    // Shell fallback color matches the cream/yellow-to-white gradient every
+    // module's own page background uses (BudgetForm.jsx's sectionContainer
+    // etc., Week0CourseIntro.jsx as of 2026-08-25). Was bg-gray-50 -- every
+    // module's own background is normally tall enough to fully cover this,
+    // so the swap is invisible almost everywhere, but a short page (e.g. an
+    // early step of Module 1's wizard, which no longer force-fills 100vh)
+    // can reveal a sliver of it, and gray showing through a cream card
+    // stack read as a mismatched third color. See docs/univ154-migration.md's
+    // 2026-08-25 "all yellow" working-log entry.
+    <div className="h-screen w-screen flex overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(255, 253, 231, 0.27) 0%, rgb(255, 252, 240) 50%, rgb(255, 255, 255) 100%)' }}>
       {/* Sidebar - Minimalist Modern Design. Visibility is click-only (toggle
           button below), no hover-to-expand. */}
       <div className="fixed left-0 top-0 h-full z-20">

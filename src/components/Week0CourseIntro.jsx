@@ -1023,13 +1023,28 @@ export default function Week0CourseIntro() {
     // etc.): a soft cream/yellow-to-white diagonal gradient instead of this
     // module's own flat lavender C.bg tint (still used at line ~872 for the
     // expense-bar track, which is unrelated and unchanged).
-    <div style={{ fontFamily: FONT, background: 'linear-gradient(135deg, rgba(255, 253, 231, 0.27) 0%, rgb(255, 252, 240) 50%, rgb(255, 255, 255) 100%)', color: C.ink, minHeight: '100vh', padding: '0 0 40px' }}>
-      <div style={{ maxWidth: 1500, margin: '0 auto', padding: '28px 16px 0' }}>
+    //
+    // This is a step-by-step wizard, so most steps are short (a title + one
+    // field) -- a plain minHeight:'100vh' here turned every short step into
+    // mostly a giant blank cream rectangle sitting below the cards, reading
+    // as "the background is all yellow" even though the cards themselves
+    // are correctly white. Fix is this div being a flex column with the
+    // content column's margin set to 'auto': when content is short, auto
+    // margins split the leftover vertical space evenly above/below instead
+    // of dumping it all below, so the cards read as centered on the page
+    // rather than stranded at the top of a mostly-empty one. Auto margins
+    // collapse to 0 once content is tall enough to fill the space (Results
+    // etc.), so this is a no-op there -- normal top-aligned flow. Dashboard
+    // .jsx's shell fallback color was also changed to match this same cream
+    // tone, so any residual sliver below is still cream, not a mismatched
+    // gray.
+    <div style={{ fontFamily: FONT, background: 'linear-gradient(135deg, rgba(255, 253, 231, 0.27) 0%, rgb(255, 252, 240) 50%, rgb(255, 255, 255) 100%)', color: C.ink, minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '0 0 40px' }}>
+      <div style={{ maxWidth: 1500, width: '100%', margin: 'auto', padding: '28px 16px 0' }}>
         {/* Header / progress -- the navy banner now sits INSET inside a
             white glass card (padding on all sides) instead of stretching
             edge-to-edge itself, matching how every other module nests its
             navy title bar inside its own white card. */}
-        <div style={{ ...glassCard, padding: 20, marginBottom: 24 }}>
+        <div style={{ ...glassCard, padding: 32, marginBottom: 24 }}>
           <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 12, boxShadow: '0 3px 20px rgba(20,31,82,.3)', padding: '20px 24px 14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
               <div>
