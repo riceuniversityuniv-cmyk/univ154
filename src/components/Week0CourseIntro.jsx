@@ -299,15 +299,32 @@ function FieldLabel({ children, badge }) {
   );
 }
 
+// Comma-formats the displayed value (e.g. "92500" -> "92,500") while still
+// reporting a plain digit string to onChange, so every caller's existing
+// parseFloat(value) math is unaffected -- only the display layer changes.
+function commaFormat(raw) {
+  if (raw === '' || raw === undefined || raw === null) return '';
+  const [intPart, decPart] = String(raw).split('.');
+  const withCommas = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return decPart !== undefined ? `${withCommas}.${decPart}` : withCommas;
+}
+
 function DollarInput({ value, placeholder = '0', dollar = true, onChange }) {
+  const handleChange = (e) => {
+    let next = e.target.value.replace(/[^0-9.]/g, '');
+    const firstDot = next.indexOf('.');
+    if (firstDot !== -1) next = next.slice(0, firstDot + 1) + next.slice(firstDot + 1).replace(/\./g, '');
+    onChange(next);
+  };
   return (
     <div style={{ position: 'relative' }}>
       {dollar && <span style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: C.faint, fontSize: 14, pointerEvents: 'none' }}>$</span>}
       <input
-        type="number"
-        value={value !== undefined && value !== null ? value : ''}
+        type="text"
+        inputMode="decimal"
+        value={commaFormat(value)}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={handleChange}
         style={{ width: '100%', boxSizing: 'border-box', background: C.white, border: `1.5px solid ${C.border}`, borderRadius: 8, color: C.ink, fontSize: 14, padding: dollar ? '11px 13px 11px 28px' : '11px 13px', outline: 'none', fontWeight: 400 }}
         onFocus={(e) => { e.target.style.borderColor = C.navyMd; e.target.style.background = '#FAFBFF'; }}
         onBlur={(e) => { e.target.style.borderColor = C.border; e.target.style.background = C.white; }}
@@ -888,13 +905,13 @@ export default function Week0CourseIntro() {
                     big empty gap to the right of just 1-2 cards. paddingTop still
                     gives the "Best Cushion" badge's negative top offset room to
                     render without being clipped. */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: scenarios.length > 3 ? 'flex-start' : 'center', gap: 16, paddingTop: 14, paddingBottom: 6 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: scenarios.length > 3 ? 'flex-start' : 'center', gap: 28, paddingTop: 14, paddingBottom: 6 }}>
                   {scenarios.map((sc) => {
                     const res = calcScenario(form, sc);
                     const isBest = scenarios.length > 1 && sc.state && scenarios.every((other) => other.id === sc.id || calcScenario(form, other).monthlySurplus <= res.monthlySurplus);
                     const scCities = sc.state ? (CITIES_BY_STATE[sc.state] || []) : [];
                     return (
-                      <div key={sc.id} style={{ flex: '0 0 320px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
+                      <div key={sc.id} style={{ flex: '0 0 400px', border: `2px solid ${isBest ? C.gold : C.border}`, borderRadius: 10, padding: '14px 14px 16px', position: 'relative', background: C.white }}>
                         {isBest && <div style={{ position: 'absolute', top: -10, left: 12, background: C.gold, color: C.navyDk, fontSize: 9, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 10 }}>Best Cushion</div>}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                           <input
