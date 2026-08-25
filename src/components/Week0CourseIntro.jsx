@@ -1006,7 +1006,11 @@ export default function Week0CourseIntro() {
   // left the right inset doubled, which is what showed up as an asymmetric
   // gap on wide screens.)
   return (
-    <div style={{ fontFamily: FONT, background: C.bg, color: C.ink, minHeight: '100vh', padding: '0 0 40px' }}>
+    // Page background matches the other modules' convention (BudgetForm.jsx
+    // etc.): a soft cream/yellow-to-white diagonal gradient instead of this
+    // module's own flat lavender C.bg tint (still used at line ~872 for the
+    // expense-bar track, which is unrelated and unchanged).
+    <div style={{ fontFamily: FONT, background: 'linear-gradient(135deg, rgba(255, 253, 231, 0.27) 0%, rgb(255, 252, 240) 50%, rgb(255, 255, 255) 100%)', color: C.ink, minHeight: '100vh', padding: '0 0 40px' }}>
       {/* Header / progress */}
       <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, boxShadow: '0 3px 20px rgba(20,31,82,.3)' }}>
         <div style={{ maxWidth: 1500, margin: '0 auto', padding: '20px 28px 0' }}>
