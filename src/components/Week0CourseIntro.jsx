@@ -129,6 +129,7 @@ const RESULTS_STEP = STEP_NAMES.length - 1;
 function getInitialForm() {
   return {
     name: '', household: 'single', numDependents: 1,
+    currentAge: '30', retirementAge: '65', lifeExpectancy: '90',
     retireState: '', retireCity: '',
     housingType: 'own', mortgagePaidOff: 'yes', housingTier: 'comfortable', housingAmt: '',
     homeCareTier: 'none', homeCareAmt: '',
@@ -217,7 +218,22 @@ function calcResults(form) {
   for (let i = 0; i < 20; i++) { const fed = calcFederalTax(gross, f), st = calcStateTax(gross, form.retireState), ct = calcCityTax(gross, form.retireCity), ch = gross * cPct; gross = annual + fed + st + ct + ch; }
   gross = Math.ceil(gross / 500) * 500;
   const fedTax = calcFederalTax(gross, f), stateTax = calcStateTax(gross, form.retireState), cityTax = calcCityTax(gross, form.retireCity), charity = gross * cPct;
-  return { gross, fedTax, stateTax, cityTax, charity, takeHome: gross - fedTax - stateTax - cityTax - charity, mo, base, cPct };
+  const takeHome = gross - fedTax - stateTax - cityTax - charity;
+  // Portfolio value needed at retirement, via the "4% rule" (Bengen 1994 /
+  // the Trinity study): a widely-taught rule of thumb holding that a
+  // diversified portfolio can sustainably support annual withdrawals equal
+  // to ~4% of its starting balance without running out over a multi-decade
+  // retirement. So the portfolio needed = annual after-tax living expenses
+  // / 4% (equivalently, ×25). Ages are display/context only in this simple
+  // version -- the 4% rule doesn't take current/retirement/life-expectancy
+  // age as inputs, it's a fixed rate-of-withdrawal assumption -- but we
+  // still surface them so the assumption is explicit, per the user's ask.
+  const WITHDRAWAL_RATE = 0.04;
+  const portfolioNeeded = takeHome / WITHDRAWAL_RATE;
+  const currentAge = parseInt(form.currentAge, 10) || 30;
+  const retirementAge = parseInt(form.retirementAge, 10) || 65;
+  const lifeExpectancy = parseInt(form.lifeExpectancy, 10) || 90;
+  return { gross, fedTax, stateTax, cityTax, charity, takeHome, mo, base, cPct, portfolioNeeded, withdrawalRate: WITHDRAWAL_RATE, currentAge, retirementAge, lifeExpectancy };
 }
 
 // ── Job offer comparison (Compare Job Offers section, Results step) ──
@@ -556,6 +572,25 @@ export default function Week0CourseIntro() {
           </Note>
         )}
         {hasSpouse && <Note type="green">Tax filing set to <strong>Married Filing Jointly</strong> (bigger brackets, $32,200 standard deduction).</Note>}
+
+        <div style={{ marginTop: 22 }}>
+          <FieldLabel>Retirement Timeline</FieldLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 6 }}>
+            <div>
+              <label style={{ fontSize: 11, color: C.faint, display: 'block', marginBottom: 5 }}>Current Age</label>
+              <DollarInput dollar={false} value={form.currentAge} onChange={(v) => setField('currentAge', v)} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: C.faint, display: 'block', marginBottom: 5 }}>Retirement Age</label>
+              <DollarInput dollar={false} value={form.retirementAge} onChange={(v) => setField('retirementAge', v)} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, color: C.faint, display: 'block', marginBottom: 5 }}>Plan Until Age</label>
+              <DollarInput dollar={false} value={form.lifeExpectancy} onChange={(v) => setField('lifeExpectancy', v)} />
+            </div>
+          </div>
+          <Hint>Used on the Results page to estimate the investment portfolio you'd need saved by retirement.</Hint>
+        </div>
       </>
     );
   }
@@ -827,6 +862,29 @@ export default function Week0CourseIntro() {
                 <div style={{ fontSize: 10, color: 'rgba(255,255,255,.45)', marginTop: 3 }}>{item.label}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div style={{ border: `2px solid ${C.gold}`, borderRadius: 12, overflow: 'hidden', marginBottom: 18, background: C.white }}>
+          <div style={{ background: C.navy, padding: '12px 20px' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: 'uppercase', color: 'rgba(255,255,255,.8)' }}>Portfolio Value Needed At Retirement</span>
+          </div>
+          <div style={{ padding: '20px 20px 18px' }}>
+            <div style={{ fontSize: 40, fontWeight: 800, color: C.navy, letterSpacing: -1, lineHeight: 1 }}>{fmt(r.portfolioNeeded)}</div>
+            <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.75, margin: '10px 0 0' }}>
+              Based on the <strong>4% safe withdrawal rule</strong>: a widely-taught guideline holding that a
+              diversified portfolio can sustainably support annual withdrawals of about 4% of its starting
+              balance without running out over a multi-decade retirement. That's <strong>{fmt(r.takeHome)}/yr</strong> in
+              after-tax living expenses ÷ 4% (equivalently, ×25).
+            </p>
+            <p style={{ fontSize: 11.5, color: C.faint, lineHeight: 1.75, margin: '8px 0 0' }}>
+              Assumptions: retiring at age <strong>{r.retirementAge}</strong>
+              {r.retirementAge > r.currentAge ? ` (in ${r.retirementAge - r.currentAge} years, from age ${r.currentAge})` : ''}, planning
+              through age <strong>{r.lifeExpectancy}</strong>
+              {r.lifeExpectancy > r.retirementAge ? ` (~${r.lifeExpectancy - r.retirementAge} years in retirement)` : ''}. Doesn't
+              net out Social Security, a pension, or other outside income, so this is the portfolio needed to cover
+              the full amount above on its own, edit the ages on the Household step to change these assumptions.
+            </p>
           </div>
         </div>
 

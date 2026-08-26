@@ -7,6 +7,55 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-08-26 — Module 1: added "Portfolio Value Needed At Retirement" (4%-rule) to Results, verified gross-income labeling and tax math, not yet pushed.** User relayed boss-style questions again ("have you checked this math?", "is it spitting out the portfolio value they'll need? what are the assumptions — current age, retirement age, age of death?"), plus an ambiguous ask to "make sure the course introduction includes all of this important information below" with nothing actually pasted below it — asked the user to clarify what content that referred to; no reply yet, so nothing was added for that half of the request.
+
+- **Verified, no code change needed**: gross income was already labeled explicitly in 4 places on Results (`"gross annual · ..."` under the headline, `"Gross / Month"` line item, the tax-note's `"% of your gross income"`, effective-rate notes on every tax row). Re-traced the gross-up math (`calcResults`'s 20-round fixed-point loop) — still correct, converges because every marginal rate is <100%. The two previously-flagged modeling simplifications (charity not tax-deductible, no MFJ standard-deduction widening) are still there, still deliberate, still unchanged.
+- **Real gap, now fixed**: the module never asked current age / retirement age / life expectancy and never converted the income target into a portfolio number — confirmed via grep before assuming. Per the user's explicit choice (asked, not guessed) of "simple 4%-rule multiplier" over a full year-by-year drawdown projection:
+  - Added `currentAge` ('30'), `retirementAge` ('65'), `lifeExpectancy` ('90') to form state (defaults, not required — doesn't gate `canNext`), with 3 plain-number inputs (`DollarInput dollar={false}`) under a new "Retirement Timeline" subsection on the existing Household step (`renderStep1`) — deliberately did NOT insert a new wizard step, since `stepRenderers` is a hand-numbered array (`renderStep0`..`renderStep12` + `renderResults`) and `canNext` hardcodes `step === 2` for the state-select gate; inserting a step would mean renumbering everything for no real benefit when Household already fit the "who/when are you planning for" framing.
+  - `calcResults()` now also returns `portfolioNeeded = takeHome / 0.04` (equivalently ×25 — the standard "4% safe withdrawal rule" / Bengen-1994 rule of thumb) plus the three ages (parsed with `|| default` fallback so a cleared/invalid field never NaNs the page). Ages are display/context only in this simple version — the 4% rule itself is a fixed withdrawal-rate assumption, it doesn't take age as an input — but they're surfaced explicitly per the user's ask so the assumption isn't hidden.
+  - New card on Results, between the navy hero and the "household adjustments" note: big `$` figure, a paragraph naming the 4%-rule methodology and showing the division (`takeHome ÷ 4%`), and a second paragraph stating the age assumptions in plain language (`"retiring at age 65 (in 35 years, from age 30), planning through age 90 (~25 years in retirement)"`) plus an explicit caveat that it doesn't net out Social Security/pension/other income.
+- **Verified live**: temporary unauthenticated `/__qa/week-0` route (bare component, no Dashboard shell needed since this was a content/math check not a layout one), Playwright click-through Welcome → Household (screenshotted the new age inputs) → Location (selected Texas) → through to Results. Confirmed `$66,195` take-home → `$1,654,875` portfolio ($66,195 / 0.04, hand-verified). Route removed before finishing, confirmed via `git diff src/App.jsx` showing no changes. `npm run build` and `npx eslint src/components/Week0CourseIntro.jsx src/App.jsx` both clean.
+- **Still open**: what the user meant by "all of this important information below" — nothing followed that sentence in their message. Next session: check chat for their answer before assuming it's covered.
+
+
+**2026-08-25 — Week12 "Retirement Income Goal" card: user still reports it
+doesn't scroll with the page, but the code no longer contains any sticky/fixed
+positioning at all — root cause not yet found, blocked on user-supplied
+DevTools output.** Sequence:
+
+- Original complaint: the card (containing "Your Retirement Income Goal /
+  $80,000 / year..." / "This Year's Contributions") didn't scroll together
+  with the rest of the "Constructing The Goal" page. Found and removed
+  `position: 'sticky', top: '16px', zIndex: 40` from the card's inline style
+  in `Week12.jsx` (~line 1041), pushed as part of commit `f5aca4f`.
+- User reported it's now "not moving at all" even after a hard refresh on
+  localhost:5173 (ruling out a stale build/cache). Re-verified from every
+  angle: `grep -c sticky` on the live-served module via `curl
+  localhost:5173/src/components/Week12.jsx` returns zero; no duplicate
+  Week12 file; only one route (`excel/week-12`) maps to it; no scroll-driven
+  JS (`onScroll`/`IntersectionObserver`) anywhere near it; no stray
+  className carrying a `sticky` utility class on the card or its ancestors
+  inside `Week12.jsx`.
+- Built an isolated static-HTML repro of the exact DOM nesting (Dashboard's
+  `.flex-1.h-full.overflow-y-auto` scroll wrapper → Week12's `styles.container`
+  → `sectionContainer` → the goal card, current inline styles verbatim) and
+  drove it with Playwright MCP (served via a throwaway `python -m
+  http.server` since Playwright's `file://` navigation is blocked in this
+  environment — use a temp static server for any future isolated-DOM repro).
+  Scrolling that repro 500px moved the card exactly 500px — normal static
+  flow, not stuck. **So the current source, byte for byte, does not
+  reproduce this bug.**
+- Cannot log into the live/dev app directly to inspect the real DOM — this
+  session has no authenticated browser credentials (standing constraint,
+  see below). Left the user a DevTools console snippet that walks every
+  ancestor of the goal card up to `<body>` and prints each one's computed
+  `position`, to find whatever element is *actually* sticky/fixed in the
+  real page (something outside `Week12.jsx` itself — Dashboard chrome, a
+  browser extension, or something not yet considered). **Next session:
+  check chat for the user's pasted console output before touching any more
+  CSS in this component** — don't re-guess at Week12.jsx's own styles again,
+  they've been fully ruled out.
+
 **2026-08-25 — Module 1's short-step "wall of yellow" fixed via vertical
 centering + Dashboard.jsx shell fallback color (sixth round this session,
 pushed).** Asked to respond in chat with the diagnosis before touching
@@ -417,6 +466,26 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-08-25 — Admin tab: adopted the shared glass-card look; Week12 Goal card un-stuck (in source only — see 🔴 ACTIVE)
+Commit `f5aca4f`, pushed to `main`. Three complaints handled together after
+explicit "proceed with all of them" approval:
+
+- `WeekAccessAdmin.jsx` had no card behind its header at all (header text sat
+  directly on bare background) — wrapped header, message banner, bulk-action
+  buttons, and the table together in one glass card matching
+  `BudgetForm.jsx`'s standard (rgba white, backdrop blur, 16px radius, soft
+  shadow), with the table itself in a separate rounded `tableWrap`.
+- `AdminSettingsPanel.jsx` and `AssumptionsAdmin.jsx` used a flat
+  `#fff`/`#e0e0e0`/12px-radius look left over from before the glass-card
+  convention was established elsewhere — brought both up to the same
+  standard. `AssumptionsAdmin.jsx` kept its existing multi-panel structure
+  (many independent section cards by design) rather than merging everything
+  into one giant card — only its header got a new wrapper card.
+- Week12: removed `position: sticky` from the "Your Retirement Income Goal"
+  card so it scrolls with the rest of the page instead of pinning in place.
+  **Turned out not to be sufficient** — see the 🔴 ACTIVE entry above, this
+  is still an open item.
 
 ### 2026-08-25 — Module 1: vertical centering fixes the "wall of yellow" on short steps
 Sixth round in the same session as the entries directly below. Per the
