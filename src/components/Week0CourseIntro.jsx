@@ -490,7 +490,7 @@ export default function Week0CourseIntro() {
   const filing = hasSpouse ? 'mfj' : 'single';
   const getCarTiers = () => (form.carType === 'lease' ? TIERS.carLease : TIERS.carOwn);
   const householdLabel = form.household === 'single' ? 'Individual' : form.household === 'couple' ? 'Couple' : `Family (2 adults + ${numChildren} dependent${numChildren > 1 ? 's' : ''})`;
-  const incomeLabel = form.household === 'single' ? 'Required Annual Retirement Income' : 'Required Household Retirement Income';
+  const incomeLabel = form.household === 'single' ? 'Required Gross Annual Retirement Income' : 'Required Gross Household Retirement Income';
 
   const canNext = step === 2 ? !!form.retireState : true;
 
@@ -853,8 +853,11 @@ export default function Week0CourseIntro() {
       <>
         <div style={{ background: `linear-gradient(135deg,${C.navyDk} 0%,${C.navy} 55%,${C.navyMd} 100%)`, borderRadius: 14, padding: '26px 28px', marginBottom: 22, boxShadow: '0 6px 24px rgba(20,31,82,.25)' }}>
           <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', color: 'rgba(255,255,255,.5)', marginBottom: 6 }}>{form.name ? `${form.name}'s ${incomeLabel}` : incomeLabel}</div>
-          <div style={{ fontSize: 56, fontWeight: 800, color: C.white, letterSpacing: -2, lineHeight: 1 }}>{fmt(r.gross)}</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.5)', marginTop: 6 }}>gross annual · {householdLabel} · {form.retireCity || form.retireState}</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 56, fontWeight: 800, color: C.white, letterSpacing: -2, lineHeight: 1 }}>{fmt(r.gross)}</div>
+            <span style={{ fontSize: 12, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', color: C.navyDk, background: C.gold, borderRadius: 6, padding: '4px 10px' }}>Gross, before tax</span>
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,.75)', marginTop: 8 }}><strong style={{ color: C.gold }}>Gross</strong> (pre-tax) annual · {householdLabel} · {form.retireCity || form.retireState} — see <strong>Take-Home</strong> below for the after-tax number</div>
           <div style={{ display: 'flex', gap: 0, marginTop: 20, borderTop: '1px solid rgba(255,255,255,.12)', paddingTop: 18 }}>
             {heroItems.map((item, i) => (
               <div key={item.label} style={{ flex: 1, textAlign: 'center', borderLeft: i > 0 ? '1px solid rgba(255,255,255,.12)' : 'none', padding: '0 8px' }}>
