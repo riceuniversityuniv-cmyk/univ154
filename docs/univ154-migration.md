@@ -474,6 +474,24 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
 
 ## § Working log (append-only)
 
+### 2026-08-27 — Module 1: 4% rule portfolio estimate switched from take-home to gross income
+Commit `cb23f5f`, pushed to `main`. Reverses part of `66f7240` (2026-08-25),
+which had implemented `portfolioNeeded = takeHome / 0.04`.
+
+- User's ask ("based on the gross income amount not the gross income") was
+  literally self-contradictory as typed, so clarified via AskUserQuestion
+  before touching the formula rather than guessing — confirmed they meant
+  gross (pre-tax) income, not take-home (after-tax).
+- `calcResults()` in `Week0CourseIntro.jsx` now computes
+  `portfolioNeeded = gross / WITHDRAWAL_RATE` (the "25x your gross income"
+  framing) instead of dividing `takeHome`. `gross` and `takeHome` are both
+  already-established fields in the same return object — no new plumbing.
+- Updated the card's explanatory paragraph to cite `r.gross`/"gross
+  (pre-tax) income" instead of `r.takeHome`/"after-tax living expenses",
+  so the displayed methodology text matches the number shown.
+- Net effect: portfolio target is now larger for every household (gross >
+  take-home always, since take-home = gross − taxes − charity).
+
 ### 2026-08-25 — Admin tab: adopted the shared glass-card look; Week12 Goal card un-stuck (in source only — see 🔴 ACTIVE)
 Commit `f5aca4f`, pushed to `main`. Three complaints handled together after
 explicit "proceed with all of them" approval:
