@@ -223,13 +223,15 @@ function calcResults(form) {
   // the Trinity study): a widely-taught rule of thumb holding that a
   // diversified portfolio can sustainably support annual withdrawals equal
   // to ~4% of its starting balance without running out over a multi-decade
-  // retirement. So the portfolio needed = annual after-tax living expenses
-  // / 4% (equivalently, ×25). Ages are display/context only in this simple
-  // version -- the 4% rule doesn't take current/retirement/life-expectancy
-  // age as inputs, it's a fixed rate-of-withdrawal assumption -- but we
-  // still surface them so the assumption is explicit, per the user's ask.
+  // retirement. Applied here to GROSS (pre-tax) income, not take-home --
+  // i.e. the "25x your gross income" framing -- per explicit user direction
+  // (2026-08-27), overriding the take-home-based version from 66f7240. Ages
+  // are display/context only in this simple version -- the 4% rule doesn't
+  // take current/retirement/life-expectancy age as inputs, it's a fixed
+  // rate-of-withdrawal assumption -- but we still surface them so the
+  // assumption is explicit, per the user's ask.
   const WITHDRAWAL_RATE = 0.04;
-  const portfolioNeeded = takeHome / WITHDRAWAL_RATE;
+  const portfolioNeeded = gross / WITHDRAWAL_RATE;
   const currentAge = parseInt(form.currentAge, 10) || 30;
   const retirementAge = parseInt(form.retirementAge, 10) || 65;
   const lifeExpectancy = parseInt(form.lifeExpectancy, 10) || 90;
@@ -877,8 +879,8 @@ export default function Week0CourseIntro() {
             <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.75, margin: '10px 0 0' }}>
               Based on the <strong>4% safe withdrawal rule</strong>: a widely-taught guideline holding that a
               diversified portfolio can sustainably support annual withdrawals of about 4% of its starting
-              balance without running out over a multi-decade retirement. That's <strong>{fmt(r.takeHome)}/yr</strong> in
-              after-tax living expenses ÷ 4% (equivalently, ×25).
+              balance without running out over a multi-decade retirement. That's <strong>{fmt(r.gross)}/yr</strong> in
+              gross (pre-tax) income ÷ 4% (equivalently, ×25).
             </p>
             <p style={{ fontSize: 11.5, color: C.faint, lineHeight: 1.75, margin: '8px 0 0' }}>
               Assumptions: retiring at age <strong>{r.retirementAge}</strong>
