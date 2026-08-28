@@ -876,13 +876,7 @@ export default function Week0CourseIntro() {
           </div>
           <div style={{ padding: '20px 20px 18px' }}>
             <div style={{ fontSize: 40, fontWeight: 800, color: C.navy, letterSpacing: -1, lineHeight: 1 }}>{fmt(r.portfolioNeeded)}</div>
-            <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.75, margin: '10px 0 0' }}>
-              Based on the <strong>4% safe withdrawal rule</strong>: a widely-taught guideline holding that a
-              diversified portfolio can sustainably support annual withdrawals of about 4% of its starting
-              balance without running out over a multi-decade retirement. That's <strong>{fmt(r.gross)}/yr</strong> in
-              gross (pre-tax) income ÷ 4% (equivalently, ×25).
-            </p>
-            <p style={{ fontSize: 11.5, color: C.faint, lineHeight: 1.75, margin: '8px 0 0' }}>
+            <p style={{ fontSize: 11.5, color: C.faint, lineHeight: 1.75, margin: '10px 0 0' }}>
               Assumptions: retiring at age <strong>{r.retirementAge}</strong>
               {r.retirementAge > r.currentAge ? ` (in ${r.retirementAge - r.currentAge} years, from age ${r.currentAge})` : ''}, planning
               through age <strong>{r.lifeExpectancy}</strong>
