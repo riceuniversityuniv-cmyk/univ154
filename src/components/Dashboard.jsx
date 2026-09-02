@@ -10,7 +10,7 @@ import Overview from './pages/Overview'
 import BudgetPlanner from './pages/BudgetPlanner'
 import Analytics from './pages/Analytics'
 import { BudgetProvider } from '../contexts/BudgetContext'
-import { WeekAccessProvider, useWeekAccess } from '../contexts/WeekAccessContext'
+import { WeekAccessProvider, useWeekAccess, WEEK_TOPIC_LABELS } from '../contexts/WeekAccessContext'
 import { AssumptionsProvider } from '../contexts/AssumptionsContext'
 
 // Import icons
@@ -239,7 +239,8 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
     }
   })
   // Use week access context
-  const { isWeekAccessible, getOrderedWeekIds } = useWeekAccess()
+  const { isWeekAccessible, getOrderedWeekIds, globalWeekSettings } = useWeekAccess()
+  const getTopicLabel = (weekId) => globalWeekSettings[weekId]?.topicLabel || WEEK_TOPIC_LABELS[weekId] || weekId
 
   const handleSidebarFixedChange = (fixed) => {
     setSidebarFixed(fixed)
@@ -317,6 +318,7 @@ function DashboardContentInner({ isAdmin, isRealAdmin, previewAsStudent, onPrevi
           SidebarLink={SidebarLink}
           isWeekAccessible={isWeekAccessible}
           weekIds={getOrderedWeekIds()}
+          getTopicLabel={getTopicLabel}
           MdChevronLeft={MdChevronLeft}
           MdChevronRight={MdChevronRight}
           FaUserShield={FaUserShield}

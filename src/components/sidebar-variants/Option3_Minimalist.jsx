@@ -18,6 +18,7 @@ export const MinimalistSidebar = ({
   SidebarLink,
   isWeekAccessible,
   weekIds: orderedWeekIds = DEFAULT_WEEK_IDS,
+  getTopicLabel = (weekId) => WEEK_TOPIC_LABELS[weekId] || weekId,
   MdChevronLeft,
   MdChevronRight,
   FaUserShield,
@@ -215,7 +216,7 @@ export const MinimalistSidebar = ({
               const weekId = weekIds[i];
 
               const isAccessible = isWeekAccessible(weekId);
-              const topic = WEEK_TOPIC_LABELS[weekId] || weekId;
+              const topic = getTopicLabel(weekId);
               const weekLabel = `Module ${i+1} - ${topic}`;
               
               const moduleIconColor = isAccessible ? '#0d1a4b' : '#9ca3af';

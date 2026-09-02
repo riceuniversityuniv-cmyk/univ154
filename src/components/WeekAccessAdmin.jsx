@@ -3,11 +3,6 @@ import { useWeekAccess, SUPPORTED_WEEK_IDS, WEEK_TOPIC_LABELS } from '../context
 import { MdCheckCircle, MdCancel, MdWarning } from 'react-icons/md';
 import { tableHeaderStyle } from '../styles/tableHeaderStyle';
 
-// Course-week label ("Week 5 - Real Estate & Homeownership"). The number is
-// the admin-editable display_week_number (falls back to the id's numeric
-// suffix); the topic name always comes from the shared topic map.
-const courseWeekLabel = (weekId, weekNumber) => `Week ${weekNumber ?? weekId.replace('week-', '')} - ${WEEK_TOPIC_LABELS[weekId] || ''}`;
-
 const styles = {
   container: {
     fontSize: '14px',
@@ -60,7 +55,7 @@ export default function WeekAccessAdmin() {
     updateGlobalWeekSettings,
     bulkUpdateGlobalWeekSettings,
     bulkUpdateWeekOrder,
-    updateWeekNumber,
+    updateWeekTopic,
     isAdmin,
     isLoading
   } = useWeekAccess();
@@ -89,7 +84,8 @@ export default function WeekAccessAdmin() {
     setMessage('');
     try {
       await updateGlobalWeekSettings(weekId, nextAvailable);
-      setMessage(`${courseWeekLabel(weekId, globalWeekSettings[weekId]?.weekNumber)} is now ${nextAvailable ? 'open' : 'closed'} to students.`);
+      const topicLabel = globalWeekSettings[weekId]?.topicLabel || WEEK_TOPIC_LABELS[weekId] || weekId;
+      setMessage(`${topicLabel} is now ${nextAvailable ? 'open' : 'closed'} to students.`);
       setMessageType('success');
     } catch (error) {
       setMessage(`Error updating week settings: ${error.message}`);
@@ -148,7 +144,8 @@ export default function WeekAccessAdmin() {
     setMessage('');
     try {
       await bulkUpdateWeekOrder(orderMap);
-      setMessage(`Moved ${courseWeekLabel(weekId, globalWeekSettings[weekId]?.weekNumber)} to Module ${targetPosition}.`);
+      const topicLabel = globalWeekSettings[weekId]?.topicLabel || WEEK_TOPIC_LABELS[weekId] || weekId;
+      setMessage(`Moved ${topicLabel} to Module ${targetPosition}.`);
       setMessageType('success');
     } catch (error) {
       setMessage(`Error updating module order: ${error.message}`);
@@ -158,21 +155,22 @@ export default function WeekAccessAdmin() {
     }
   };
 
-  // Change the syllabus "Week N" number shown for this row -- independent
-  // of Order, which controls sidebar position.
-  const handleWeekNumberChange = async (weekId, rawNumber) => {
-    const parsed = parseInt(rawNumber, 10);
-    if (!Number.isFinite(parsed) || parsed < 1) return;
-    if (parsed === globalWeekSettings[weekId]?.weekNumber) return;
+  // Rename the topic/module name shown for this row -- independent of
+  // Order, which controls sidebar position. Persists to the DB and is
+  // what students see in the sidebar (Option3_Minimalist.jsx).
+  const handleTopicChange = async (weekId, rawLabel) => {
+    const trimmed = rawLabel.trim();
+    const current = globalWeekSettings[weekId]?.topicLabel || WEEK_TOPIC_LABELS[weekId] || weekId;
+    if (!trimmed || trimmed === current) return;
 
     setIsUpdating(true);
     setMessage('');
     try {
-      await updateWeekNumber(weekId, parsed);
-      setMessage(`${WEEK_TOPIC_LABELS[weekId] || weekId} is now labeled Week ${parsed}.`);
+      await updateWeekTopic(weekId, trimmed);
+      setMessage(`Renamed to "${trimmed}".`);
       setMessageType('success');
     } catch (error) {
-      setMessage(`Error updating week number: ${error.message}`);
+      setMessage(`Error updating topic name: ${error.message}`);
       setMessageType('error');
     } finally {
       setIsUpdating(false);
@@ -206,7 +204,7 @@ export default function WeekAccessAdmin() {
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: '#0d1a4b', margin: 0 }}>Week Access</h1>
           <p style={{ color: '#6b7280', fontSize: '13px', marginTop: '6px' }}>
-            Order sets the module position students see in the sidebar. Week # sets the syllabus label shown below -- the two are independent.
+            Order sets the module position students see in the sidebar. Topic is the module name shown to students -- click it to rename.
           </p>
         </div>
 
@@ -279,7 +277,6 @@ export default function WeekAccessAdmin() {
           <thead>
             <tr>
               <th style={{ ...styles.th, width: '70px', textAlign: 'center' }}>Order</th>
-              <th style={{ ...styles.th, width: '80px', textAlign: 'center' }}>Week #</th>
               <th style={styles.th}>Topic</th>
               <th style={{ ...styles.th, width: '190px', textAlign: 'center' }}>Open to Students</th>
             </tr>
@@ -288,7 +285,7 @@ export default function WeekAccessAdmin() {
             {orderedWeekIds.map((weekId, index) => {
               const isGloballyAvailable = globalWeekSettings[weekId]?.isAvailable ?? false;
               const position = index + 1;
-              const weekNumber = globalWeekSettings[weekId]?.weekNumber;
+              const topicLabel = globalWeekSettings[weekId]?.topicLabel || WEEK_TOPIC_LABELS[weekId] || weekId;
               return (
                 <tr key={weekId}>
                   <td style={{ ...styles.td, textAlign: 'center' }}>
@@ -316,33 +313,29 @@ export default function WeekAccessAdmin() {
                       onFocus={(e) => { e.target.style.borderColor = '#0d1a4b'; e.target.style.boxShadow = '0 0 0 2px rgba(13, 26, 75, 0.12)'; }}
                     />
                   </td>
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                  <td style={styles.td}>
                     <input
-                      key={`${weekId}-weeknum-${weekNumber}`}
-                      type="number"
-                      min={1}
-                      defaultValue={weekNumber}
+                      key={`${weekId}-topic-${topicLabel}`}
+                      type="text"
+                      defaultValue={topicLabel}
                       disabled={isUpdating}
-                      aria-label={`Week number for ${WEEK_TOPIC_LABELS[weekId] || weekId}`}
-                      onBlur={(e) => handleWeekNumberChange(weekId, e.target.value)}
+                      aria-label={`Topic name for ${weekId}`}
+                      onBlur={(e) => handleTopicChange(weekId, e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') e.target.blur(); }}
                       style={{
-                        width: '52px',
+                        width: '100%',
+                        maxWidth: '360px',
                         padding: '6px 8px',
-                        textAlign: 'center',
                         border: '2px solid #d1d5db',
                         backgroundColor: '#fffde7',
                         borderRadius: '6px',
                         fontSize: '13px',
-                        fontWeight: '600',
-                        color: '#0d1a4b',
+                        fontWeight: '500',
+                        color: '#111827',
                         outline: 'none',
                       }}
                       onFocus={(e) => { e.target.style.borderColor = '#0d1a4b'; e.target.style.boxShadow = '0 0 0 2px rgba(13, 26, 75, 0.12)'; }}
                     />
-                  </td>
-                  <td style={styles.td}>
-                    <div style={{ fontWeight: '500', color: '#111827' }}>{WEEK_TOPIC_LABELS[weekId] || ''}</div>
                   </td>
                   <td style={{ ...styles.td, textAlign: 'center' }}>
                     <label
@@ -354,7 +347,7 @@ export default function WeekAccessAdmin() {
                         disabled={isUpdating}
                         role="switch"
                         aria-checked={isGloballyAvailable}
-                        aria-label={`Toggle access for ${courseWeekLabel(weekId, weekNumber)}`}
+                        aria-label={`Toggle access for ${topicLabel}`}
                         style={{
                           position: 'relative',
                           display: 'inline-block',

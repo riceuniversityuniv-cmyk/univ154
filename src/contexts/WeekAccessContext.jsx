@@ -4,12 +4,10 @@ import { supabase } from '../lib/supabaseClient';
 const WeekAccessContext = createContext();
 export const SUPPORTED_WEEK_IDS = ['week-0', 'week-1', 'week-2', 'week-3', 'week-4', 'week-5', 'week-6', 'week-7', 'week-9', 'week-12'];
 
-// Course-week label (fixed -- reflects the syllabus week number) vs. the
-// student-facing sidebar's "Module N" position, which is admin-editable
-// (display_order below). The two are intentionally decoupled: e.g.
-// week-5 is "Week 5" in the syllabus but defaults to Module 9 on the
-// sidebar. Single source of truth for the topic name, used by both the
-// Week Access admin table and the sidebar.
+// Fallback topic name shown for a week until an admin overrides it via the
+// Week Access admin table (persisted as display_topic_label -- see
+// globalWeekSettings[weekId].topicLabel). Used by both the Week Access
+// admin table and the student-facing sidebar (Option3_Minimalist.jsx).
 export const WEEK_TOPIC_LABELS = {
   'week-0': 'Course Introduction',
   'week-1': 'Budgeting',
@@ -40,13 +38,6 @@ const DEFAULT_ORDER = {
   'week-5': 10,
 };
 
-// Fallback "Week N" syllabus number derived from the weekId string itself
-// (e.g. 'week-5' -> 5) -- used until an admin sets display_week_number in
-// the DB, or if that column's migration hasn't been applied yet.
-// 'week-0' is special-cased to 1 (it's syllabus item "1. Course
-// Introduction" -- the id predates it in the numbering, not the syllabus).
-const defaultWeekNumber = (weekId) => (weekId === 'week-0' ? 1 : parseInt(weekId.replace('week-', ''), 10));
-
 const createDefaultWeekSettings = () => {
   const defaults = {};
   SUPPORTED_WEEK_IDS.forEach((weekId) => {
@@ -56,7 +47,7 @@ const createDefaultWeekSettings = () => {
       isAvailable: weekId === 'week-0',
       releaseDate: null,
       order: DEFAULT_ORDER[weekId] ?? 99,
-      weekNumber: defaultWeekNumber(weekId)
+      topicLabel: WEEK_TOPIC_LABELS[weekId] || weekId
     };
   });
   return defaults;
@@ -84,16 +75,16 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
         console.log('========================================');
         
         if (user) {
-          // Fetch global week settings. display_order/display_week_number may
+          // Fetch global week settings. display_order/display_topic_label may
           // not exist yet if their migrations haven't been applied to this DB
           // -- fall back progressively rather than leaving settings empty and
           // locking every week for every student.
           let { data: globalSettings, error: globalError } = await supabase
             .from('global_week_settings')
-            .select('week_id, is_globally_available, release_date, display_order, display_week_number');
+            .select('week_id, is_globally_available, release_date, display_order, display_topic_label');
 
           if (globalError) {
-            console.warn('display_week_number column not available yet, falling back:', globalError.message);
+            console.warn('display_topic_label column not available yet, falling back:', globalError.message);
             ({ data: globalSettings, error: globalError } = await supabase
               .from('global_week_settings')
               .select('week_id, is_globally_available, release_date, display_order'));
@@ -117,7 +108,7 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
                     isAvailable: item.is_globally_available,
                     releaseDate: item.release_date,
                     order: item.display_order ?? DEFAULT_ORDER[item.week_id] ?? 99,
-                    weekNumber: item.display_week_number ?? defaultWeekNumber(item.week_id)
+                    topicLabel: item.display_topic_label || WEEK_TOPIC_LABELS[item.week_id] || item.week_id
                   };
                 }
               });
@@ -285,10 +276,11 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
     }
   };
 
-  // Admin function to change one week's syllabus "Week N" label (independent
-  // of display_order, which controls sidebar position -- see the comment on
-  // WEEK_TOPIC_LABELS above).
-  const updateWeekNumber = async (weekId, weekNumber) => {
+  // Admin function to rename a week's topic/module name (independent of
+  // display_order, which controls sidebar position). Persisted as
+  // display_topic_label; read by both the Week Access admin table and the
+  // student-facing sidebar (Option3_Minimalist.jsx via Dashboard.jsx).
+  const updateWeekTopic = async (weekId, topicLabel) => {
     if (!isAdmin) {
       throw new Error('Only admins can update global week settings');
     }
@@ -301,7 +293,7 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
           is_globally_available: globalWeekSettings[weekId]?.isAvailable ?? false,
           release_date: globalWeekSettings[weekId]?.releaseDate ?? null,
           display_order: globalWeekSettings[weekId]?.order ?? DEFAULT_ORDER[weekId] ?? 99,
-          display_week_number: weekNumber,
+          display_topic_label: topicLabel,
           updated_at: new Date().toISOString()
         }, { onConflict: 'week_id' });
 
@@ -309,12 +301,12 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
 
       setGlobalWeekSettings(prev => ({
         ...prev,
-        [weekId]: { ...prev[weekId], weekNumber }
+        [weekId]: { ...prev[weekId], topicLabel }
       }));
 
       return { success: true };
     } catch (error) {
-      console.error('Error updating week number:', error);
+      console.error('Error updating week topic:', error);
       throw error;
     }
   };
@@ -328,7 +320,7 @@ export const WeekAccessProvider = ({ children, user, isAdmin }) => {
     updateGlobalWeekSettings,
     bulkUpdateGlobalWeekSettings,
     bulkUpdateWeekOrder,
-    updateWeekNumber,
+    updateWeekTopic,
     isAdmin: isAdmin  // Use the prop instead of calling isUserAdmin
   };
 
