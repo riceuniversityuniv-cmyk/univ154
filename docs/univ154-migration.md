@@ -7,6 +7,12 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-09-02 — Admin Week Access: two migrations pending manual application, blocking Order + Topic edits from saving.** See the dated working-log entry below ("Admin tab: removed dead Week # column, made Topic editable") for the full story. Until the user runs these two files, in order, via Supabase Dashboard → SQL Editor, reordering modules and renaming topics in the admin table will show a red error banner instead of saving (confirmed live — this is not a guess):
+- `supabase/migrations/20260813000000_add_display_order_to_global_week_settings.sql`
+- `supabase/migrations/20260902000000_add_display_topic_label_to_global_week_settings.sql`
+
+This session has no service-role/DB-password/CLI credentials for this Supabase project — same standing constraint as every prior migration in this log. **Check with the user next session whether they've run these yet** before assuming Order/Topic edits work.
+
 **2026-08-26 — Module 1: added "Portfolio Value Needed At Retirement" (4%-rule) to Results, verified gross-income labeling and tax math, not yet pushed.** User relayed boss-style questions again ("have you checked this math?", "is it spitting out the portfolio value they'll need? what are the assumptions — current age, retirement age, age of death?"), plus an ambiguous ask to "make sure the course introduction includes all of this important information below" with nothing actually pasted below it — asked the user to clarify what content that referred to; no reply yet, so nothing was added for that half of the request.
 
 - **Verified, no code change needed**: gross income was already labeled explicitly in 4 places on Results (`"gross annual · ..."` under the headline, `"Gross / Month"` line item, the tax-note's `"% of your gross income"`, effective-rate notes on every tax row). Re-traced the gross-up math (`calcResults`'s 20-round fixed-point loop) — still correct, converges because every marginal rate is <100%. The two previously-flagged modeling simplifications (charity not tax-deductible, no MFJ standard-deduction widening) are still there, still deliberate, still unchanged.
@@ -324,7 +330,11 @@ src/
     BudgetForm.jsx, SavingsForm.jsx, ExcelWorkshop.jsx,
     ModuleView.jsx, LectureNotes.jsx   Shared building blocks
     pages/Overview.jsx, pages/Analytics.jsx, pages/BudgetPlanner.jsx
-    sidebar-variants/Option3_Minimalist.jsx   Design exploration, not routed
+    sidebar-variants/Option3_Minimalist.jsx   Despite the name/comment, this IS the live
+                               sidebar (exported as MinimalistSidebar, rendered by
+                               Dashboard.jsx) -- not a design exploration. Reads module
+                               topic names via a getTopicLabel(weekId) prop Dashboard.jsx
+                               computes from WeekAccessContext.
   contexts/
     AuthContext.jsx           Supabase auth session, signIn/signUp/signInWithGoogle/
                                signOut/resetPassword, isAdmin (via utils/adminEmails)
@@ -473,6 +483,72 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-09-02 — Admin tab: removed dead Week # column, made Topic editable
+Commit `40536dc`, pushed to `main`. User: "delete the week # column in the
+admin tab. It doesn't even work and I just care about the order. Also make
+it so I can edit the topic name."
+
+- **Confirmed why Week # "doesn't even work"**: queried the live
+  `global_week_settings` table directly via its REST endpoint (anon key)
+  before touching anything — `display_week_number` doesn't exist as a
+  column at all. Its migration (`20260814000000`) was written back on
+  08-14 but, like everything in this repo's migration history, was never
+  applied (this session has no service-role/DB-password/CLI credentials
+  for the Supabase project — confirmed again this session, same standing
+  constraint noted throughout this doc). Every edit silently no-oped.
+- **Same direct query turned up a second, more consequential bug**:
+  `display_order` doesn't exist either — meaning the "Order" field the
+  user said they actually care about was *also* completely non-functional
+  (every reorder attempt throws a Postgres error, not a silent no-op).
+  Surfaced this via `AskUserQuestion` before scoping the fix; user said
+  yes, fix Order too.
+- **Removed**: the "Week #" column/input from `WeekAccessAdmin.jsx`,
+  `weekNumber`/`updateWeekNumber`/`defaultWeekNumber` from
+  `WeekAccessContext.jsx`, and the now-dead `20260814000000` migration
+  file (safe — never applied).
+- **Added**: `display_topic_label` column (new migration
+  `20260902000000`, backfilled from the existing `WEEK_TOPIC_LABELS`
+  values so it's a no-op until an admin renames something) +
+  `updateWeekTopic()` in the context + an editable text input in the
+  Topic cell (save-on-blur, same UX the old Week # field used).
+- **Topic renames now reach students, not just the admin table**: asked
+  the user first (not assumed) — confirmed via `AskUserQuestion` — since
+  the module name shown in the sidebar
+  (`sidebar-variants/Option3_Minimalist.jsx`, exported as
+  `MinimalistSidebar` — despite its filename/header comment this is the
+  live sidebar `Dashboard.jsx` actually renders, not a design
+  exploration; corrected that stale note in the File map above) read
+  `WEEK_TOPIC_LABELS` directly, a hardcoded JS object. Changed it to take
+  a `getTopicLabel(weekId)` prop instead, which `Dashboard.jsx` derives
+  from `globalWeekSettings[weekId].topicLabel` (falling back to
+  `WEEK_TOPIC_LABELS` for any week without a DB override) — so an
+  admin's rename now actually changes what students see, not just an
+  admin-local label.
+- **Fixed the pending Order migration while in there**: `20260813000000`
+  (`display_order`) was itself unapplied and its backfill `CASE` never
+  covered `week-0` (added to the app after that migration was written) —
+  fixed to include it, matching `DEFAULT_ORDER` exactly. Also dropped the
+  `display_week_number` column/value out of the `week-0` seed migration
+  (`20260824000000`) since that field no longer exists.
+- **Verified live against the real backend**: `npm run build` + `npx
+  eslint` on all touched files clean (the handful of Dashboard.jsx /
+  Option3_Minimalist.jsx errors reported are pre-existing and unmoved —
+  diffed against `git stash` to confirm). Added a temporary
+  unauthenticated `/__qa/week-access-admin` route
+  (`<WeekAccessProvider user={{email:...}} isAdmin={true}>`, bypassing
+  real auth but still hitting the real Supabase table over the anon key)
+  and drove it with Playwright: screenshotted the table (Order + Topic
+  columns only, Week # gone, all 10 weeks' real open/closed state
+  rendered correctly), typed a topic rename and confirmed it fails
+  *cleanly* with a red error banner ("Could not find the 'display_order'
+  column...") instead of silently no-oping — i.e. the exact bug class
+  being fixed is now visible instead of hidden. Route removed before
+  finishing (`git diff src/App.jsx` clean after revert).
+- **Not yet applied to the live DB** — see the 🔴 ACTIVE entry at the top
+  of this doc. Order and Topic edits will keep failing with that error
+  banner until the user runs `20260813000000` then `20260902000000` via
+  Supabase Dashboard → SQL Editor, in that order.
 
 ### 2026-08-27 — Module 1: 4% rule portfolio estimate switched from take-home to gross income
 Commit `cb23f5f`, pushed to `main`. Reverses part of `66f7240` (2026-08-25),
