@@ -7,12 +7,6 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
-**2026-09-02 — Admin Week Access: two migrations pending manual application, blocking Order + Topic edits from saving.** See the dated working-log entry below ("Admin tab: removed dead Week # column, made Topic editable") for the full story. Until the user runs these two files, in order, via Supabase Dashboard → SQL Editor, reordering modules and renaming topics in the admin table will show a red error banner instead of saving (confirmed live — this is not a guess):
-- `supabase/migrations/20260813000000_add_display_order_to_global_week_settings.sql`
-- `supabase/migrations/20260902000000_add_display_topic_label_to_global_week_settings.sql`
-
-This session has no service-role/DB-password/CLI credentials for this Supabase project — same standing constraint as every prior migration in this log. **Check with the user next session whether they've run these yet** before assuming Order/Topic edits work.
-
 **2026-08-26 — Module 1: added "Portfolio Value Needed At Retirement" (4%-rule) to Results, verified gross-income labeling and tax math, not yet pushed.** User relayed boss-style questions again ("have you checked this math?", "is it spitting out the portfolio value they'll need? what are the assumptions — current age, retirement age, age of death?"), plus an ambiguous ask to "make sure the course introduction includes all of this important information below" with nothing actually pasted below it — asked the user to clarify what content that referred to; no reply yet, so nothing was added for that half of the request.
 
 - **Verified, no code change needed**: gross income was already labeled explicitly in 4 places on Results (`"gross annual · ..."` under the headline, `"Gross / Month"` line item, the tax-note's `"% of your gross income"`, effective-rate notes on every tax row). Re-traced the gross-up math (`calcResults`'s 20-round fixed-point loop) — still correct, converges because every marginal rate is <100%. The two previously-flagged modeling simplifications (charity not tax-deductible, no MFJ standard-deduction widening) are still there, still deliberate, still unchanged.
@@ -545,10 +539,30 @@ it so I can edit the topic name."
   column...") instead of silently no-oping — i.e. the exact bug class
   being fixed is now visible instead of hidden. Route removed before
   finishing (`git diff src/App.jsx` clean after revert).
-- **Not yet applied to the live DB** — see the 🔴 ACTIVE entry at the top
-  of this doc. Order and Topic edits will keep failing with that error
-  banner until the user runs `20260813000000` then `20260902000000` via
-  Supabase Dashboard → SQL Editor, in that order.
+- **Migrations applied same day, via a new mechanism** — the user offered
+  a Supabase **personal access token** (account-level, from
+  `supabase.com/dashboard/account/tokens`, distinct from this project's
+  anon/service keys) so this session could run the SQL itself instead of
+  asking the user to paste it into the SQL Editor. Ran both files'
+  statements as one query via the Management API
+  (`POST https://api.supabase.com/v1/projects/{ref}/database/query`,
+  `Authorization: Bearer <token>`) — got `201`. Verified directly via the
+  anon-key REST endpoint afterward: `display_order` (1-10, matching
+  `DEFAULT_ORDER`) and `display_topic_label` (matching
+  `WEEK_TOPIC_LABELS`) are both populated for all 10 `SUPPORTED_WEEK_IDS`
+  rows. Re-ran the same `/__qa/week-access-admin` Playwright check from
+  above: the column-not-found console errors are gone, and attempting a
+  topic rename through that unauthenticated route now fails with
+  `"new row violates row-level security policy"` instead of a
+  column-not-found error — i.e. it now reaches RLS, which is exactly
+  where an unauthenticated QA session *should* be stopped; a real
+  logged-in admin will pass it. **This is the first migration in this
+  project's history applied by Claude directly rather than by the user
+  via the Dashboard SQL Editor** — if a personal access token is offered
+  again for a future migration, this same Management API `database/query`
+  endpoint is the way to use it. Token was single-use for this session,
+  not stored anywhere in the repo; user was advised to revoke it from the
+  tokens page afterward.
 
 ### 2026-08-27 — Module 1: 4% rule portfolio estimate switched from take-home to gross income
 Commit `cb23f5f`, pushed to `main`. Reverses part of `66f7240` (2026-08-25),
