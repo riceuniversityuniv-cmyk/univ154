@@ -492,7 +492,7 @@ const Week3CreditCard = () => {
     },
     mainLayout: {
       display: 'grid',
-      gridTemplateColumns: '1fr 1fr',
+      gridTemplateColumns: '0.85fr 1.15fr',
       gap: '16px',
       marginBottom: '36px',
       maxWidth: '100%'
@@ -639,34 +639,39 @@ const Week3CreditCard = () => {
     },
     comparisonRow: {
       display: 'grid',
-      gridTemplateColumns: '1.3fr 1fr 1fr',
+      gridTemplateColumns: '1.5fr 1fr 1fr',
+      gap: '8px',
       alignItems: 'center',
       padding: '10px 12px',
       borderBottom: '1px solid #e0e0e0'
     },
     comparisonHeaderRow: {
       display: 'grid',
-      gridTemplateColumns: '1.3fr 1fr 1fr',
+      gridTemplateColumns: '1.5fr 1fr 1fr',
+      gap: '8px',
       alignItems: 'end',
       padding: '0 12px 12px',
       borderBottom: '2px solid #e5e7eb'
     },
     comparisonHeaderLabel: {
-      fontSize: '15px',
+      fontSize: '13px',
       fontWeight: '600',
       color: '#0d1a4b',
       textAlign: 'center',
       letterSpacing: '-0.01em',
+      whiteSpace: 'nowrap',
     },
     comparisonLabel: {
-      fontSize: '14px',
-      color: '#666'
+      fontSize: '13px',
+      color: '#666',
+      lineHeight: '1.3',
     },
     comparisonValue: {
-      fontSize: '14px',
+      fontSize: '13px',
       fontWeight: '600',
       color: '#0d1a4b',
-      textAlign: 'center'
+      textAlign: 'center',
+      whiteSpace: 'nowrap',
     },
     chartContainer: {
       height: '520px',
