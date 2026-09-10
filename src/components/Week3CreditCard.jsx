@@ -56,6 +56,16 @@ const Week3CreditCard = () => {
   // State for chart modal
   const [expandedChart, setExpandedChart] = useState(null); // 'userPayment', 'minimumPayment', 'generalLoan', or null
 
+  // Hover-term tooltip (dotted-underline term -> floating definition), same
+  // pattern as Week7.jsx's "Annual Premium" tooltip.
+  const [hoveredTerm, setHoveredTerm] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+
+  // Definitions for hover-term tooltips
+  const definitions = {
+    'Minimum Payment (Month 1)': 'Recalculated every month: 1% of your balance plus that month\'s interest (min. $25). It shrinks as your balance drops, so payoff takes far longer than a fixed payment. Shown here is the Month 1 amount.',
+  };
+
   // Format number for input display (with commas, preserve decimals for cents)
   const formatNumberForInput = (num) => {
     if (!num || num === '') return '';
@@ -697,6 +707,28 @@ const Week3CreditCard = () => {
       marginBottom: '24px',
       border: '1px solid rgba(13, 26, 75, 0.15)',
     },
+    hoverTermLabel: {
+      borderBottom: '1px dotted #0d1a4b',
+      cursor: 'help',
+    },
+    tooltip: {
+      position: 'fixed',
+      zIndex: 10000,
+      background: 'linear-gradient(135deg, rgba(13, 26, 75, 0.98) 0%, rgba(30, 58, 138, 0.96) 100%)',
+      color: 'white',
+      padding: '12px 16px',
+      borderRadius: '8px',
+      fontSize: '13px',
+      fontWeight: '500',
+      maxWidth: '280px',
+      boxShadow: '0 8px 24px rgba(13, 26, 75, 0.35)',
+      border: '1px solid rgba(255, 255, 255, 0.16)',
+      pointerEvents: 'none',
+      opacity: 0.97,
+      backdropFilter: 'blur(6px)',
+      animation: 'week3FadeIn 0.2s ease-in-out',
+      transform: 'translate(-50%, -100%)',
+    },
     // General Loans Section Styles
     generalLoansSection: {
       marginBottom: '20px'
@@ -871,6 +903,35 @@ const Week3CreditCard = () => {
 
   return (
     <div style={styles.container}>
+      <style>{`
+        @keyframes week3FadeIn {
+          from { opacity: 0; transform: translate(-50%, calc(-100% + 10px)); }
+          to { opacity: 0.97; transform: translate(-50%, -100%); }
+        }
+      `}</style>
+
+      {/* Hover-term tooltip (e.g. "Minimum Payment (Month 1)") */}
+      {hoveredTerm && (
+        <div style={{
+          ...styles.tooltip,
+          left: `${tooltipPosition.x}px`,
+          top: `${tooltipPosition.y - 14}px`,
+        }}>
+          <div style={{
+            position: 'absolute',
+            bottom: '-8px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: 0,
+            height: 0,
+            borderLeft: '8px solid transparent',
+            borderRight: '8px solid transparent',
+            borderTop: '8px solid rgba(13, 26, 75, 0.97)'
+          }}></div>
+          <div style={{ lineHeight: '1.4', fontSize: '12px' }}>{definitions[hoveredTerm]}</div>
+        </div>
+      )}
+
       {/* Credit Card Section */}
       <div style={styles.sectionContainer}>
         {/* Enhanced Header */}
@@ -1021,7 +1082,17 @@ const Week3CreditCard = () => {
               {/* Right Column */}
               <div style={styles.inputColumn}>
                 <div style={styles.inputRow}>
-                  <div style={styles.inputLabel}>Minimum Payment</div>
+                  <div
+                    style={{ ...styles.inputLabel, position: 'relative' }}
+                    onMouseEnter={(e) => {
+                      setHoveredTerm('Minimum Payment (Month 1)');
+                      setTooltipPosition({ x: e.clientX, y: e.clientY });
+                    }}
+                    onMouseMove={(e) => setTooltipPosition({ x: e.clientX, y: e.clientY })}
+                    onMouseLeave={() => setHoveredTerm(null)}
+                  >
+                    <span style={styles.hoverTermLabel}>Minimum Payment (Month 1)</span>
+                  </div>
                   <div style={styles.calculatedValue}>
                     {formatCurrency(minimumPayment)}
                   </div>
