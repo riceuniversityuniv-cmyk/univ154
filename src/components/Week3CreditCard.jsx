@@ -1027,7 +1027,7 @@ const Week3CreditCard = () => {
                   </div>
                 </div>
                 <div style={styles.inputRow}>
-                  <div style={styles.inputLabel}>User Input Payment</div>
+                  <div style={styles.inputLabel}>Inputted Payment</div>
                   <input
                     type="text"
                     value={userPayment ? `$${formatNumberForInput(userPayment)}` : ''}
@@ -1094,7 +1094,7 @@ const Week3CreditCard = () => {
                       // Validation
                       if (value !== '' && !isNaN(numericValue) && numericValue >= 0) {
                         if (numericValue < minimumPayment) {
-                          alert(`User Input Payment must be at least the minimum payment amount of ${formatCurrency(minimumPayment)}`);
+                          alert(`Inputted Payment must be at least the minimum payment amount of ${formatCurrency(minimumPayment)}`);
                           // Reset to minimum payment
                           setUserPayment(minimumPayment.toString());
                         }
@@ -1131,7 +1131,7 @@ const Week3CreditCard = () => {
             <div style={styles.summaryTable}>
               <div style={styles.comparisonHeaderRow}>
                 <div />
-                <div style={styles.comparisonHeaderLabel}>User Input Payment</div>
+                <div style={styles.comparisonHeaderLabel}>Inputted Payment</div>
                 <div style={styles.comparisonHeaderLabel}>Minimum Payment</div>
               </div>
               <div style={styles.comparisonRow}>
@@ -1165,7 +1165,7 @@ const Week3CreditCard = () => {
 
       {/* Charts Section - Side by Side like Excel */}
       <div style={styles.chartsSection}>
-        {/* Left Chart: User Input Payment */}
+        {/* Left Chart: Inputted Payment */}
         <div
           style={{ ...styles.chartCardEnhanced, cursor: 'pointer', border: 'none' }}
           onClick={() => setExpandedChart('userPayment')}
@@ -1182,7 +1182,7 @@ const Week3CreditCard = () => {
         >
           <div style={styles.chartHeader}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>User Input Payment: Interest vs. Principal</h3>
+              <h3 style={{ ...styles.chartTitle, flex: 'none' }}>Inputted Payment: Interest vs. Principal</h3>
             </div>
             <div style={{
               fontSize: '11px',
@@ -2097,7 +2097,7 @@ const Week3CreditCard = () => {
                 margin: 0,
                 marginBottom: '8px'
               }}>
-                {expandedChart === 'userPayment' && 'User Input Payment: Interest vs. Principal'}
+                {expandedChart === 'userPayment' && 'Inputted Payment: Interest vs. Principal'}
                 {expandedChart === 'minimumPayment' && 'Minimum Payment: Interest vs Principal'}
                 {expandedChart === 'generalLoan' && 'General Loan: Interest vs Principal'}
               </h2>
