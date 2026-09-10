@@ -63,7 +63,7 @@ const Week3CreditCard = () => {
 
   // Definitions for hover-term tooltips
   const definitions = {
-    'Minimum Payment (Month 1)': 'Recalculated every month: 1% of your balance plus that month\'s interest. It shrinks as your balance drops, so payoff takes far longer than a fixed payment. Shown here is the Month 1 amount.',
+    'Minimum Payment (Month 1)': 'Recalculated every month: 1% of your balance plus that month\'s interest. It shrinks as your balance drops, so payoff takes far longer than a fixed payment',
   };
 
   // Format number for input display (with commas, preserve decimals for cents)
