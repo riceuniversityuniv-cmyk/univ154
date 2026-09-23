@@ -29,7 +29,7 @@ This section maps values to workbook-style addresses so formulas like
 | Additional Medicare rate | 0.90% | `C9` |
 | Additional Medicare threshold (single) | $200,000 | `C10` |
 | Federal standard deduction (single) 2026 | $16,100 | `C11` |
-| RMD start age (traditional accounts) [hidden] | 73 | `C12` |
+| RMD start age (traditional accounts) [hidden] | 75 (workbook sample used 73; changed 2026-09-23 -- SECURE 2.0 sets 75 for anyone born 1960+, i.e. every student) | `C12` |
 | Penalty-free retirement withdrawal age [hidden] | 59.5 | `C13` |
 
 ### Sheet: `Week 7 B - Fed Ordinary 2026`

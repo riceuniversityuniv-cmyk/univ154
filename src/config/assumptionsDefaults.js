@@ -19,7 +19,7 @@ export const ASSUMPTIONS_DEFAULTS = {
     "std_deduction_single": 16100,
     "limit_401k": 24500,
     "limit_ira": 7500,
-    "rmd_start_age": 73,
+    "rmd_start_age": 75,
     "penalty_free_withdrawal_age": 59.5,
     "cpi_inflation": 0.03,
     "portfolio_return": 0.07

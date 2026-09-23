@@ -7593,7 +7593,7 @@ export default function Week6Retirement() {
                   value={retirementPlanningInputs.traditionalIRAAgeA || 60}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeA', e.target.value)}
                   min="31"
-                  max={retirementPlanningInputs.rmdAge || 73}
+                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
                   style={{
                     ...styles.input,
                     width: '100%',
@@ -7723,7 +7723,7 @@ export default function Week6Retirement() {
                   value={retirementPlanningInputs.traditionalIRAAgeB || 60}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeB', e.target.value)}
                   min="31"
-                  max={retirementPlanningInputs.rmdAge || 73}
+                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
                   style={{
                     ...styles.input,
                     width: '100%',
@@ -7853,7 +7853,7 @@ export default function Week6Retirement() {
                   value={retirementPlanningInputs.traditionalIRAAgeC || 60}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeC', e.target.value)}
                   min="31"
-                  max={retirementPlanningInputs.rmdAge || 73}
+                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
                   style={{
                     ...styles.input,
                     width: '100%',
