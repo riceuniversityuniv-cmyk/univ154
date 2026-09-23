@@ -9,9 +9,11 @@ export default function Week1StateTax() {
   const { topInputs, financialCalculations } = useBudget();
   const { assumptions } = useAssumptions();
 
-  // Taxable income comes from the shared engine via BudgetContext --
-  // guaranteed to match the Summary and Federal Tax tabs.
-  const taxableIncome = financialCalculations.taxableIncome || 0;
+  // State taxable income comes from the shared engine via BudgetContext --
+  // gross minus the state's own standard deduction and personal exemption
+  // (not the federal taxable income), so it matches the Summary tab's state
+  // and NYC tax.
+  const taxableIncome = financialCalculations.stateTaxableIncome || 0;
 
   const selectedState = topInputs.location || 'TX';
   const residenceInNYC = topInputs.residenceInNYC === 'Yes';
@@ -71,12 +73,16 @@ export default function Week1StateTax() {
         border: '1px solid #dee2e6',
         borderRadius: '5px'
       }} className="week1st-surface">
-        <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>Taxable Income</h3>
+        <h3 style={{ margin: '0 0 10px 0', color: '#495057' }}>State Taxable Income</h3>
         <p style={{ margin: '0', color: '#495057' }}>
           <strong>Value:</strong> {formatCurrency(taxableIncome, { decimals: 0 })}
         </p>
         <p style={{ margin: '5px 0 0 0', color: '#6c757d' }}>
           <strong>State:</strong> {selectedState}
+        </p>
+        <p style={{ margin: '5px 0 0 0', color: '#6c757d', fontSize: '13px' }}>
+          Pre-tax income minus {selectedState}'s own standard deduction and personal exemption
+          (not the federal deduction). Credit-based exemptions are not modeled.
         </p>
       </div>
 

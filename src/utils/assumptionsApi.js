@@ -5,6 +5,7 @@
 // Centralized here the same way adminApi.js centralizes `admins` calls and
 // WeekAccessContext.jsx centralizes `global_week_settings` calls.
 import { supabase } from '../lib/supabaseClient';
+import { ASSUMPTIONS_DEFAULTS } from '../config/assumptionsDefaults';
 
 // Fetch all three tables in parallel and shape them into one object the
 // rest of the app consumes via AssumptionsContext:
@@ -59,7 +60,18 @@ export const fetchAssumptions = async () => {
     rmdDivisors[row.age] = Number(row.divisor);
   });
 
-  return { scalars, federalOrdinaryBrackets, federalLtcgBrackets, nycBrackets, stateBrackets, rmdDivisors };
+  // stateDeductions (per-state standard deduction + personal exemption) is
+  // code-owned, not a Supabase table: it comes from the bundled defaults and
+  // is not admin-editable yet. Without this the DB result would drop it.
+  return {
+    scalars,
+    federalOrdinaryBrackets,
+    federalLtcgBrackets,
+    nycBrackets,
+    stateBrackets,
+    stateDeductions: ASSUMPTIONS_DEFAULTS.stateDeductions,
+    rmdDivisors,
+  };
 };
 
 export const updateScalar = async (key, value, updatedBy) => {

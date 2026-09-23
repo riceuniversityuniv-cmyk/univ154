@@ -435,3 +435,7 @@ Retirement-withdrawal tax block:
 - Retirement state in Tax Engine is referenced from `C6`.
 - Year-to-retirement / indexing uses `C3` and inflation `C4`.
 - State bracket formulas intentionally reference broad ranges `B3:E5001` (not tightly bounded to row 163).
+
+
+## Note (2026-09-23): state taxable income
+The workbook reuses the federal taxable income for state tax (`C11`, and the federal standard deduction for `C28`). The web tool now uses each state's own standard deduction + personal exemption (`assumptions.stateDeductions`) for both, indexed to the retirement year in `C28`. No-income-tax states (incl. the default TX case) are unaffected.

@@ -1039,5 +1039,211 @@ export const ASSUMPTIONS_DEFAULTS = {
     "118": 2.5,
     "119": 2.3,
     "120": 2
+  },
+  "stateDeductions": {
+    "AL": {
+      "std": 3000,
+      "personal": 1500
+    },
+    "AK": {
+      "std": 0,
+      "personal": 0
+    },
+    "AZ": {
+      "std": 8350,
+      "personal": 0
+    },
+    "AR": {
+      "std": 2470,
+      "personal": 0
+    },
+    "CA": {
+      "std": 5540,
+      "personal": 0
+    },
+    "CO": {
+      "std": "federal",
+      "personal": 0
+    },
+    "CT": {
+      "std": 0,
+      "personal": 15000
+    },
+    "DE": {
+      "std": 3250,
+      "personal": 0
+    },
+    "FL": {
+      "std": 0,
+      "personal": 0
+    },
+    "GA": {
+      "std": 12000,
+      "personal": 0
+    },
+    "HI": {
+      "std": 4400,
+      "personal": 1144
+    },
+    "ID": {
+      "std": "federal",
+      "personal": 0
+    },
+    "IL": {
+      "std": 0,
+      "personal": 2925
+    },
+    "IN": {
+      "std": 0,
+      "personal": 1000
+    },
+    "IA": {
+      "std": "federal",
+      "personal": 0
+    },
+    "KS": {
+      "std": 3605,
+      "personal": 9160
+    },
+    "KY": {
+      "std": 3360,
+      "personal": 0
+    },
+    "LA": {
+      "std": 12875,
+      "personal": 0
+    },
+    "ME": {
+      "std": 8350,
+      "personal": 5300
+    },
+    "MD": {
+      "std": 3350,
+      "personal": 3200
+    },
+    "MA": {
+      "std": 0,
+      "personal": 4400
+    },
+    "MI": {
+      "std": 0,
+      "personal": 5900
+    },
+    "MN": {
+      "std": 15300,
+      "personal": 0
+    },
+    "MS": {
+      "std": 2300,
+      "personal": 6000
+    },
+    "MO": {
+      "std": "federal",
+      "personal": 0
+    },
+    "MT": {
+      "std": "federal",
+      "personal": 0
+    },
+    "NE": {
+      "std": 8850,
+      "personal": 0
+    },
+    "NV": {
+      "std": 0,
+      "personal": 0
+    },
+    "NH": {
+      "std": 0,
+      "personal": 0
+    },
+    "NJ": {
+      "std": 0,
+      "personal": 1000
+    },
+    "NM": {
+      "std": "federal",
+      "personal": 0
+    },
+    "NY": {
+      "std": 8000,
+      "personal": 0
+    },
+    "NC": {
+      "std": 12750,
+      "personal": 0
+    },
+    "ND": {
+      "std": "federal",
+      "personal": 0
+    },
+    "OH": {
+      "std": 0,
+      "personal": 2400
+    },
+    "OK": {
+      "std": 6350,
+      "personal": 1000
+    },
+    "OR": {
+      "std": 2910,
+      "personal": 0
+    },
+    "PA": {
+      "std": 0,
+      "personal": 0
+    },
+    "RI": {
+      "std": 11200,
+      "personal": 5250
+    },
+    "SC": {
+      "std": 8350,
+      "personal": 0
+    },
+    "SD": {
+      "std": 0,
+      "personal": 0
+    },
+    "TN": {
+      "std": 0,
+      "personal": 0
+    },
+    "TX": {
+      "std": 0,
+      "personal": 0
+    },
+    "UT": {
+      "std": 0,
+      "personal": 0
+    },
+    "VT": {
+      "std": 7650,
+      "personal": 5300
+    },
+    "VA": {
+      "std": 8750,
+      "personal": 930
+    },
+    "WA": {
+      "std": 0,
+      "personal": 0
+    },
+    "WV": {
+      "std": 0,
+      "personal": 2000
+    },
+    "WI": {
+      "std": 13960,
+      "personal": 700
+    },
+    "WY": {
+      "std": 0,
+      "personal": 0
+    },
+    "DC": {
+      "std": "federal",
+      "personal": 0
+    }
   }
 };

@@ -158,6 +158,10 @@ export const BudgetProvider = ({ children }) => {
       userPreTaxExpenses, // F7
       suggestedTaxableIncome: suggested.taxableIncome, // C9
       userTaxableIncome: user.taxableIncome, // F9
+      // State/NYC base: gross - pre-tax expenses - the state's own standard
+      // deduction and personal exemption (not the federal taxable income).
+      suggestedStateTaxableIncome: suggested.stateTaxableIncome,
+      userStateTaxableIncome: user.stateTaxableIncome,
       suggestedFederalIncomeTax: suggested.federalIncomeTax, // C11
       suggestedSocialSecurityTax: suggested.socialSecurityTax, // C12
       suggestedMedicareTax: suggested.medicareTax, // C13

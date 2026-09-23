@@ -48,6 +48,7 @@ const Week4 = () => {
     
     // C9: Taxable Income - SUGGESTED
     taxableIncome: summaryCalculations.suggestedTaxableIncome || 0,
+    stateTaxableIncome: summaryCalculations.suggestedStateTaxableIncome || 0,
     
     // C11: Federal Income Tax Payment - SUGGESTED
     federalIncomeTax: summaryCalculations.suggestedFederalIncomeTax || 0,
@@ -76,7 +77,7 @@ const Week4 = () => {
   // shown on the Summary tab above it. See
   // docs/financial-audit-2026-08-11.md (four+ independent tax engines).
   const federalBracketBreakdown = calculateBracketBreakdown(week4Data.taxableIncome, assumptions.federalOrdinaryBrackets);
-  const stateBracketBreakdown = calculateBracketBreakdown(week4Data.taxableIncome, assumptions.stateBrackets[topInputs.location] || []);
+  const stateBracketBreakdown = calculateBracketBreakdown(week4Data.stateTaxableIncome, assumptions.stateBrackets[topInputs.location] || []);
 
   // Get dynamic table title based on state
   const getStateTaxTableTitle = (state) => {
@@ -325,7 +326,7 @@ const Week4 = () => {
         <div style={styles.infoBox}>
           <InfoIcon />
           <div>
-            <strong>How it works:</strong> This page displays your tax calculations based on Week 1 budget data. Tax calculations exclude detailed state/city rules and provide a close estimate of After-Tax Income rather than exact figures.
+            <strong>How it works:</strong> This page displays your tax calculations based on Week 1 budget data. State tax uses each state's standard deduction and personal exemption but ignores credits, local taxes (other than NYC) and other state-specific rules, so After-Tax Income is a close estimate rather than an exact figure.
           </div>
         </div>
 
@@ -367,6 +368,11 @@ const Week4 = () => {
             <div style={styles.dataRow}>
               <span style={styles.dataLabel}>Taxable Income</span>
               <span style={styles.dataValue}>{formatCurrency(week4Data.taxableIncome, { decimals: 0 })}</span>
+            </div>
+
+            <div style={styles.dataRow}>
+              <span style={styles.dataLabel}>State Taxable Income (after state deduction &amp; exemption)</span>
+              <span style={styles.dataValue}>{formatCurrency(week4Data.stateTaxableIncome, { decimals: 0 })}</span>
             </div>
             
             <div style={styles.dataRow}>

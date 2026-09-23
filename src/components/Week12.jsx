@@ -14,7 +14,7 @@ import {
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
 import { formatCurrency } from '../utils/formatters';
-import { calculateProgressiveTax, getRMDDivisor } from '../utils/taxEngine';
+import { calculateProgressiveTax, calculateStateDeductionAmount, getRMDDivisor } from '../utils/taxEngine';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
 
@@ -578,7 +578,9 @@ const Week12 = () => {
     taxCells.C8 = goalSheet.G16;
     taxCells.C9 = Math.max(0, taxCells.C8 - assumptions.scalars.std_deduction_single);
     taxCells.C10 = calculateProgressiveTax(taxCells.C9, assumptions.federalOrdinaryBrackets);
-    taxCells.C11 = taxCells.C9;
+    // State taxable income: salary minus the working state's own standard
+    // deduction + personal exemption (the Excel model reused the federal base).
+    taxCells.C11 = Math.max(0, taxCells.C8 - calculateStateDeductionAmount(taxCells.C5, assumptions));
     taxCells.C12 = calculateProgressiveTax(
       taxCells.C11,
       assumptions.stateBrackets[taxCells.C5] || []
@@ -624,7 +626,15 @@ const Week12 = () => {
     taxCells.C27 =
       taxCells.C25 * assumptions.federalLtcgBrackets[1].rate +
       taxCells.C26 * assumptions.federalLtcgBrackets[2].rate;
-    taxCells.C28 = Math.max(0, taxCells.C17 + taxCells.C18 - taxCells.C19);
+    // State taxable income in retirement: withdrawals minus the retirement
+    // state's own deduction + exemption, indexed to the retirement year like
+    // the federal deduction (the Excel model reused the federal deduction).
+    taxCells.C28 = Math.max(
+      0,
+      taxCells.C17 +
+        taxCells.C18 -
+        calculateStateDeductionAmount(taxCells.C6, assumptions) * Math.pow(1 + taxCells.C4, taxCells.C3)
+    );
     taxCells.C29 = calculateProgressiveTax(
       taxCells.C28,
       scaleBrackets(

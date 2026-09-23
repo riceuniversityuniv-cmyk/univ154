@@ -70,6 +70,27 @@ export function calculateTaxableIncome(preTaxIncome, assumptions, preTaxExpenses
   return (preTaxIncome || 0) - standardDeduction - (preTaxExpenses || 0);
 }
 
+// What a state lets a single filer subtract before applying its own
+// brackets: its standard deduction plus any personal-exemption *deduction*
+// (assumptions.stateDeductions, single-filer figures). Credit-type
+// exemptions (CA, AR, DE, ...) are ignored -- same simplification the Week 0
+// intro tool makes. `std: 'federal'` means the state simply follows the
+// federal standard deduction. A state with no entry falls back to the
+// federal deduction (the pre-2026-09-23 behavior for every state).
+export function calculateStateDeductionAmount(state, assumptions) {
+  const entry = assumptions?.stateDeductions?.[state];
+  if (!entry) return calculateStandardDeduction(assumptions);
+  const std = entry.std === 'federal' ? calculateStandardDeduction(assumptions) : (entry.std || 0);
+  return std + (entry.personal || 0);
+}
+
+// State (and NYC) taxable income: gross pay minus pre-tax expenses minus
+// the state's own deductions -- NOT the federal taxable income. Unfloored
+// for the same reason as calculateTaxableIncome above.
+export function calculateStateTaxableIncome(preTaxIncome, assumptions, preTaxExpenses = 0, state) {
+  return (preTaxIncome || 0) - (preTaxExpenses || 0) - calculateStateDeductionAmount(state, assumptions);
+}
+
 export function calculateFederalTax(taxableIncome, assumptions) {
   return calculateProgressiveTax(taxableIncome, assumptions?.federalOrdinaryBrackets);
 }
@@ -187,8 +208,12 @@ export function calculateFullTax({ preTaxIncome, preTaxExpenses = 0, state, resi
   const federalIncomeTax = calculateFederalTax(taxableIncome, assumptions);
   const { socialSecurityTax, medicareTax, additionalMedicareTax } = calculateFICA(preTaxIncome, assumptions);
   const stateBracketsForState = assumptions?.stateBrackets?.[state] ?? [];
-  const stateIncomeTax = calculateStateTax(taxableIncome, stateBracketsForState);
-  const nycTax = residenceInNYC ? calculateNYCTax(taxableIncome, assumptions) : 0;
+  // State and NYC tax run on the STATE's own taxable income (state standard
+  // deduction + personal exemption), not the federal one. NYC resident tax
+  // is levied on NY taxable income, so it shares the state base.
+  const stateTaxableIncome = calculateStateTaxableIncome(preTaxIncome, assumptions, preTaxExpenses, state);
+  const stateIncomeTax = calculateStateTax(stateTaxableIncome, stateBracketsForState);
+  const nycTax = residenceInNYC ? calculateNYCTax(stateTaxableIncome, assumptions) : 0;
 
   const totalTax = federalIncomeTax + socialSecurityTax + medicareTax + additionalMedicareTax + stateIncomeTax + nycTax;
 
@@ -205,6 +230,7 @@ export function calculateFullTax({ preTaxIncome, preTaxExpenses = 0, state, resi
     preTaxIncome: preTaxIncome || 0,
     standardDeduction,
     taxableIncome,
+    stateTaxableIncome,
     federalIncomeTax,
     socialSecurityTax,
     medicareTax,
