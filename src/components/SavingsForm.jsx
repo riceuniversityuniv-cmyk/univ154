@@ -791,6 +791,9 @@ export default function SavingsForm() {
       
       const annualRate = parseFloat(annualRateInput) / 100; // Convert percentage to decimal
       const monthlyRate = annualRate / 12;
+      // Future-value-of-annuity factor; a 0% rate is the plain n-payments case
+      // (Excel's NPER/PMT handle rate = 0 the same way) instead of 0/0 = NaN.
+      const futureValueFactorFor = (n) => (monthlyRate === 0 ? n : ((1 + monthlyRate) ** n - 1) / monthlyRate);
 
       // ALWAYS use summaryCalculations.userAfterTaxIncome / 12 directly - same as Week 1's Budgeted Spend column
       const effectiveMonthlyAfterTaxIncome = (summaryCalculations && typeof summaryCalculations.userAfterTaxIncome === 'number' && summaryCalculations.userAfterTaxIncome > 0) 
@@ -818,7 +821,7 @@ export default function SavingsForm() {
           console.log('Time mode percentage:', percentage);
         } else if (calculationMode === 'monthly' && goal > 0 && time > 0) {
           // For monthly calculation mode - calculate monthly amount first
-          const futureValueFactor = ((1 + monthlyRate) ** time - 1) / monthlyRate;
+          const futureValueFactor = futureValueFactorFor(time);
           const calculatedMonthly = goal / futureValueFactor;
           percentage = (calculatedMonthly / effectiveMonthlyAfterTaxIncome) * 100;
           console.log('Monthly mode percentage:', percentage);
@@ -830,7 +833,7 @@ export default function SavingsForm() {
         if (goal > 0 && monthly > 0) {
           // Using Excel NPER formula: NPER(rate, -pmt, pv, fv)
           // rate = monthlyRate, pmt = monthly, pv = 0, fv = goal
-          const actualTime = Math.log(1 + (goal * monthlyRate) / monthly) / Math.log(1 + monthlyRate);
+          const actualTime = monthlyRate === 0 ? goal / monthly : Math.log(1 + (goal * monthlyRate) / monthly) / Math.log(1 + monthlyRate);
           console.log('Time calculation - goal:', goal, 'monthly:', monthly, 'monthlyRate:', monthlyRate, 'actualTime:', actualTime);
           return {
             timeToGoal: Math.ceil(actualTime),
@@ -841,7 +844,7 @@ export default function SavingsForm() {
       } else if (calculationMode === 'monthly') {
         // Calculate monthly savings needed for given goal and time
         if (goal > 0 && time > 0) {
-          const futureValueFactor = ((1 + monthlyRate) ** time - 1) / monthlyRate;
+          const futureValueFactor = futureValueFactorFor(time);
           const requiredMonthly = goal / futureValueFactor;
           return {
             monthlySavings: requiredMonthly,

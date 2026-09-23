@@ -228,9 +228,11 @@ const Week5 = () => {
         biWeeklyPaymentAmount = biWeeklyPayment;
       } else {
         // For subsequent periods, use MIN logic but corrected
-        // Instead of MIN(previous_balance + current_interest, payment)
-        // Use MIN(previous_balance, payment) to ensure we don't overpay
-        biWeeklyPaymentAmount = Math.min(currentLoanAmountBiWeekly, biWeeklyPayment);
+        // Excel: MIN(balance + this period's interest, payment). The final
+        // payment must cover the balance PLUS its interest; capping at the
+        // balance alone left a residual equal to that interest and forced a
+        // spurious extra period (term overstated by a period or two).
+        biWeeklyPaymentAmount = Math.min(currentLoanAmountBiWeekly + biWeeklyInterestPayment, biWeeklyPayment);
       }
       
       // Principal for this bi-weekly period: =K12-L12

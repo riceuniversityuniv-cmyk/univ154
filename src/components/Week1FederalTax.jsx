@@ -298,8 +298,8 @@ export default function Week1FederalTax() {
           <h4 style={{ marginBottom: '12px', color: '#1e40af', fontSize: '16px', fontWeight: '600' }}>Assumptions used</h4>
           <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.8' }}>
             <div>Social Security wage base: {formatCurrency(assumptions.scalars.ss_wage_base, { decimals: 0 })}</div>
-            <div>Social Security rate: {formatPercent(assumptions.scalars.ss_rate)}</div>
-            <div>Medicare rate: {formatPercent(assumptions.scalars.medicare_rate)}</div>
+            <div>Social Security rate: {formatPercent(assumptions.scalars.ss_rate, { decimals: 2 })}</div>
+            <div>Medicare rate: {formatPercent(assumptions.scalars.medicare_rate, { decimals: 2 })}</div>
             <div>Standard deduction: {formatCurrency(assumptions.scalars.std_deduction_single, { decimals: 0 })}</div>
             <div style={{ marginTop: '8px', fontStyle: 'italic' }}>
               Editable by admins in the Assumptions tab.

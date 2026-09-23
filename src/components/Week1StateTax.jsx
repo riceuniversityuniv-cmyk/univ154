@@ -105,7 +105,7 @@ export default function Week1StateTax() {
                 {stateBracketBreakdown.map((calc, index) => (
                   <tr key={index} style={{ backgroundColor: calc.taxInBracket > 0 ? '#e8f5e8' : '#f8f9fa' }}>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
-                      {formatPercent(calc.rate)}
+                      {formatPercent(calc.rate, { decimals: 2 })}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                       {formatBound(calc.lower)} &ndash; {formatBound(calc.upper)}
@@ -163,7 +163,7 @@ export default function Week1StateTax() {
                 {nycBracketBreakdown.map((calc, index) => (
                   <tr key={index} style={{ backgroundColor: calc.taxInBracket > 0 ? '#e8f5e8' : '#f8f9fa' }}>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
-                      {formatPercent(calc.rate)}
+                      {formatPercent(calc.rate, { decimals: 2 })}
                     </td>
                     <td style={{ padding: '6px', border: '1px solid #ddd', textAlign: 'center' }}>
                       {formatBound(calc.lower)} &ndash; {formatBound(calc.upper)}

@@ -621,7 +621,9 @@ const Week12 = () => {
       0,
       Math.max(0, taxCells.C18 - taxCells.C16) - taxCells.C24 - taxCells.C25
     );
-    taxCells.C27 = taxCells.C25 * 0.15 + taxCells.C26 * 0.2;
+    taxCells.C27 =
+      taxCells.C25 * assumptions.federalLtcgBrackets[1].rate +
+      taxCells.C26 * assumptions.federalLtcgBrackets[2].rate;
     taxCells.C28 = Math.max(0, taxCells.C17 + taxCells.C18 - taxCells.C19);
     taxCells.C29 = calculateProgressiveTax(
       taxCells.C28,

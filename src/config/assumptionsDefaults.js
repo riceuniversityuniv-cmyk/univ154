@@ -135,11 +135,11 @@ export const ASSUMPTIONS_DEFAULTS = {
     "AR": [
       {
         "lower": 0,
-        "upper": 4500,
+        "upper": 4600,
         "rate": 0.02
       },
       {
-        "lower": 4500,
+        "lower": 4600,
         "upper": 1000000000000,
         "rate": 0.039
       }
@@ -147,46 +147,46 @@ export const ASSUMPTIONS_DEFAULTS = {
     "CA": [
       {
         "lower": 0,
-        "upper": 10756,
+        "upper": 11079,
         "rate": 0.01
       },
       {
-        "lower": 10756,
-        "upper": 25499,
+        "lower": 11079,
+        "upper": 26264,
         "rate": 0.02
       },
       {
-        "lower": 25499,
-        "upper": 40245,
+        "lower": 26264,
+        "upper": 41452,
         "rate": 0.04
       },
       {
-        "lower": 40245,
-        "upper": 55866,
+        "lower": 41452,
+        "upper": 57542,
         "rate": 0.06
       },
       {
-        "lower": 55866,
-        "upper": 70606,
+        "lower": 57542,
+        "upper": 72724,
         "rate": 0.08
       },
       {
-        "lower": 70606,
-        "upper": 360659,
+        "lower": 72724,
+        "upper": 371479,
         "rate": 0.093
       },
       {
-        "lower": 360659,
-        "upper": 432787,
+        "lower": 371479,
+        "upper": 445771,
         "rate": 0.103
       },
       {
-        "lower": 432787,
-        "upper": 721314,
+        "lower": 445771,
+        "upper": 742953,
         "rate": 0.113
       },
       {
-        "lower": 721314,
+        "lower": 742953,
         "upper": 1000000,
         "rate": 0.123
       },
@@ -283,7 +283,7 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 1000000000000,
-        "rate": 0.0539
+        "rate": 0.0499
       }
     ],
     "HI": [
@@ -350,9 +350,9 @@ export const ASSUMPTIONS_DEFAULTS = {
     ],
     "ID": [
       {
-        "lower": 4673,
+        "lower": 4811,
         "upper": 1000000000000,
-        "rate": 0.05695
+        "rate": 0.053
       }
     ],
     "IL": [
@@ -366,7 +366,7 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 1000000000000,
-        "rate": 0.03
+        "rate": 0.0295
       }
     ],
     "IA": [
@@ -392,7 +392,7 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 1000000000000,
-        "rate": 0.04
+        "rate": 0.035
       }
     ],
     "LA": [
@@ -405,16 +405,16 @@ export const ASSUMPTIONS_DEFAULTS = {
     "ME": [
       {
         "lower": 0,
-        "upper": 26800,
+        "upper": 27399,
         "rate": 0.058
       },
       {
-        "lower": 26800,
-        "upper": 63450,
+        "lower": 27399,
+        "upper": 64849,
         "rate": 0.0675
       },
       {
-        "lower": 63450,
+        "lower": 64849,
         "upper": 1000000000000,
         "rate": 0.0715
       }
@@ -457,8 +457,18 @@ export const ASSUMPTIONS_DEFAULTS = {
       },
       {
         "lower": 250000,
-        "upper": 1000000000000,
+        "upper": 500000,
         "rate": 0.0575
+      },
+      {
+        "lower": 500000,
+        "upper": 1000000,
+        "rate": 0.0625
+      },
+      {
+        "lower": 1000000,
+        "upper": 1000000000000,
+        "rate": 0.065
       }
     ],
     "MA": [
@@ -483,21 +493,21 @@ export const ASSUMPTIONS_DEFAULTS = {
     "MN": [
       {
         "lower": 0,
-        "upper": 32570,
+        "upper": 33310,
         "rate": 0.0535
       },
       {
-        "lower": 32570,
-        "upper": 106990,
+        "lower": 33310,
+        "upper": 109430,
         "rate": 0.068
       },
       {
-        "lower": 106990,
-        "upper": 198630,
+        "lower": 109430,
+        "upper": 203150,
         "rate": 0.0785
       },
       {
-        "lower": 198630,
+        "lower": 203150,
         "upper": 1000000000000,
         "rate": 0.0985
       }
@@ -506,42 +516,42 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 10000,
         "upper": 1000000000000,
-        "rate": 0.044
+        "rate": 0.04
       }
     ],
     "MO": [
       {
-        "lower": 1313,
-        "upper": 2626,
+        "lower": 1348,
+        "upper": 2696,
         "rate": 0.02
       },
       {
-        "lower": 2626,
-        "upper": 3939,
+        "lower": 2696,
+        "upper": 4044,
         "rate": 0.025
       },
       {
-        "lower": 3939,
-        "upper": 5252,
+        "lower": 4044,
+        "upper": 5392,
         "rate": 0.03
       },
       {
-        "lower": 5252,
-        "upper": 6565,
+        "lower": 5392,
+        "upper": 6740,
         "rate": 0.035
       },
       {
-        "lower": 6565,
-        "upper": 7878,
+        "lower": 6740,
+        "upper": 8088,
         "rate": 0.04
       },
       {
-        "lower": 7878,
-        "upper": 9191,
+        "lower": 8088,
+        "upper": 9436,
         "rate": 0.045
       },
       {
-        "lower": 9191,
+        "lower": 9436,
         "upper": 1000000000000,
         "rate": 0.047
       }
@@ -549,35 +559,30 @@ export const ASSUMPTIONS_DEFAULTS = {
     "MT": [
       {
         "lower": 0,
-        "upper": 21100,
+        "upper": 47500,
         "rate": 0.047
       },
       {
-        "lower": 21100,
+        "lower": 47500,
         "upper": 1000000000000,
-        "rate": 0.059
+        "rate": 0.0565
       }
     ],
     "NE": [
       {
         "lower": 0,
-        "upper": 4030,
+        "upper": 4130,
         "rate": 0.0246
       },
       {
-        "lower": 4030,
-        "upper": 24120,
+        "lower": 4130,
+        "upper": 24760,
         "rate": 0.0351
       },
       {
-        "lower": 24120,
-        "upper": 38870,
-        "rate": 0.0501
-      },
-      {
-        "lower": 38870,
+        "lower": 24760,
         "upper": 1000000000000,
-        "rate": 0.052
+        "rate": 0.0455
       }
     ],
     "NV": [
@@ -667,27 +672,27 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 8500,
-        "rate": 0.04
+        "rate": 0.039
       },
       {
         "lower": 8500,
         "upper": 11700,
-        "rate": 0.045
+        "rate": 0.044
       },
       {
         "lower": 11700,
         "upper": 13900,
-        "rate": 0.0525
+        "rate": 0.0515
       },
       {
         "lower": 13900,
         "upper": 80650,
-        "rate": 0.055
+        "rate": 0.054
       },
       {
         "lower": 80650,
         "upper": 215400,
-        "rate": 0.06
+        "rate": 0.059
       },
       {
         "lower": 215400,
@@ -714,7 +719,7 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 1000000000000,
-        "rate": 0.0425
+        "rate": 0.0399
       }
     ],
     "ND": [
@@ -732,60 +737,40 @@ export const ASSUMPTIONS_DEFAULTS = {
     "OH": [
       {
         "lower": 26050,
-        "upper": 100000,
-        "rate": 0.0275
-      },
-      {
-        "lower": 100000,
         "upper": 1000000000000,
-        "rate": 0.035
+        "rate": 0.0275
       }
     ],
     "OK": [
       {
-        "lower": 0,
-        "upper": 1000,
-        "rate": 0.0025
-      },
-      {
-        "lower": 1000,
-        "upper": 2500,
-        "rate": 0.0075
-      },
-      {
-        "lower": 2500,
-        "upper": 3750,
-        "rate": 0.0175
-      },
-      {
         "lower": 3750,
         "upper": 4900,
-        "rate": 0.0275
+        "rate": 0.025
       },
       {
         "lower": 4900,
         "upper": 7200,
-        "rate": 0.0375
+        "rate": 0.035
       },
       {
         "lower": 7200,
         "upper": 1000000000000,
-        "rate": 0.0475
+        "rate": 0.045
       }
     ],
     "OR": [
       {
         "lower": 0,
-        "upper": 4400,
+        "upper": 4550,
         "rate": 0.0475
       },
       {
-        "lower": 4400,
-        "upper": 11050,
+        "lower": 4550,
+        "upper": 11400,
         "rate": 0.0675
       },
       {
-        "lower": 11050,
+        "lower": 11400,
         "upper": 125000,
         "rate": 0.0875
       },
@@ -805,16 +790,16 @@ export const ASSUMPTIONS_DEFAULTS = {
     "RI": [
       {
         "lower": 0,
-        "upper": 79900,
+        "upper": 82050,
         "rate": 0.0375
       },
       {
-        "lower": 79900,
-        "upper": 181650,
+        "lower": 82050,
+        "upper": 186450,
         "rate": 0.0475
       },
       {
-        "lower": 181650,
+        "lower": 186450,
         "upper": 1000000000000,
         "rate": 0.0599
       }
@@ -822,18 +807,13 @@ export const ASSUMPTIONS_DEFAULTS = {
     "SC": [
       {
         "lower": 0,
-        "upper": 3560,
-        "rate": 0
+        "upper": 30000,
+        "rate": 0.0199
       },
       {
-        "lower": 3560,
-        "upper": 17830,
-        "rate": 0.03
-      },
-      {
-        "lower": 17830,
+        "lower": 30000,
         "upper": 1000000000000,
-        "rate": 0.062
+        "rate": 0.0521
       }
     ],
     "SD": [
@@ -861,27 +841,27 @@ export const ASSUMPTIONS_DEFAULTS = {
       {
         "lower": 0,
         "upper": 1000000000000,
-        "rate": 0.0455
+        "rate": 0.0445
       }
     ],
     "VT": [
       {
         "lower": 0,
-        "upper": 47900,
+        "upper": 49400,
         "rate": 0.0335
       },
       {
-        "lower": 47900,
-        "upper": 116000,
+        "lower": 49400,
+        "upper": 119700,
         "rate": 0.066
       },
       {
-        "lower": 116000,
-        "upper": 242000,
+        "lower": 119700,
+        "upper": 249700,
         "rate": 0.076
       },
       {
-        "lower": 242000,
+        "lower": 249700,
         "upper": 1000000000000,
         "rate": 0.0875
       }
@@ -945,21 +925,21 @@ export const ASSUMPTIONS_DEFAULTS = {
     "WI": [
       {
         "lower": 0,
-        "upper": 14680,
+        "upper": 15110,
         "rate": 0.035
       },
       {
-        "lower": 14680,
-        "upper": 29370,
+        "lower": 15110,
+        "upper": 51950,
         "rate": 0.044
       },
       {
-        "lower": 29370,
-        "upper": 323290,
+        "lower": 51950,
+        "upper": 332720,
         "rate": 0.053
       },
       {
-        "lower": 323290,
+        "lower": 332720,
         "upper": 1000000000000,
         "rate": 0.0765
       }

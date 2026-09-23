@@ -2700,10 +2700,10 @@ export default function Week6Retirement() {
               </thead>
               <tbody>
                 {[
-                  { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: '$23,500', withdrawalTax: 'Taxed at withdrawal', match: 'Available' },
-                  { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: '$23,500', withdrawalTax: 'Tax-free at withdrawal', match: 'Common (into pre-tax 401(k))' },
-                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', withdrawalTax: 'Taxed at withdrawal', match: 'None' },
-                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: '$7,000 (under 50, under $150k income)', withdrawalTax: 'Tax-free at withdrawal', match: 'None' },
+                  { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 }), withdrawalTax: 'Taxed at withdrawal', match: 'Available' },
+                  { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 }), withdrawalTax: 'Tax-free at withdrawal', match: 'Common (into pre-tax 401(k))' },
+                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} (under 50, under $150k income)`, withdrawalTax: 'Taxed at withdrawal', match: 'None' },
+                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} (under 50, under $150k income)`, withdrawalTax: 'Tax-free at withdrawal', match: 'None' },
                 ].map((row) => (
                   <tr key={row.name}>
                     <td style={{ ...styles.td, textAlign: 'left', fontWeight: '600' }}>{row.name}</td>
@@ -3174,7 +3174,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Pre-tax. Employer-sponsored. $23,500 limit. No taxes now, taxed at withdrawal. Employer match available.
+              Pre-tax. Employer-sponsored. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. No taxes now, taxed at withdrawal. Employer match available.
               </div>
 
             {/* Key Parameters */}
@@ -4913,7 +4913,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Post-tax. Employer-sponsored. $23,500 limit. Pay taxes now, withdraw tax-free. Employer match common; goes into pre-tax 401(k).
+              Post-tax. Employer-sponsored. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. Pay taxes now, withdraw tax-free. Employer match common; goes into pre-tax 401(k).
               </div>
 
             {/* Key Parameters */}
@@ -6536,7 +6536,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Pre-tax. Individual account. $7,000 limit under 50 y/o & under $150,000 income. Lowers taxes now, taxed at withdrawal. No employer match.
+              Pre-tax. Individual account. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit under 50 y/o & under $150,000 income. Lowers taxes now, taxed at withdrawal. No employer match.
               </div>
 
             {/* Key Parameters */}
@@ -8143,7 +8143,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Post-tax. Individual account. $7,000 limit under 50 yo & under $150,000 income. Tax-free growth and withdrawals. No employer match.
+              Post-tax. Individual account. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit under 50 yo & under $150,000 income. Tax-free growth and withdrawals. No employer match.
               </div>
 
             {/* Key Parameters */}

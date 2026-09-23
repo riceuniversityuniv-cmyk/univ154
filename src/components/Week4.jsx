@@ -463,7 +463,7 @@ const Week4 = () => {
                         });
                       }}
                     >
-                      <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
+                      <td style={styles.tableCell}>{formatPercent(bracket.rate, { decimals: 2 })}</td>
                       <td style={styles.tableCell}>{formatCurrency(bracket.lower, { decimals: 0 })}</td>
                       <td style={styles.tableCell}>
                         {bracket.upper >= 1e12 ? '...' : `${formatCurrency(bracket.upper, { decimals: 0 })}`}
@@ -509,7 +509,7 @@ const Week4 = () => {
                         });
                       }}
                     >
-                      <td style={styles.tableCell}>{formatPercent(bracket.rate)}</td>
+                      <td style={styles.tableCell}>{formatPercent(bracket.rate, { decimals: 2 })}</td>
                       <td style={styles.tableCell}>{formatCurrency(bracket.lower, { decimals: 0 })}</td>
                       <td style={styles.tableCell}>
                         {bracket.upper >= 1e12 ? '…' : `${formatCurrency(bracket.upper, { decimals: 0 })}`}
