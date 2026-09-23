@@ -2531,3 +2531,6 @@ left as-is, not decommissioned).
   static files, so switching hosts changes nothing about student data or
   security (that's governed by Supabase RLS policies, not by which CDN
   serves `index.html`).
+
+### 2026-09-23 — FICA audit: Social Security wage base was stale (2025 value)
+User: "something is slightly off with the calculations for medicare and social security." Audited `taxEngine.js`'s `calculateFICA` and every consumer (Week1FederalTax, BudgetContext, Week12's inline copy). Logic is correct (SS = min(wages, base) x 6.2%; Medicare 1.45% uncapped; Additional Medicare 0.9% over $200k single, unindexed). Only defect: `ss_wage_base` was 176,100 (2025) while every other scalar (std deduction 16,100, 401k 24,500, IRA 7,500, brackets) is 2026; 2026 base is 184,500. Only affects incomes above $176,100 (e.g. $200k: SS was $10,918 vs correct $11,439). Updated `assumptionsDefaults.js`, `week12FormulaSpec.md`, added migration `20260923000000_update_ss_wage_base_2026.sql`. Live DB still needs the value changed (admin Assumptions tab, or run the migration). Deliberate simplification left alone: FICA runs on full gross, though real-world pre-tax health premiums (Sec. 125) would reduce FICA wages; 401k/IRA would not.

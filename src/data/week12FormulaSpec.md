@@ -24,7 +24,7 @@ This section maps values to workbook-style addresses so formulas like
 | Default 401(k) employee limit in 2026 | $24,500 | `C4` |
 | Default IRA limit in 2026 | $7,500 | `C5` |
 | Social Security tax rate (employee) | 6.20% | `C6` |
-| Social Security wage base (2026) | $176,100 | `C7` |
+| Social Security wage base (2026) | $184,500 | `C7` |
 | Medicare tax rate (employee) | 1.45% | `C8` |
 | Additional Medicare rate | 0.90% | `C9` |
 | Additional Medicare threshold (single) | $200,000 | `C10` |

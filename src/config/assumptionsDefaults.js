@@ -12,7 +12,7 @@
 export const ASSUMPTIONS_DEFAULTS = {
   "scalars": {
     "ss_rate": 0.062,
-    "ss_wage_base": 176100,
+    "ss_wage_base": 184500,
     "medicare_rate": 0.0145,
     "addl_medicare_rate": 0.009,
     "addl_medicare_threshold": 200000,
