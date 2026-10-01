@@ -1,8 +1,32 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { createPortal } from 'react-dom';
 import { useBudget } from '../contexts/BudgetContext';
 import { useAssumptions } from '../contexts/AssumptionsContext';
-import { formatCurrency, formatPercent } from '../utils/formatters';
+import { formatCurrency } from '../utils/formatters';
+import { simulateRetirementAccount, discountToToday, PROJECTION_END_AGE } from '../utils/retirementProjection';
 import { tableHeaderStyle } from '../styles/tableHeaderStyle';
+
+// Round a chart's max up to a "nice" number so the top tick lands exactly on
+// the plot's top edge (<= 5 intervals), and list the ticks for it.
+const NICE_STEPS = [1, 2, 2.5, 5, 10];
+const niceAxisStep = (max) => {
+  const magnitude = Math.pow(10, Math.floor(Math.log10(max)) - 1);
+  return NICE_STEPS.map(m => m * magnitude).find(step => max / step <= 5) || magnitude * 10;
+};
+const niceAxisMax = (max) => {
+  if (!(max > 0)) return 1;
+  const step = niceAxisStep(max);
+  return Math.ceil(max / step - 1e-9) * step;
+};
+const niceAxisTicks = (top) => {
+  if (!(top > 0)) return [0];
+  const step = niceAxisStep(top);
+  const ticks = [];
+  for (let v = 0; v <= top + step / 1000; v += step) ticks.push(v);
+  return ticks;
+};
+
+const RMD_DEFINITION = 'Required Minimum Distribution: the minimum amount the IRS forces you to withdraw each year from a traditional 401(k) or IRA once you reach this age (Roth IRAs are exempt).';
 
 // Modern inline styles matching Week 2 and Week 3 design
 const styles = {
@@ -197,50 +221,31 @@ const styles = {
   },
 };
 
-function simulate401k({
-  startAge,
-  endAge,
-  annualPayment,
-  returnRate,
-  employerMatch,
-  maxContribution,
-}) {
-  const ages = [];
-  const years = [];
-  const annualContributions = [];
-  const employerMatches = [];
-  const totalContributions = [];
-  const balances = [];
-  let balance = 0;
-  let year = 0; // Start from 0 to match Excel
-  for (let age = startAge; age <= endAge; age++, year++) {
-    ages.push(age);
-    years.push(year);
-    // Annual contribution logic (capped by maxContribution)
-    let contribution = Math.min(annualPayment, maxContribution);
-    annualContributions.push(contribution);
-    // Employer match
-    let match = contribution * (employerMatch / 100);
-    employerMatches.push(match);
-    // Total contribution
-    let total = contribution + match;
-    totalContributions.push(total);
-    // Account balance (future value)
-    balance = balance * (1 + returnRate / 100) + total;
-    balances.push(balance);
-  }
-  return { ages, years, annualContributions, employerMatches, totalContributions, balances };
-}
-
-// Helper to get last valid value in array (like Excel INDEX(..., MATCH(1E+99, ...)))
-function getLastValid(arr) {
-  for (let i = arr.length - 1; i >= 0; i--) {
-    if (arr[i] != null && !isNaN(arr[i])) { // allow 0 as valid
-      return arr[i];
-    }
-  }
-  return 0;
-}
+// Hover-definition bubble. Owns its own state so moving the mouse over a term
+// re-renders only this tiny component -- not the whole (very heavy) Week 6
+// page, whose withdrawal tabs re-run the projection engine on every render.
+// Portaled to <body> so no blurred/transformed ancestor can misplace it.
+const TermTipHost = forwardRef(function TermTipHost(_props, ref) {
+  const [tip, setTip] = useState(null);
+  useImperativeHandle(ref, () => ({
+    show: (text, e) => setTip({ text, x: e.clientX, y: e.clientY }),
+    hide: () => setTip(null),
+  }), []);
+  if (!tip) return null;
+  return createPortal(
+    <div style={{
+      ...styles.deferralTooltip,
+      left: `${Math.min(Math.max(tip.x, 150), window.innerWidth - 150)}px`,
+      top: `${tip.y - 16}px`,
+      transform: 'translate(-50%, -100%)',
+      width: 'max-content',
+      maxWidth: '300px',
+    }}>
+      <div style={{ lineHeight: '1.45', fontSize: '13px' }}>{tip.text}</div>
+    </div>,
+    document.body
+  );
+});
 
 export default function Week6Retirement() {
   const { topInputs, retirementInputs, setRetirementInputs, userPreTaxInputs, financialCalculations, summaryCalculations, saveBudgetData, loadBudgetData } = useBudget() || {};
@@ -260,29 +265,22 @@ export default function Week6Retirement() {
   // Monthly Deferral Calculator title.
   const [showDeferralTooltip, setShowDeferralTooltip] = useState(false);
   const [deferralTooltipPosition, setDeferralTooltipPosition] = useState({ x: 0, y: 0 });
+  // Generic hover definition for other terms (e.g. RMD) -- same look as the
+  // Deferral tooltip above. null = hidden.
+  const termTipRef = useRef(null);
+  // RMD start age always comes from the Assumptions table (never from saved data).
+  const rmdStartAge = assumptions.scalars.rmd_start_age;
 
-  // Shared input state
-  const [startAge, setStartAge] = useState(20);
-  const [endAge, setEndAge] = useState(70);
-  // Remove maxContribution state, make it computed
-
-  // Series A
-  const [annualPaymentA, setAnnualPaymentA] = useState(4638);
-  const [returnRateA, setReturnRateA] = useState(7);
-  const [employerMatchA, setEmployerMatchA] = useState(3);
-  const [withdrawalRateA, setWithdrawalRateA] = useState(6);
-
-  // Series B
-  const [annualPaymentB, setAnnualPaymentB] = useState(10000);
-  const [returnRateB, setReturnRateB] = useState(7);
-  const [employerMatchB, setEmployerMatchB] = useState(3);
-  const [withdrawalRateB, setWithdrawalRateB] = useState(6);
-
-  // Series C
-  const [annualPaymentC, setAnnualPaymentC] = useState(15353);
-  const [returnRateC, setReturnRateC] = useState(7);
-  const [employerMatchC, setEmployerMatchC] = useState(3);
-  const [withdrawalRateC, setWithdrawalRateC] = useState(6);
+  const renderTermHint = (label, text) => (
+    <span
+      style={{ textDecoration: 'underline dotted', textUnderlineOffset: '3px', cursor: 'help' }}
+      onMouseEnter={(e) => termTipRef.current?.show(text, e)}
+      onMouseMove={(e) => termTipRef.current?.show(text, e)}
+      onMouseLeave={() => termTipRef.current?.hide()}
+    >
+      {label}
+    </span>
+  );
 
   // New Retirement Budgeting state with default values
   const [retirementBudgetedAmounts, setRetirementBudgetedAmounts] = useState({
@@ -371,22 +369,25 @@ export default function Week6Retirement() {
     rothIRAWithdrawalRateA: 4,
     rothIRAWithdrawalRateB: 4,
     rothIRAWithdrawalRateC: 4,
-    traditional401kAgeA: 60, // Traditional 401k Scenario A age
-    traditional401kAgeB: 60, // Traditional 401k Scenario B age
-    traditional401kAgeC: 60, // Traditional 401k Scenario C age
-    roth401kAgeA: 60, // Roth 401k Scenario A age
-    roth401kAgeB: 60, // Roth 401k Scenario B age
-    roth401kAgeC: 60, // Roth 401k Scenario C age
-    startingDistributionAgeA: 60, // Traditional IRA Scenario A age
-    traditionalIRAAgeB: 60, // Traditional IRA Scenario B age
-    traditionalIRAAgeC: 60, // Traditional IRA Scenario C age
-    rothIRAAgeA: 60, // Roth IRA Scenario A age
-    rothIRAAgeB: 60, // Roth IRA Scenario B age
-    rothIRAAgeC: 60, // Roth IRA Scenario C age
+    traditional401kAgeA: 65,
+    traditional401kAgeB: 65,
+    traditional401kAgeC: 65,
+    roth401kAgeA: 65,
+    roth401kAgeB: 65,
+    roth401kAgeC: 65,
+    traditionalIRAAgeA: 65, // Traditional IRA Scenario A age
+    traditionalIRAAgeB: 65,
+    traditionalIRAAgeC: 65,
+    rothIRAAgeA: 65,
+    rothIRAAgeB: 65,
+    rothIRAAgeC: 65,
     // Sourced from the Assumptions table (was hardcoded to 75 here, which
     // disagreed with the `|| 73` fallback used elsewhere in this file --
     // see docs/financial-audit-2026-08-11.md).
-    rmdAge: assumptions.scalars.rmd_start_age
+    // Optional flat retirement tax-rate override (%); '' = auto from withdrawal
+    traditional401kTaxRateA: '', traditional401kTaxRateB: '', traditional401kTaxRateC: '',
+    traditionalIRATaxRateA: '', traditionalIRATaxRateB: '', traditionalIRATaxRateC: '',
+    roth401kTaxRateA: '', roth401kTaxRateB: '', roth401kTaxRateC: ''
   });
 
   // State for validation errors in retirement planning inputs
@@ -411,10 +412,33 @@ export default function Week6Retirement() {
     };
   };
 
+  // Distributions can't start before contributions stop, and Traditional
+  // accounts can't defer past the RMD start age. Returns only the withdrawal-age
+  // keys that need to change (older saves / a raised Retirement Age can leave
+  // them below the retirement age).
+  const WITHDRAWAL_AGE_KEYS = [
+    'traditional401kAgeA', 'traditional401kAgeB', 'traditional401kAgeC',
+    'roth401kAgeA', 'roth401kAgeB', 'roth401kAgeC',
+    'traditionalIRAAgeA', 'traditionalIRAAgeB', 'traditionalIRAAgeC',
+    'rothIRAAgeA', 'rothIRAAgeB', 'rothIRAAgeC',
+  ];
+  const alignWithdrawalAges = (inputs) => {
+    const retirementAge = parseInt(inputs.retirementAge, 10) || 65;
+    const changes = {};
+    WITHDRAWAL_AGE_KEYS.forEach((key) => {
+      const current = parseInt(inputs[key], 10);
+      const max = key.startsWith('traditional') ? Math.max(rmdStartAge, retirementAge) : 100;
+      const next = Number.isFinite(current) ? Math.min(Math.max(current, retirementAge), max) : retirementAge;
+      if (next !== current) changes[key] = next;
+    });
+    return changes;
+  };
+
   // Auto-save function (without alert)
   const autoSaveWeek6 = () => {
     try {
       const week6Data = {
+        version: 2,
         retirementPlanningInputs,
         monthlyPayments,
         timestamp: new Date().toISOString()
@@ -436,10 +460,14 @@ export default function Week6Retirement() {
         
         // Load retirement planning inputs
         if (week6Data.retirementPlanningInputs) {
-          setRetirementPlanningInputs(prev => sanitizeRetirementPlanningInputs({
-            ...prev,
-            ...week6Data.retirementPlanningInputs
-          }));
+          // Drop legacy/derived keys (rmdAge now always comes from the
+          // Assumptions table; startingDistributionAgeA was a mis-named key).
+          // eslint-disable-next-line no-unused-vars
+          const { rmdAge, startingDistributionAgeA, ...savedInputs } = week6Data.retirementPlanningInputs;
+          setRetirementPlanningInputs(prev => {
+            const merged = sanitizeRetirementPlanningInputs({ ...prev, ...savedInputs });
+            return { ...merged, ...alignWithdrawalAges(merged) };
+          });
         }
         
         // Load monthly payments
@@ -475,28 +503,9 @@ export default function Week6Retirement() {
     return () => clearTimeout(saveTimer);
   }, [retirementPlanningInputs, monthlyPayments]);
 
-  // Force re-calculation of withdrawal data when retirement planning inputs or monthly payments change
-  useEffect(() => {
-    // This effect will trigger re-renders when retirementPlanningInputs or monthlyPayments change
-    // The withdrawal calculation functions will be called again with new values
-  }, [retirementPlanningInputs, monthlyPayments]);
-
-  // Calculate maxContribution using the effective take-home rate from Week 1
   const preTaxIncome = Number(topInputs?.preTaxIncome) || 1;
-  console.log('preTaxIncome (Week 6):', preTaxIncome);
-  
-  // Get both after-tax incomes from summaryCalculations
   const suggestedAfterTaxIncome = summaryCalculations?.suggestedAfterTaxIncome || 0;
   const userAfterTaxIncome = summaryCalculations?.userAfterTaxIncome || 0;
-  console.log('suggestedAfterTaxIncome (Week 6):', suggestedAfterTaxIncome);
-  console.log('userAfterTaxIncome (Week 6):', userAfterTaxIncome);
-  
-  const effectiveTakeHomeRate = userAfterTaxIncome / preTaxIncome;
-  // Was hardcoded to 23500 (the old 2025 401k limit) -- now sourced from
-  // the Assumptions table (24500), same source BudgetForm.jsx/Week12.jsx
-  // use, closing the three-way disagreement documented in
-  // docs/financial-audit-2026-08-11.md finding #14.
-  const maxContribution = assumptions.scalars.limit_401k * (effectiveTakeHomeRate);
 
   // Calculate monthly incomes
   const monthlyPreTaxIncome = preTaxIncome / 12;
@@ -550,1022 +559,55 @@ export default function Week6Retirement() {
     }
   };
 
-  // Traditional 401k Series A Calculations
-  const calculateTraditional401kSeriesA = () => {
-    const monthlyPayment = monthlyPayments.traditional_401k_a || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditional401kAgeA) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditional401kWithdrawalRateA || 4) / 100;
-
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
+  // ---- Projection engine wiring -------------------------------------------
+  // All 12 account/scenario projections share one engine
+  // (utils/retirementProjection.js). See docs/univ154-migration.md
+  // 2026-09-30 entry for the rules (bridge years, RMDs, tax, CPI discount).
+  const RETIREMENT_ACCOUNTS = {
+    traditional401k: { pay: 'traditional_401k', ageKey: 'traditional401kAge', rateKey: 'traditional401kWithdrawalRate', taxKey: 'traditional401kTaxRate', match: true, traditional: true, accountType: 'traditional' },
+    roth401k: { pay: 'roth_401k', ageKey: 'roth401kAge', rateKey: 'roth401kWithdrawalRate', taxKey: 'roth401kTaxRate', match: true, traditional: false, accountType: 'roth401k' },
+    traditionalIRA: { pay: 'traditional_ira', ageKey: 'traditionalIRAAge', rateKey: 'traditionalIRAWithdrawalRate', taxKey: 'traditionalIRATaxRate', match: false, traditional: true, accountType: 'traditional' },
+    rothIRA: { pay: 'roth_ira', ageKey: 'rothIRAAge', rateKey: 'rothIRAWithdrawalRate', taxKey: null, match: false, traditional: false, accountType: 'roth' },
   };
 
-  // Present Value calculation using Excel PV formula
-  const calculatePresentValue = (futureValue, yearsFromNow, discountRate = 0.035) => {
-    // Excel formula: =ABS(PV(0.035, nper, 0, fv))
-    // PV = FV / (1 + rate)^nper
-    const presentValue = futureValue / Math.pow(1 + discountRate, yearsFromNow);
-    return Math.abs(presentValue);
+  const simulateAccount = (account, series) => {
+    const cfg = RETIREMENT_ACCOUNTS[account];
+    const inputs = retirementPlanningInputs;
+    const retirementAge = inputs.retirementAge || 65;
+    const taxOverride = cfg.taxKey ? inputs[cfg.taxKey + series] : null;
+    return simulateRetirementAccount({
+      monthlyPayment: parseFloat(monthlyPayments[`${cfg.pay}_${series.toLowerCase()}`]) || 0,
+      employerMatchRate: cfg.match ? (inputs.employerMatch401k || 0) / 100 : 0,
+      returnRate: (Number.isFinite(parseFloat(inputs.annualReturnRate)) ? parseFloat(inputs.annualReturnRate) : 7) / 100,
+      contributionStartAge: inputs.contributionStartAge || 22,
+      retirementAge,
+      withdrawalStartAge: parseInt(inputs[cfg.ageKey + series], 10) || retirementAge,
+      withdrawalRate: (parseFloat(inputs[cfg.rateKey + series]) || 0) / 100,
+      accountType: cfg.accountType,
+      taxRateOverride: taxOverride === '' || taxOverride == null ? null : parseFloat(taxOverride) / 100,
+      assumptions,
+      state: topInputs?.location,
+      residenceInNYC: topInputs?.location === 'NY' && topInputs?.residenceInNYC === 'Yes',
+    });
   };
 
-  // Traditional 401k Series B Calculations
-  const calculateTraditional401kSeriesB = () => {
-    const monthlyPayment = monthlyPayments.traditional_401k_b || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditional401kAgeB) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditional401kWithdrawalRateB || 4) / 100;
+  const calculateTraditional401kSeriesA = () => simulateAccount('traditional401k', 'A');
+  const calculateTraditional401kSeriesB = () => simulateAccount('traditional401k', 'B');
+  const calculateTraditional401kSeriesC = () => simulateAccount('traditional401k', 'C');
+  const calculateRoth401kSeriesA = () => simulateAccount('roth401k', 'A');
+  const calculateRoth401kSeriesB = () => simulateAccount('roth401k', 'B');
+  const calculateRoth401kSeriesC = () => simulateAccount('roth401k', 'C');
+  const calculateTraditionalIRASeriesA = () => simulateAccount('traditionalIRA', 'A');
+  const calculateTraditionalIRASeriesB = () => simulateAccount('traditionalIRA', 'B');
+  const calculateTraditionalIRASeriesC = () => simulateAccount('traditionalIRA', 'C');
+  const calculateRothIRASeriesA = () => simulateAccount('rothIRA', 'A');
+  const calculateRothIRASeriesB = () => simulateAccount('rothIRA', 'B');
+  const calculateRothIRASeriesC = () => simulateAccount('rothIRA', 'C');
 
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
-  };
-
-  // Traditional 401k Series C Calculations
-  const calculateTraditional401kSeriesC = () => {
-    const monthlyPayment = monthlyPayments.traditional_401k_c || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditional401kAgeC) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditional401kWithdrawalRateC || 4) / 100;
-
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
-  };
-
-  // Roth 401k Series A Calculations
-  const calculateRoth401kSeriesA = () => {
-    const monthlyPayment = monthlyPayments.roth_401k_a || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.roth401kAgeA) || 60;
-    const withdrawalRate = (retirementPlanningInputs.roth401kWithdrawalRateA || 4) / 100;
-
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
-  };
-
-  // Roth 401k Series B Calculations
-  const calculateRoth401kSeriesB = () => {
-    const monthlyPayment = monthlyPayments.roth_401k_b || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.roth401kAgeB) || 60;
-    const withdrawalRate = (retirementPlanningInputs.roth401kWithdrawalRateB || 4) / 100;
-
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
-  };
-
-  // Roth 401k Series C Calculations
-  const calculateRoth401kSeriesC = () => {
-    const monthlyPayment = monthlyPayments.roth_401k_c || 0;
-    const annualContribution = monthlyPayment * 12;
-    const employerMatchRate = (retirementPlanningInputs.employerMatch401k || 0) / 100;
-    const employerMatch = annualContribution * employerMatchRate;
-    const totalAnnualContribution = annualContribution + employerMatch;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.roth401kAgeC) || 60;
-    const withdrawalRate = (retirementPlanningInputs.roth401kWithdrawalRateC || 4) / 100;
-
-    // Accumulation phase (ages 22-65)
-    const accumulationData = [];
-    let accountBalance = 0;
-    
-    for (let age = startAge; age <= endAge; age++) {
-      const year = age - startAge;
-      if (year === 0) {
-        accountBalance = totalAnnualContribution;
-      } else {
-        accountBalance = accountBalance * (1 + returnRate) + totalAnnualContribution;
-      }
-      
-      accumulationData.push({
-        age,
-        year,
-        annualContribution,
-        employerMatch,
-        totalContribution: totalAnnualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    // Withdrawal phase (ages 60+)
-    const withdrawalData = [];
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        accountBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-
-    return {
-      accumulationData,
-      withdrawalData,
-      finalBalance: accumulationData[accumulationData.length - 1]?.accountBalance || 0
-    };
-  };
-
-  // Traditional IRA Series A Calculations
-  const calculateTraditionalIRASeriesA = () => {
-    const monthlyPayment = monthlyPayments.traditional_ira_a || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditionalIRAAgeA) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditionalIRAWithdrawalRateA || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
-
-  // Traditional IRA Series B Calculations
-  const calculateTraditionalIRASeriesB = () => {
-    const monthlyPayment = monthlyPayments.traditional_ira_b || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditionalIRAAgeB) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditionalIRAWithdrawalRateB || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
-
-  // Traditional IRA Series C Calculations
-  const calculateTraditionalIRASeriesC = () => {
-    const monthlyPayment = monthlyPayments.traditional_ira_c || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.traditionalIRAAgeC) || 60;
-    const withdrawalRate = (retirementPlanningInputs.traditionalIRAWithdrawalRateC || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
-
-  // Roth IRA Series A Calculations
-  const calculateRothIRASeriesA = () => {
-    const monthlyPayment = monthlyPayments.roth_ira_a || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.rothIRAAgeA) || 60;
-    const withdrawalRate = (retirementPlanningInputs.rothIRAWithdrawalRateA || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
-
-  // Roth IRA Series B Calculations
-  const calculateRothIRASeriesB = () => {
-    const monthlyPayment = monthlyPayments.roth_ira_b || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.rothIRAAgeB) || 60;
-    const withdrawalRate = (retirementPlanningInputs.rothIRAWithdrawalRateB || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
-
-  // Roth IRA Series C Calculations
-  const calculateRothIRASeriesC = () => {
-    const monthlyPayment = monthlyPayments.roth_ira_c || 0;
-    const annualContribution = monthlyPayment * 12;
-    const returnRate = (retirementPlanningInputs.annualReturnRate || 7) / 100;
-    const startAge = retirementPlanningInputs.contributionStartAge || 22;
-    const endAge = retirementPlanningInputs.retirementAge || 65;
-    const yearsToRetirement = endAge - startAge;
-
-      // Accumulation Phase
-      const accumulationData = [];
-      let accountBalance = 0;
-      
-      for (let age = startAge; age <= endAge; age++) {
-        const year = age - startAge;
-        
-        if (year === 0) {
-          // First year: Account Balance = Annual Contribution (no compound interest)
-          accountBalance = annualContribution;
-        } else {
-          // Subsequent years: Account Balance (Year n) = Account Balance (Year n-1) × (1 + Return Rate) + Annual Contribution
-          accountBalance = accountBalance * (1 + returnRate) + annualContribution;
-        }
-        
-        accumulationData.push({
-        age,
-        year: year + 1,
-        annualContribution,
-        employerMatch: 0, // IRA has no employer match
-        totalContribution: annualContribution,
-        accountBalance: Math.round(accountBalance * 100) / 100
-      });
-    }
-
-    const finalBalance = accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-
-    // Withdrawal Phase
-    const withdrawalStartAge = parseInt(retirementPlanningInputs.rothIRAAgeC) || 60;
-    const withdrawalRate = (retirementPlanningInputs.rothIRAWithdrawalRateC || 4) / 100;
-    const withdrawalData = [];
-    
-    // Find the balance at withdrawal start age from accumulation phase
-    const withdrawalStartAgeIndex = accumulationData.findIndex(item => item.age === withdrawalStartAge);
-    let accountBalanceForWithdrawals = withdrawalStartAgeIndex >= 0 ? 
-      accumulationData[withdrawalStartAgeIndex].accountBalance : 
-      accumulationData[accumulationData.length - 1]?.accountBalance || 0;
-    
-    for (let age = withdrawalStartAge; age <= 109; age++) {
-      const year = age;
-      const yearIndex = age - withdrawalStartAge;
-      
-      // Calculate withdrawal using different formulas for first year vs subsequent years:
-      // First year: N4*Q9 (no MAX)
-      // Subsequent years: MAX(N5*Q9,0)
-      const withdrawal = yearIndex === 0 
-        ? accountBalanceForWithdrawals * withdrawalRate  // First year: no MAX
-        : Math.max(accountBalanceForWithdrawals * withdrawalRate, 0);  // Subsequent years: with MAX
-      
-      // Store the current year's data
-      withdrawalData.push({
-        year: age,
-        withdrawals: Math.round(withdrawal * 100) / 100,
-        remainingBalance: Math.round(accountBalanceForWithdrawals * 100) / 100
-      });
-      
-      // Calculate next year's Account Balance For Withdrawals using Excel formula:
-      // IF((N5-M5)*(1+ReturnRate)=0,NA(),(N5-M5)*(1+ReturnRate))
-      // Where N5 = Previous Year's Account Balance For Withdrawals, M5 = Previous Year's Withdrawals
-      const nextYearBalance = (accountBalanceForWithdrawals - withdrawal) * (1 + returnRate);
-      
-      // Only continue if the result is not zero (Excel's IF condition)
-      if (nextYearBalance !== 0) {
-        accountBalanceForWithdrawals = nextYearBalance;
-      } else {
-        // If balance becomes zero, stop the loop (Excel returns NA())
-        break;
-      }
-    }
-    
-    return {
-      finalBalance: Math.round(finalBalance * 100) / 100,
-      accumulationData,
-      withdrawalData
-    };
-  };
+  // Inflation rate used to express future dollars in today's dollars
+  // (Assumptions CPI, replaces the old hardcoded 3.5%).
+  const inflationRate = assumptions.scalars.cpi_inflation ?? 0.03;
+  const calculatePresentValue = (futureValue, yearsFromNow) => discountToToday(futureValue, yearsFromNow, inflationRate);
 
   // Generate chart data for Roth 401k Balance vs Age
   // Fixed to match its three sibling chart generators (Traditional 401k,
@@ -1603,77 +645,57 @@ export default function Week6Retirement() {
     return chartData;
   };
 
-  // Calculate PV of First Payment for Traditional 401k
-  const calculateTraditional401kPV = (series) => {
-    const seriesData = series === 'A' ? calculateTraditional401kSeriesA() : 
-                      series === 'B' ? calculateTraditional401kSeriesB() : 
-                      calculateTraditional401kSeriesC();
-    
-    const withdrawalStartAge = series === 'A' ? parseInt(retirementPlanningInputs.traditional401kAgeA) || 60 :
-                               series === 'B' ? parseInt(retirementPlanningInputs.traditional401kAgeB) || 60 :
-                               parseInt(retirementPlanningInputs.traditional401kAgeC) || 60;
-    
-    // Find the withdrawal data for the specific withdrawal start age
-    const firstWithdrawalData = seriesData.withdrawalData.find(item => item.year === withdrawalStartAge);
-    const firstWithdrawal = firstWithdrawalData?.withdrawals || 0;
-    const yearsFromNow = withdrawalStartAge - (retirementPlanningInputs.contributionStartAge || 22);
-    
-    
-    return calculatePresentValue(firstWithdrawal, yearsFromNow);
-  };
-
-  // Calculate PV of First Payment for Roth 401k
-  const calculateRoth401kPV = (series) => {
-    const seriesData = series === 'A' ? calculateRoth401kSeriesA() : 
-                      series === 'B' ? calculateRoth401kSeriesB() : 
-                      calculateRoth401kSeriesC();
-    
-    const withdrawalStartAge = series === 'A' ? parseInt(retirementPlanningInputs.roth401kAgeA) || 60 :
-                               series === 'B' ? parseInt(retirementPlanningInputs.roth401kAgeB) || 60 :
-                               parseInt(retirementPlanningInputs.roth401kAgeC) || 60;
-    
-    // Find the withdrawal data for the specific withdrawal start age
-    const firstWithdrawalData = seriesData.withdrawalData.find(item => item.year === withdrawalStartAge);
-    const firstWithdrawal = firstWithdrawalData?.withdrawals || 0;
-    const yearsFromNow = withdrawalStartAge - (retirementPlanningInputs.contributionStartAge || 22);
-    
-    return calculatePresentValue(firstWithdrawal, yearsFromNow);
-  };
-
-  // Calculate PV of First Payment for Traditional IRA
-  const calculateTraditionalIRAPV = (series) => {
-    const seriesData = series === 'A' ? calculateTraditionalIRASeriesA() : 
-                      series === 'B' ? calculateTraditionalIRASeriesB() : 
-                      calculateTraditionalIRASeriesC();
-    
-    const withdrawalStartAge = series === 'A' ? parseInt(retirementPlanningInputs.traditionalIRAAgeA) || 60 :
-                               series === 'B' ? parseInt(retirementPlanningInputs.traditionalIRAAgeB) || 60 :
-                               parseInt(retirementPlanningInputs.traditionalIRAAgeC) || 60;
-    
-    // Find the withdrawal data for the specific withdrawal start age
-    const firstWithdrawalData = seriesData.withdrawalData.find(item => item.year === withdrawalStartAge);
-    const firstWithdrawal = firstWithdrawalData?.withdrawals || 0;
-    const yearsFromNow = withdrawalStartAge - (retirementPlanningInputs.contributionStartAge || 22);
-    
-    return calculatePresentValue(firstWithdrawal, yearsFromNow);
-  };
-
-  // Calculate PV of First Payment for Roth IRA
-  const calculateRothIRAPV = (series) => {
-    const seriesData = series === 'A' ? calculateRothIRASeriesA() : 
-                      series === 'B' ? calculateRothIRASeriesB() : 
-                      calculateRothIRASeriesC();
-    
-    const withdrawalStartAge = series === 'A' ? parseInt(retirementPlanningInputs.rothIRAAgeA) || 60 :
-                               series === 'B' ? parseInt(retirementPlanningInputs.rothIRAAgeB) || 60 :
-                               parseInt(retirementPlanningInputs.rothIRAAgeC) || 60;
-    
-    // Find the withdrawal data for the specific withdrawal start age
-    const firstWithdrawalData = seriesData.withdrawalData.find(item => item.year === withdrawalStartAge);
-    const firstWithdrawal = firstWithdrawalData?.withdrawals || 0;
-    const yearsFromNow = withdrawalStartAge - (retirementPlanningInputs.contributionStartAge || 22);
-    
-    return calculatePresentValue(firstWithdrawal, yearsFromNow);
+  // Per-scenario "what do I actually get" block: labels make the annual vs.
+  // monthly distinction explicit and show the full tie-out from the first
+  // annual withdrawal (future dollars) to its present value (today's dollars).
+  const renderWithdrawalSummary = (account, series) => {
+    const cfg = RETIREMENT_ACCOUNTS[account];
+    const sim = simulateAccount(account, series);
+    const pct = (x) => `${(x * 100).toFixed(1)}%`;
+    const row = (label, note, value, sub) => (
+      <div>
+        <div style={{ fontSize: '13px', fontWeight: '600', color: '#374151', lineHeight: 1.35 }}>{label}</div>
+        <div style={{ fontSize: '11.5px', color: '#9ca3af', marginTop: '1px', lineHeight: 1.35 }}>{note}</div>
+        <div style={{ marginTop: '4px', display: 'flex', alignItems: 'baseline', flexWrap: 'wrap', gap: '4px 10px' }}>
+          <span style={{ fontSize: '20px', fontWeight: '700', color: '#111827', letterSpacing: '-0.01em' }}>{value}</span>
+          {sub && <span style={{ fontSize: '12.5px', color: '#6b7280' }}>{sub}</span>}
+        </div>
+      </div>
+    );
+    const taxKey = cfg.taxKey ? `${cfg.taxKey}${series}` : null;
+    return (
+      <>
+        {taxKey && (
+          <>
+            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>{account === 'roth401k' ? 'Tax Rate on Employer-Match Portion (%)' : 'Tax Rate in Retirement (%)'}</div>
+            <input
+              type="text"
+              value={retirementPlanningInputs[taxKey] ? `${retirementPlanningInputs[taxKey]}%` : ''}
+              placeholder={`Auto (${pct(sim.firstTaxRate)})`}
+              onChange={(e) => handleRetirementPlanningInputChange(taxKey, e.target.value, e.target)}
+              style={{ ...styles.input, width: '100%', padding: '12px 16px', fontSize: '15px', fontWeight: '600', textAlign: 'center', marginBottom: '6px', boxSizing: 'border-box', maxWidth: '100%' }}
+            />
+            <div style={{ fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>Blank = auto (federal + state).</div>
+            {retirementPlanningErrors[taxKey] && (
+              <div style={{ fontSize: '11px', color: '#dc3545', marginTop: '8px', fontWeight: '500' }}>{retirementPlanningErrors[taxKey]}</div>
+            )}
+          </>
+        )}
+        <div style={{ marginTop: '24px', paddingTop: '26px', borderTop: '1px solid #e5e7eb', textAlign: 'left', display: 'flex', flexDirection: 'column', gap: '28px' }}>
+          {row(`Annual withdrawal at age ${sim.withdrawalStartAge}`, 'pre-tax, future dollars', formatCurrency(sim.firstWithdrawal), `${formatCurrency(sim.firstWithdrawal / 12)} / month`)}
+          {cfg.traditional && row('After-tax annual withdrawal', `tax rate ${pct(sim.firstTaxRate)}`, formatCurrency(sim.firstAfterTax), `${formatCurrency(sim.firstAfterTax / 12)} / month`)}
+          {account === 'roth401k' && row('After-tax annual withdrawal', `Roth portion tax-free; employer match taxed at ${pct(sim.firstTaxRate)}`, formatCurrency(sim.firstAfterTax), `${formatCurrency(sim.firstAfterTax / 12)} / month`)}
+          {!cfg.traditional && account !== 'roth401k' && row('After-tax annual withdrawal', 'Roth: tax-free', formatCurrency(sim.firstAfterTax))}
+          <div style={{ backgroundColor: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {row("PV of first withdrawal", "today's dollars", formatCurrency(sim.pvFirstWithdrawal))}
+            {account !== 'rothIRA' && row("PV of first after-tax withdrawal", "today's dollars", formatCurrency(sim.pvFirstAfterTax))}
+            <div style={{ fontSize: '11.5px', color: '#9ca3af', lineHeight: 1.5 }}>
+              PV = {formatCurrency(sim.firstWithdrawal)} ÷ (1 + {(sim.inflation * 100).toFixed(1)}% inflation)<sup>{sim.yearsToWithdrawal}</sup>, discounted over the {sim.yearsToWithdrawal} years from today to the start age.
+            </div>
+          </div>
+        </div>
+      </>
+    );
   };
 
   // Generate chart data for Traditional 401k Balance vs Age
@@ -1703,75 +725,30 @@ export default function Week6Retirement() {
     return chartData;
   };
 
-  // Generate chart data for Traditional 401k Withdrawals vs Age
-  const generateTraditional401kWithdrawalsChartData = () => {
-    const seriesAData = calculateTraditional401kSeriesA();
-    const seriesBData = calculateTraditional401kSeriesB();
-    const seriesCData = calculateTraditional401kSeriesC();
-    
+  // Annual (pre-tax) withdrawal per age for the three scenarios, from the
+  // shared engine, so the chart includes RMD-forced withdrawals. Ages before a
+  // scenario's start age (or after it is depleted) plot as 0.
+  const generateWithdrawalsChartData = (account) => {
+    const sims = ['A', 'B', 'C'].map(series => simulateAccount(account, series));
+    const maps = sims.map(sim => new Map(sim.withdrawalData.map(row => [row.age, row.gross])));
+    const earliest = Math.min(...sims.map(sim => sim.withdrawalStartAge));
     const chartData = [];
-    const withdrawalStartAgeA = retirementPlanningInputs.traditional401kAgeA || 60;
-    const withdrawalStartAgeB = retirementPlanningInputs.traditional401kAgeB || 60;
-    const withdrawalStartAgeC = retirementPlanningInputs.traditional401kAgeC || 60;
-    
-    // Find the earliest withdrawal start age
-    const earliestStartAge = Math.min(withdrawalStartAgeA, withdrawalStartAgeB, withdrawalStartAgeC);
-    
-    // Generate data from earliest start age to 100
-    for (let age = earliestStartAge; age <= 100; age++) {
-      const yearA = age - withdrawalStartAgeA;
-      const yearB = age - withdrawalStartAgeB;
-      const yearC = age - withdrawalStartAgeC;
-      
-      const seriesAWithdrawal = yearA >= 0 && seriesAData.withdrawalData[yearA] ? seriesAData.withdrawalData[yearA].withdrawals : 0;
-      const seriesBWithdrawal = yearB >= 0 && seriesBData.withdrawalData[yearB] ? seriesBData.withdrawalData[yearB].withdrawals : 0;
-      const seriesCWithdrawal = yearC >= 0 && seriesCData.withdrawalData[yearC] ? seriesCData.withdrawalData[yearC].withdrawals : 0;
-      
+    for (let age = earliest; age <= PROJECTION_END_AGE; age++) {
       chartData.push({
         age,
-        seriesA: Math.round(seriesAWithdrawal),
-        seriesB: Math.round(seriesBWithdrawal),
-        seriesC: Math.round(seriesCWithdrawal)
+        seriesA: Math.round(maps[0].get(age) || 0),
+        seriesB: Math.round(maps[1].get(age) || 0),
+        seriesC: Math.round(maps[2].get(age) || 0),
       });
     }
-    
     return chartData;
   };
 
+  // Generate chart data for Traditional 401k Withdrawals vs Age
+  const generateTraditional401kWithdrawalsChartData = () => generateWithdrawalsChartData('traditional401k');
+
   // Generate chart data for Roth 401k Withdrawals vs Age
-  const generateRoth401kWithdrawalsChartData = () => {
-    const seriesAData = calculateRoth401kSeriesA();
-    const seriesBData = calculateRoth401kSeriesB();
-    const seriesCData = calculateRoth401kSeriesC();
-    
-    const chartData = [];
-    const withdrawalStartAgeA = retirementPlanningInputs.roth401kAgeA || 60;
-    const withdrawalStartAgeB = retirementPlanningInputs.roth401kAgeB || 60;
-    const withdrawalStartAgeC = retirementPlanningInputs.roth401kAgeC || 60;
-    
-    // Find the earliest withdrawal start age
-    const earliestStartAge = Math.min(withdrawalStartAgeA, withdrawalStartAgeB, withdrawalStartAgeC);
-    
-    // Generate data from earliest start age to 100
-    for (let age = earliestStartAge; age <= 100; age++) {
-      const yearA = age - withdrawalStartAgeA;
-      const yearB = age - withdrawalStartAgeB;
-      const yearC = age - withdrawalStartAgeC;
-      
-      const seriesAWithdrawal = yearA >= 0 && seriesAData.withdrawalData[yearA] ? seriesAData.withdrawalData[yearA].withdrawals : 0;
-      const seriesBWithdrawal = yearB >= 0 && seriesBData.withdrawalData[yearB] ? seriesBData.withdrawalData[yearB].withdrawals : 0;
-      const seriesCWithdrawal = yearC >= 0 && seriesCData.withdrawalData[yearC] ? seriesCData.withdrawalData[yearC].withdrawals : 0;
-      
-      chartData.push({
-        age,
-        seriesA: Math.round(seriesAWithdrawal),
-        seriesB: Math.round(seriesBWithdrawal),
-        seriesC: Math.round(seriesCWithdrawal)
-      });
-    }
-    
-    return chartData;
-  };
+  const generateRoth401kWithdrawalsChartData = () => generateWithdrawalsChartData('roth401k');
 
   // Generate chart data for Traditional IRA Balance vs Age
   const generateTraditionalIRAChartData = () => {
@@ -1801,39 +778,7 @@ export default function Week6Retirement() {
   };
 
   // Generate chart data for Traditional IRA Withdrawals vs Age
-  const generateTraditionalIRAWithdrawalsChartData = () => {
-    const seriesAData = calculateTraditionalIRASeriesA();
-    const seriesBData = calculateTraditionalIRASeriesB();
-    const seriesCData = calculateTraditionalIRASeriesC();
-    
-    const chartData = [];
-    const withdrawalStartAgeA = parseInt(retirementPlanningInputs.traditionalIRAAgeA) || 60;
-    const withdrawalStartAgeB = parseInt(retirementPlanningInputs.traditionalIRAAgeB) || 60;
-    const withdrawalStartAgeC = parseInt(retirementPlanningInputs.traditionalIRAAgeC) || 60;
-    
-    // Find the earliest withdrawal start age
-    const earliestStartAge = Math.min(withdrawalStartAgeA, withdrawalStartAgeB, withdrawalStartAgeC);
-    
-    // Generate data from earliest start age to 100
-    for (let age = earliestStartAge; age <= 100; age++) {
-      const yearA = age - withdrawalStartAgeA;
-      const yearB = age - withdrawalStartAgeB;
-      const yearC = age - withdrawalStartAgeC;
-      
-      const seriesAWithdrawal = yearA >= 0 && seriesAData.withdrawalData[yearA] ? seriesAData.withdrawalData[yearA].withdrawals : 0;
-      const seriesBWithdrawal = yearB >= 0 && seriesBData.withdrawalData[yearB] ? seriesBData.withdrawalData[yearB].withdrawals : 0;
-      const seriesCWithdrawal = yearC >= 0 && seriesCData.withdrawalData[yearC] ? seriesCData.withdrawalData[yearC].withdrawals : 0;
-      
-      chartData.push({
-        age,
-        seriesA: Math.round(seriesAWithdrawal),
-        seriesB: Math.round(seriesBWithdrawal),
-        seriesC: Math.round(seriesCWithdrawal)
-      });
-    }
-    
-    return chartData;
-  };
+  const generateTraditionalIRAWithdrawalsChartData = () => generateWithdrawalsChartData('traditionalIRA');
 
   // Generate chart data for Roth IRA Balance vs Age
   const generateRothIRAChartData = () => {
@@ -1863,39 +808,7 @@ export default function Week6Retirement() {
   };
 
   // Generate chart data for Roth IRA Withdrawals vs Age
-  const generateRothIRAWithdrawalsChartData = () => {
-    const seriesAData = calculateRothIRASeriesA();
-    const seriesBData = calculateRothIRASeriesB();
-    const seriesCData = calculateRothIRASeriesC();
-    
-    const chartData = [];
-    const withdrawalStartAgeA = parseInt(retirementPlanningInputs.rothIRAAgeA) || 60;
-    const withdrawalStartAgeB = parseInt(retirementPlanningInputs.rothIRAAgeB) || 60;
-    const withdrawalStartAgeC = parseInt(retirementPlanningInputs.rothIRAAgeC) || 60;
-    
-    // Find the earliest withdrawal start age
-    const earliestStartAge = Math.min(withdrawalStartAgeA, withdrawalStartAgeB, withdrawalStartAgeC);
-    
-    // Generate data from earliest start age to 100
-    for (let age = earliestStartAge; age <= 100; age++) {
-      const yearA = age - withdrawalStartAgeA;
-      const yearB = age - withdrawalStartAgeB;
-      const yearC = age - withdrawalStartAgeC;
-      
-      const seriesAWithdrawal = yearA >= 0 && seriesAData.withdrawalData[yearA] ? seriesAData.withdrawalData[yearA].withdrawals : 0;
-      const seriesBWithdrawal = yearB >= 0 && seriesBData.withdrawalData[yearB] ? seriesBData.withdrawalData[yearB].withdrawals : 0;
-      const seriesCWithdrawal = yearC >= 0 && seriesCData.withdrawalData[yearC] ? seriesCData.withdrawalData[yearC].withdrawals : 0;
-      
-      chartData.push({
-        age,
-        seriesA: Math.round(seriesAWithdrawal),
-        seriesB: Math.round(seriesBWithdrawal),
-        seriesC: Math.round(seriesCWithdrawal)
-      });
-    }
-    
-    return chartData;
-  };
+  const generateRothIRAWithdrawalsChartData = () => generateWithdrawalsChartData('rothIRA');
 
   // Helper function to get retirement input from Week 1
   const getRetirementInput = (key) => {
@@ -2079,11 +992,14 @@ export default function Week6Retirement() {
 
     // Keep invalid age values from breaking calculations by storing clamped values
     if (isAgeField) {
-      setRetirementPlanningInputs(prev => ({
-        ...prev,
-        contributionStartAge: updatedInputs.contributionStartAge,
-        retirementAge: updatedInputs.retirementAge
-      }));
+      setRetirementPlanningInputs(prev => {
+        const next = {
+          ...prev,
+          contributionStartAge: updatedInputs.contributionStartAge,
+          retirementAge: updatedInputs.retirementAge
+        };
+        return { ...next, ...alignWithdrawalAges(next) };
+      });
     } else {
       setRetirementPlanningInputs(prev => ({
         ...prev,
@@ -2137,25 +1053,20 @@ export default function Week6Retirement() {
                key === 'roth401kAgeA' || key === 'roth401kAgeB' || key === 'roth401kAgeC' ||
                key === 'traditionalIRAAgeA' || key === 'traditionalIRAAgeB' || key === 'traditionalIRAAgeC' ||
                key === 'rothIRAAgeA' || key === 'rothIRAAgeB' || key === 'rothIRAAgeC') {
-      // Traditional IRA ages are limited by RMD age
-      if (key.startsWith('traditionalIRA')) {
-        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || assumptions.scalars.rmd_start_age;
-        if (numValue <= 30 || numValue > rmdAge) {
-          errorMessage = `Starting Distribution Age must be between 31 and ${rmdAge} years.`;
-        }
-      } 
-      // Roth IRA ages are limited to 100
-      else if (key.startsWith('rothIRA')) {
-        if (numValue <= 30 || numValue > 100) {
-          errorMessage = `Starting Distribution Age must be between 31 and 100 years.`;
-        }
+      // Distributions can't start before contributions stop (retirement age).
+      // Traditional accounts can't defer past the RMD start age; Roth accounts
+      // are capped at 100.
+      const minStartAge = parseFloat(updatedInputs.retirementAge) || 65;
+      const isTraditionalKey = key.startsWith('traditional');
+      const maxStartAge = isTraditionalKey
+        ? rmdStartAge
+        : 100;
+      if (numValue < minStartAge || numValue > maxStartAge) {
+        errorMessage = `Starting Distribution Age must be between ${minStartAge} (your retirement age) and ${maxStartAge} years.`;
       }
-      // Traditional and Roth 401k ages are limited by RMD age
-      else {
-        const rmdAge = parseFloat(retirementPlanningInputs.rmdAge) || assumptions.scalars.rmd_start_age;
-        if (numValue <= 30 || numValue > rmdAge) {
-          errorMessage = `Starting Distribution Age must be between 31 and ${rmdAge} years.`;
-        }
+    } else if (key.endsWith('TaxRateA') || key.endsWith('TaxRateB') || key.endsWith('TaxRateC')) {
+      if (numValue < 0 || numValue > 100) {
+        errorMessage = 'Tax Rate must be between 0% and 100%.';
       }
     } else if (key === 'rmdAge') {
       // No validation limits for RMD age
@@ -2224,179 +1135,8 @@ export default function Week6Retirement() {
   const totalRecommendedPercent = monthlyPreTaxIncome > 0 ? (totalRecommendedAmount / monthlyPreTaxIncome) * 100 : 0;
 
   // Simulations
-  const simA = useMemo(() => {
-    // For Series A, annual contribution is annualPaymentA / effectiveTakeHomeRate (Excel logic)
-    const customSimulate401kA = ({
-      startAge,
-      endAge,
-      annualPayment,
-      returnRate,
-      employerMatch,
-      maxContribution,
-      effectiveTakeHomeRate
-    }) => {
-      const ages = [];
-      const years = [];
-      const annualContributions = [];
-      const employerMatches = [];
-      const totalContributions = [];
-      const balances = [];
-      let balance = 0;
-      let year = 0;
-      // Calculate the fixed annual contribution for all years
-      const fixedContribution = annualPayment / effectiveTakeHomeRate;
-      for (let age = startAge; age <= endAge; age++, year++) {
-        ages.push(age);
-        years.push(year);
-        // Round annual contribution
-        const roundedContribution = Number(fixedContribution.toFixed(2));
-        annualContributions.push(roundedContribution);
-        // Round employer match
-        let match = Number((roundedContribution * (employerMatch / 100)).toFixed(2));
-        employerMatches.push(match);
-        // Total contribution, rounded
-        let total;
-        if (roundedContribution === "" || match === "") {
-          total = "";
-          totalContributions.push("");
-        } else {
-          total = Number((roundedContribution + match).toFixed(2));
-          totalContributions.push(total);
-        }
-        // Account balance (future value), rounded
-        if (total === "") {
-          balances.push("");
-        } else {
-          balance = Number((balance * (1 + returnRate / 100) + total).toFixed(2));
-          balances.push(balance);
-        }
-      }
-      return { ages, years, annualContributions, employerMatches, totalContributions, balances };
-    };
-    return customSimulate401kA({
-      startAge,
-      endAge,
-      annualPayment: annualPaymentA,
-      returnRate: returnRateA,
-      employerMatch: employerMatchA,
-      maxContribution,
-      effectiveTakeHomeRate
-    });
-  }, [startAge, endAge, annualPaymentA, returnRateA, employerMatchA, maxContribution, effectiveTakeHomeRate]);
-
-  // Series B and C remain unchanged for now
-  const simB = useMemo(() => {
-    const ages = [];
-    const years = [];
-    const annualContributions = [];
-    const employerMatches = [];
-    const totalContributions = [];
-    const balances = [];
-    let balance = 0;
-    let year = 0;
-    // Calculate the fixed annual contribution for all years (Excel logic)
-    const fixedContribution = annualPaymentB / effectiveTakeHomeRate;
-    for (let age = startAge; age <= endAge; age++, year++) {
-      ages.push(age);
-      years.push(year);
-      // Round annual contribution
-      const roundedContribution = Number(fixedContribution.toFixed(2));
-      annualContributions.push(roundedContribution);
-      // Round employer match
-      let match = Number((roundedContribution * (employerMatchB / 100)).toFixed(2));
-      employerMatches.push(match);
-      // Total contribution, rounded
-      let total;
-      if (roundedContribution === "" || match === "") {
-        total = "";
-        totalContributions.push("");
-      } else {
-        total = Number((roundedContribution + match).toFixed(2));
-        totalContributions.push(total);
-      }
-      // Account balance (future value), rounded
-      if (total === "") {
-        balances.push("");
-      } else {
-        balance = Number((balance * (1 + returnRateB / 100) + total).toFixed(2));
-        balances.push(balance);
-      }
-    }
-    return { ages, years, annualContributions, employerMatches, totalContributions, balances };
-  }, [startAge, endAge, annualPaymentB, returnRateB, employerMatchB, maxContribution, effectiveTakeHomeRate]);
-
-  const simC = useMemo(() => {
-    const ages = [];
-    const years = [];
-    const annualContributions = [];
-    const employerMatches = [];
-    const totalContributions = [];
-    const balances = [];
-    let balance = 0;
-    let year = 0;
-    // Calculate the fixed annual contribution for all years (Excel logic)
-    const fixedContribution = annualPaymentC / effectiveTakeHomeRate;
-    for (let age = startAge; age <= endAge; age++, year++) {
-      ages.push(age);
-      years.push(year);
-      // Round annual contribution
-      const roundedContribution = Number(fixedContribution.toFixed(2));
-      annualContributions.push(roundedContribution);
-      // Round employer match
-      let match = Number((roundedContribution * (employerMatchC / 100)).toFixed(2));
-      employerMatches.push(match);
-      // Total contribution, rounded
-      let total;
-      if (roundedContribution === "" || match === "") {
-        total = "";
-        totalContributions.push("");
-      } else {
-        total = Number((roundedContribution + match).toFixed(2));
-        totalContributions.push(total);
-      }
-      // Account balance (future value), rounded
-      if (total === "") {
-        balances.push("");
-      } else {
-        balance = Number((balance * (1 + returnRateC / 100) + total).toFixed(2));
-        balances.push(balance);
-      }
-    }
-    return { ages, years, annualContributions, employerMatches, totalContributions, balances };
-  }, [startAge, endAge, annualPaymentC, returnRateC, employerMatchC, maxContribution, effectiveTakeHomeRate]);
-
-  // Final balances (last valid value)
-  const finalBalanceA = getLastValid(simA.balances);
-  const finalBalanceB = getLastValid(simB.balances);
-  const finalBalanceC = getLastValid(simC.balances);
-
-
   // formatCurrency/formatPercent now come from src/utils/formatters.js (module import above).
 
-
-  // Section header style for all section titles
-  const sectionHeaderStyle = {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#002060',
-    margin: '0 0 18px 0',
-    padding: 0,
-    fontFamily: 'inherit',
-    letterSpacing: 0,
-    lineHeight: 1.3,
-  };
-
-  // Simple section header style to match Week 1
-  const simpleHeaderStyle = {
-    fontSize: '18px',
-    fontWeight: 700,
-    color: '#002060',
-    margin: '0 0 18px 0',
-    padding: 0,
-    fontFamily: 'inherit',
-    letterSpacing: 0,
-    lineHeight: 1.3,
-  };
 
   return (
     <>
@@ -2466,6 +1206,8 @@ export default function Week6Retirement() {
         You can only enter data in the open (yellow) fields.
       </div>
 
+      <TermTipHost ref={termTipRef} />
+
       {/* "Deferral" quick-definition tooltip */}
       {showDeferralTooltip && (
         <div style={{
@@ -2497,27 +1239,6 @@ export default function Week6Retirement() {
               <span style={{ fontSize: '26px', letterSpacing: '-0.02em' }}>Retirement Planning</span>
             </div>
 
-        {/* Info Box - matching Week 2/3 styling */}
-        <div style={styles.infoBox} className="week6-info-surface">
-          <svg 
-            width="20" 
-            height="20" 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="#0d1a4b" 
-            strokeWidth="2.5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round"
-            style={{ flexShrink: 0 }}
-          >
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="16" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-          </svg>
-          <div>
-            <strong>How it works:</strong> Enter your retirement planning inputs and monthly payments. The calculator will show you how your retirement accounts will grow over time and how much you can withdraw during retirement.
-          </div>
-            </div>
 
         {/* Tab bar: Summary + one tab per retirement account type, replacing
             the old single long scrolling page. */}
@@ -2702,8 +1423,8 @@ export default function Week6Retirement() {
                 {[
                   { name: 'Traditional 401(k)', tax: 'Pre-tax', sponsor: 'Employer-sponsored', limit: formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 }), withdrawalTax: 'Taxed at withdrawal', match: 'Available' },
                   { name: 'Roth 401(k)', tax: 'Post-tax', sponsor: 'Employer-sponsored', limit: formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 }), withdrawalTax: 'Tax-free at withdrawal', match: 'Common (into pre-tax 401(k))' },
-                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} (under 50, under $150k income)`, withdrawalTax: 'Taxed at withdrawal', match: 'None' },
-                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} (under 50, under $150k income)`, withdrawalTax: 'Tax-free at withdrawal', match: 'None' },
+                  { name: 'Traditional IRA', tax: 'Pre-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })}`, withdrawalTax: 'Taxed at withdrawal', match: 'None' },
+                  { name: 'Roth IRA', tax: 'Post-tax', sponsor: 'Individual', limit: `${formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })}`, withdrawalTax: 'Tax-free at withdrawal', match: 'None' },
                 ].map((row) => (
                   <tr key={row.name}>
                     <td style={{ ...styles.td, textAlign: 'left', fontWeight: '600' }}>{row.name}</td>
@@ -3124,7 +1845,7 @@ export default function Week6Retirement() {
         {/* 5. Traditional 401(k) Balance and Withdrawals */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1fr',
           gap: '32px',
           marginBottom: '40px',
           width: '100%',
@@ -3174,13 +1895,13 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Pre-tax. Employer-sponsored. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. No taxes now, taxed at withdrawal. Employer match available.
+              Pre-tax. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. Taxed at withdrawal. Employer match.
               </div>
 
             {/* Key Parameters */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px',
               marginBottom: '24px'
             }}>
@@ -3190,7 +1911,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contribution Start Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Contribution Start Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.contributionStartAge || ''}
@@ -3247,12 +1968,12 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Retirement Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Retirement Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.retirementAge || ''}
                   onChange={(e) => handleRetirementPlanningInputChange('retirementAge', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.readOnly,
@@ -3278,7 +1999,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Annual Rate of Return (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Annual Rate of Return (%)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.annualReturnRate ? `${retirementPlanningInputs.annualReturnRate}%` : ''}
@@ -3336,7 +2057,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employer Match (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Employer Match (% of your contribution)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.employerMatch401k ? `${retirementPlanningInputs.employerMatch401k}%` : ''}
@@ -3394,15 +2115,15 @@ export default function Week6Retirement() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -3478,7 +2199,7 @@ export default function Week6Retirement() {
       </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -3554,7 +2275,7 @@ export default function Week6Retirement() {
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -3645,52 +2366,32 @@ export default function Week6Retirement() {
               </div>
               {(() => {
                 const chartData = generateTraditional401kChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // Dynamic Y-axis values based on max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.5;
-                  else if (normalized <= 5) step = 1;
-                  else step = 2;
-                  
-                  step *= magnitude;
-                  const steps = Math.ceil(max / step);
-                  
-                  const values = [];
-                  for (let i = 0; i <= steps; i++) {
-                    values.push(i * step);
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -3700,13 +2401,20 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis lines (line charts only, per house spec) */}
+                      <line x1={yAxisLabelWidth} y1={padding} x2={yAxisLabelWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      <line x1={yAxisLabelWidth} y1={padding + plotHeight} x2={chartWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Account Balance</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -3749,18 +2457,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -3795,7 +2503,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesAData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -3805,13 +2513,6 @@ export default function Week6Retirement() {
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
-                          {seriesAData.accumulationData.length > 20 && (
-                            <tr>
-                              <td colSpan="6" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-                                ... and {seriesAData.accumulationData.length - 20} more rows
-                              </td>
-                            </tr>
-                          )}
                         </tbody>
                       </table>
                     </div>
@@ -3845,8 +2546,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Metric</th>
                     <th style={{ 
@@ -3859,8 +2558,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario A</th>
                     <th style={{ 
@@ -3873,8 +2570,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario B</th>
                     <th style={{ 
@@ -3887,8 +2582,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario C</th>
                   </tr>
@@ -3903,7 +2596,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '2px solid #d1d5db',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Future Value Retirement Balance</td>
+                    }}>Future Value Retirement Balance (future $)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -3941,7 +2634,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Value in Today's Dollars</td>
+                    }}>Value in Today's Dollars (discounted at {(inflationRate * 100).toFixed(1)}% inflation)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -4018,7 +2711,7 @@ export default function Week6Retirement() {
               fontStyle: 'italic',
               marginBottom: '24px'
             }}>
-              Note: Withdrawal Balance calculated from previous Traditional 401(k) Balance (left)
+              Contributions are monthly; withdrawals are annual. Shaded rows: RMD exceeds your withdrawal rate.
               </div>
 
             {/* RMD Input */}
@@ -4040,27 +2733,26 @@ export default function Week6Retirement() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Withdrawal (pre-tax)</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>IRS RMD</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Tax</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>After-Tax Annual Withdrawal</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Balance (start of year)</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesAData.withdrawalData.slice(0, 20).map((row, index) => (
-                            <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                          {seriesAData.withdrawalData.map((row, index) => (
+                            <tr key={index} style={{ backgroundColor: row.rmdBound ? '#fff7e0' : (index % 2 === 0 ? '#fff' : '#f8f9fa') }}>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontWeight: '400' }}>{row.age}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.gross)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{row.rmd > 0 ? formatCurrency(row.rmd) : '—'}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.tax)} ({(row.taxRate * 100).toFixed(1)}%)</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.afterTax)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.startBalance)}</td>
                             </tr>
                           ))}
-                          {seriesAData.withdrawalData.length > 20 && (
-                            <tr>
-                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-                                ... and {seriesAData.withdrawalData.length - 20} more rows
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
+                                                  </tbody>
                       </table>
                     </div>
                   </div>
@@ -4087,27 +2779,26 @@ export default function Week6Retirement() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Withdrawal (pre-tax)</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>IRS RMD</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Tax</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>After-Tax Annual Withdrawal</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Balance (start of year)</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesBData.withdrawalData.slice(0, 20).map((row, index) => (
-                            <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                          {seriesBData.withdrawalData.map((row, index) => (
+                            <tr key={index} style={{ backgroundColor: row.rmdBound ? '#fff7e0' : (index % 2 === 0 ? '#fff' : '#f8f9fa') }}>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontWeight: '400' }}>{row.age}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.gross)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{row.rmd > 0 ? formatCurrency(row.rmd) : '—'}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.tax)} ({(row.taxRate * 100).toFixed(1)}%)</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.afterTax)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.startBalance)}</td>
                             </tr>
                           ))}
-                          {seriesBData.withdrawalData.length > 20 && (
-                            <tr>
-                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-                                ... and {seriesBData.withdrawalData.length - 20} more rows
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
+                                                  </tbody>
                       </table>
                     </div>
                   </div>
@@ -4134,27 +2825,26 @@ export default function Week6Retirement() {
                       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
                         <thead>
                           <tr style={{ backgroundColor: '#e9ecef' }}>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Year</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Withdrawals</th>
-                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Account Balance For Withdrawals</th>
+                            <th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Age</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Annual Withdrawal (pre-tax)</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>IRS RMD</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Tax</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>After-Tax Annual Withdrawal</th>
+<th style={{ borderBottom: '2px solid #c7d0e8', padding: '10px 8px', textAlign: 'center' }}>Balance (start of year)</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesCData.withdrawalData.slice(0, 20).map((row, index) => (
-                            <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.withdrawals)}</td>
-                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
+                          {seriesCData.withdrawalData.map((row, index) => (
+                            <tr key={index} style={{ backgroundColor: row.rmdBound ? '#fff7e0' : (index % 2 === 0 ? '#fff' : '#f8f9fa') }}>
+                              <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontWeight: '400' }}>{row.age}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.gross)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{row.rmd > 0 ? formatCurrency(row.rmd) : '—'}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.tax)} ({(row.taxRate * 100).toFixed(1)}%)</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.afterTax)}</td>
+<td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '400' }}>{formatCurrency(row.startBalance)}</td>
                             </tr>
                           ))}
-                          {seriesCData.withdrawalData.length > 20 && (
-                            <tr>
-                              <td colSpan="3" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-                                ... and {seriesCData.withdrawalData.length - 20} more rows
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
+                                                  </tbody>
                       </table>
                     </div>
                   </div>
@@ -4182,12 +2872,17 @@ export default function Week6Retirement() {
                 width: '120px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RMD</div>
+                justifyContent: 'center',
+ cursor: 'help'
+}}
+ onMouseEnter={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseMove={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseLeave={() => termTipRef.current?.hide()}
+>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>{renderTermHint('RMD', RMD_DEFINITION)}</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.rmdAge || ''}
+                  value={rmdStartAge}
                   readOnly
                   style={{
                     width: '100%',
@@ -4197,40 +2892,28 @@ export default function Week6Retirement() {
                     backgroundColor: '#e5e7eb',
                     fontSize: '15px',
                     textAlign: 'center',
-                    cursor: 'not-allowed',
+                    cursor: 'help',
                     fontWeight: '700',
                     color: '#111827',
                     boxSizing: 'border-box'
                   }}
                 />
           </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#4b5563',
-                flex: 1,
-                fontWeight: '500',
-                lineHeight: '1.6',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '4px'
-              }}>
-                RMD: Required Minimum Distribution (last start age for withdrawals) - Fixed at 75
-        </div>
       </div>
 
             {/* Scenarios */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -4308,9 +2991,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditional401kAgeA || 60}
+                  value={retirementPlanningInputs.traditional401kAgeA || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditional401kAgeA', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -4356,11 +3039,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeA}
               </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('A'))}</div>
+                {renderWithdrawalSummary('traditional401k', 'A')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -4438,9 +3121,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditional401kAgeB || 60}
+                  value={retirementPlanningInputs.traditional401kAgeB || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditional401kAgeB', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -4486,11 +3169,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeB}
               </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('B'))}</div>
+                {renderWithdrawalSummary('traditional401k', 'B')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -4568,9 +3251,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditional401kAgeC || 60}
+                  value={retirementPlanningInputs.traditional401kAgeC || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditional401kAgeC', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -4616,7 +3299,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditional401kAgeC}
             </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditional401kPV('C'))}</div>
+                {renderWithdrawalSummary('traditional401k', 'C')}
             </div>
           </div>
 
@@ -4649,7 +3332,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesBData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -4659,13 +3342,6 @@ export default function Week6Retirement() {
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'right', fontWeight: '600' }}>{formatCurrency(row.accountBalance)}</td>
                             </tr>
                           ))}
-                          {seriesBData.accumulationData.length > 20 && (
-                            <tr>
-                              <td colSpan="6" style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center', fontStyle: 'italic' }}>
-                                ... and {seriesBData.accumulationData.length - 20} more rows
-                              </td>
-                            </tr>
-                          )}
                         </tbody>
                       </table>
                     </div>
@@ -4685,70 +3361,39 @@ export default function Week6Retirement() {
               boxShadow: '0 2px 8px 0 rgba(0, 0, 0, 0.06)',
             }}>
               <div style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', textAlign: 'center', color: '#111827', letterSpacing: '-0.02em' }}>
-                Traditional 401(k) Withdrawals vs. Age Chart
+                Traditional 401(k) Annual Withdrawals (Pre-Tax) vs. Age Chart
               </div>
               {(() => {
                 const chartData = generateTraditional401kWithdrawalsChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // For withdrawal charts, extend Y-axis to double the max value for better visual spacing
-                const extendedMaxValue = maxValue * 2;
+                const extendedMaxValue = maxValue;
                 
                 // Dynamic Y-axis values based on extended max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals - aim for 5-6 steps
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.4;
-                  else if (normalized <= 5) step = 1;
-                  else if (normalized <= 10) step = 2;
-                  else step = 5;
-                  
-                  step *= magnitude;
-                  
-                  // Ensure we have 5-6 steps
-                  const numSteps = Math.ceil(max / step);
-                  if (numSteps < 4) {
-                    step = max / 5;
-                  } else if (numSteps > 8) {
-                    step = max / 6;
-                  }
-                  
-                  const values = [];
-                  for (let i = 0; i <= Math.ceil(max / step); i++) {
-                    const value = i * step;
-                    if (value <= max) {
-                      values.push(value);
-                    }
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -4758,13 +3403,17 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Annual Withdrawal (Pre-Tax)</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
-                          x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          x={yAxisLabelWidth + (plotWidth / chartData.length) * (chartData.findIndex(item => item.age === d.age) + 0.5)}
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -4824,18 +3473,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -4852,7 +3501,7 @@ export default function Week6Retirement() {
               fontStyle: 'italic',
               marginTop: '24px'
             }}>
-              Note: If the Annual Rate of Return is larger than Withdrawal Rate, your portfolio will increase forever!
+              Return above withdrawal rate: balance keeps growing.
               </div>
             </div>
           </div>
@@ -4863,7 +3512,7 @@ export default function Week6Retirement() {
         {/* 6. Roth 401(k) Balance and Withdrawals */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1fr',
           gap: '32px',
           marginBottom: '40px',
           width: '100%',
@@ -4913,13 +3562,13 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Post-tax. Employer-sponsored. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. Pay taxes now, withdraw tax-free. Employer match common; goes into pre-tax 401(k).
+              Post-tax. {formatCurrency(assumptions.scalars.limit_401k, { decimals: 0 })} limit. Tax-free withdrawals. Match is pre-tax.
               </div>
 
             {/* Key Parameters */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px',
               marginBottom: '24px'
             }}>
@@ -4929,7 +3578,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contribution Start Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Contribution Start Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.contributionStartAge || ''}
@@ -4986,12 +3635,12 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Retirement Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Retirement Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.retirementAge || ''}
                   onChange={(e) => handleRetirementPlanningInputChange('retirementAge', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.readOnly,
@@ -5017,7 +3666,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Annual Rate of Return (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Annual Rate of Return (%)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.annualReturnRate ? `${retirementPlanningInputs.annualReturnRate}%` : ''}
@@ -5075,7 +3724,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employer Match (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Employer Match (% of your contribution)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.employerMatch401k ? `${retirementPlanningInputs.employerMatch401k}%` : ''}
@@ -5133,15 +3782,15 @@ export default function Week6Retirement() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -5163,7 +3812,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario A</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_401k_a !== '' && monthlyPayments.roth_401k_a != null ? `${formatCurrency(monthlyPayments.roth_401k_a)}` : ''}
@@ -5215,7 +3864,7 @@ export default function Week6Retirement() {
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -5237,7 +3886,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario B</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_401k_b !== '' && monthlyPayments.roth_401k_b != null ? `${formatCurrency(monthlyPayments.roth_401k_b)}` : ''}
@@ -5289,7 +3938,7 @@ export default function Week6Retirement() {
             </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -5311,7 +3960,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario C</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_401k_c !== '' && monthlyPayments.roth_401k_c != null ? `${formatCurrency(monthlyPayments.roth_401k_c)}` : ''}
@@ -5377,52 +4026,32 @@ export default function Week6Retirement() {
       </div>
               {(() => {
                 const chartData = generateRoth401kChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // Dynamic Y-axis values based on max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.5;
-                  else if (normalized <= 5) step = 1;
-                  else step = 2;
-                  
-                  step *= magnitude;
-                  const steps = Math.ceil(max / step);
-                  
-                  const values = [];
-                  for (let i = 0; i <= steps; i++) {
-                    values.push(i * step);
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -5432,13 +4061,20 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis lines (line charts only, per house spec) */}
+                      <line x1={yAxisLabelWidth} y1={padding} x2={yAxisLabelWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      <line x1={yAxisLabelWidth} y1={padding + plotHeight} x2={chartWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Account Balance</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -5481,18 +4117,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
       </div>
@@ -5527,7 +4163,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesAData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -5573,7 +4209,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesBData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -5619,7 +4255,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesCData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -5662,8 +4298,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Metric</th>
                     <th style={{ 
@@ -5676,8 +4310,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario A</th>
                     <th style={{ 
@@ -5690,8 +4322,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario B</th>
                     <th style={{ 
@@ -5704,8 +4334,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario C</th>
                   </tr>
@@ -5720,7 +4348,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '2px solid #d1d5db',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Future Value Retirement Balance</td>
+                    }}>Future Value Retirement Balance (future $)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5758,7 +4386,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Value in Today's Dollars</td>
+                    }}>Value in Today's Dollars (discounted at {(inflationRate * 100).toFixed(1)}% inflation)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -5835,7 +4463,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Note: Withdrawal Balance calculated from previous Roth 401(k) Balance (left)
+              Balance carries from the left.
               </div>
 
             {/* RMD Input */}
@@ -5858,9 +4486,14 @@ export default function Week6Retirement() {
                 width: '120px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RMD</div>
+                justifyContent: 'center',
+ cursor: 'help'
+}}
+ onMouseEnter={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseMove={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseLeave={() => termTipRef.current?.hide()}
+>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>{renderTermHint('RMD', RMD_DEFINITION)}</div>
                 <input
                   type="text"
                   value="None"
@@ -5873,40 +4506,28 @@ export default function Week6Retirement() {
                     backgroundColor: '#e5e7eb',
                     fontSize: '15px',
                     textAlign: 'center',
-                    cursor: 'not-allowed',
+                    cursor: 'help',
                     fontWeight: '700',
                     color: '#111827',
                     boxSizing: 'border-box'
                   }}
                 />
           </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#4b5563',
-                flex: 1,
-                fontWeight: '500',
-                lineHeight: '1.6',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '4px'
-              }}>
-                RMD: Required Minimum Distribution (last start age for withdrawals) - Fixed at 75
-        </div>
       </div>
 
             {/* Scenarios */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -5984,9 +4605,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.roth401kAgeA || 60}
+                  value={retirementPlanningInputs.roth401kAgeA || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('roth401kAgeA', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -6032,11 +4653,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('A'))}</div>
+                {renderWithdrawalSummary('roth401k', 'A')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -6114,9 +4735,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.roth401kAgeB || 60}
+                  value={retirementPlanningInputs.roth401kAgeB || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('roth401kAgeB', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -6162,11 +4783,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('B'))}</div>
+                {renderWithdrawalSummary('roth401k', 'B')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -6244,9 +4865,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.roth401kAgeC || 60}
+                  value={retirementPlanningInputs.roth401kAgeC || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('roth401kAgeC', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -6292,7 +4913,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.roth401kAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRoth401kPV('C'))}</div>
+                {renderWithdrawalSummary('roth401k', 'C')}
               </div>
       </div>
 
@@ -6306,70 +4927,39 @@ export default function Week6Retirement() {
               minHeight: '620px'
             }}>
               <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
-                Roth 401(k) Withdrawals vs. Age Chart
+                Roth 401(k) Annual Withdrawals (Pre-Tax) vs. Age Chart
             </div>
               {(() => {
                 const chartData = generateRoth401kWithdrawalsChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // For withdrawal charts, extend Y-axis to double the max value for better visual spacing
-                const extendedMaxValue = maxValue * 2;
+                const extendedMaxValue = maxValue;
                 
                 // Dynamic Y-axis values based on extended max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals - aim for 5-6 steps
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.4;
-                  else if (normalized <= 5) step = 1;
-                  else if (normalized <= 10) step = 2;
-                  else step = 5;
-                  
-                  step *= magnitude;
-                  
-                  // Ensure we have 5-6 steps
-                  const numSteps = Math.ceil(max / step);
-                  if (numSteps < 4) {
-                    step = max / 5;
-                  } else if (numSteps > 8) {
-                    step = max / 6;
-                  }
-                  
-                  const values = [];
-                  for (let i = 0; i <= Math.ceil(max / step); i++) {
-                    const value = i * step;
-                    if (value <= max) {
-                      values.push(value);
-                    }
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -6379,13 +4969,17 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Annual Withdrawal (Pre-Tax)</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
-                          x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          x={yAxisLabelWidth + (plotWidth / chartData.length) * (chartData.findIndex(item => item.age === d.age) + 0.5)}
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -6445,18 +5039,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
           </div>
@@ -6471,7 +5065,7 @@ export default function Week6Retirement() {
               border: '1px solid #e9ecef',
               textAlign: 'center'
             }}>
-              Note: If the Annual Rate of Return is larger than Withdrawal Rate, your portfolio will increase forever!
+              Return above withdrawal rate: balance keeps growing.
               </div>
 
 
@@ -6486,7 +5080,7 @@ export default function Week6Retirement() {
         {/* 7. Traditional IRA Balance and Withdrawals */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1fr',
           gap: '32px',
           marginBottom: '40px',
           width: '100%',
@@ -6536,13 +5130,13 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Pre-tax. Individual account. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit under 50 y/o & under $150,000 income. Lowers taxes now, taxed at withdrawal. No employer match.
+              Pre-tax. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit. Taxed at withdrawal. No match.
               </div>
 
             {/* Key Parameters */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px',
               marginBottom: '24px'
             }}>
@@ -6552,7 +5146,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contribution Start Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Contribution Start Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.contributionStartAge || ''}
@@ -6609,12 +5203,12 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Retirement Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Retirement Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.retirementAge || ''}
                   onChange={(e) => handleRetirementPlanningInputChange('retirementAge', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.readOnly,
@@ -6640,7 +5234,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Annual Rate of Return (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Annual Rate of Return (%)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.annualReturnRate ? `${retirementPlanningInputs.annualReturnRate}%` : ''}
@@ -6698,7 +5292,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employer Match (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Employer Match (% of your contribution)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.employerMatchIRA ? `${retirementPlanningInputs.employerMatchIRA}%` : ''}
@@ -6756,15 +5350,15 @@ export default function Week6Retirement() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -6786,7 +5380,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario A</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.traditional_ira_a !== '' && monthlyPayments.traditional_ira_a != null ? `${formatCurrency(monthlyPayments.traditional_ira_a)}` : ''}
@@ -6838,7 +5432,7 @@ export default function Week6Retirement() {
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -6860,7 +5454,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario B</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.traditional_ira_b !== '' && monthlyPayments.traditional_ira_b != null ? `${formatCurrency(monthlyPayments.traditional_ira_b)}` : ''}
@@ -6912,7 +5506,7 @@ export default function Week6Retirement() {
             </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -6934,7 +5528,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario C</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.traditional_ira_c !== '' && monthlyPayments.traditional_ira_c != null ? `${formatCurrency(monthlyPayments.traditional_ira_c)}` : ''}
@@ -7000,52 +5594,32 @@ export default function Week6Retirement() {
               </div>
               {(() => {
                 const chartData = generateTraditionalIRAChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // Dynamic Y-axis values based on max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.5;
-                  else if (normalized <= 5) step = 1;
-                  else step = 2;
-                  
-                  step *= magnitude;
-                  const steps = Math.ceil(max / step);
-                  
-                  const values = [];
-                  for (let i = 0; i <= steps; i++) {
-                    values.push(i * step);
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -7055,13 +5629,20 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis lines (line charts only, per house spec) */}
+                      <line x1={yAxisLabelWidth} y1={padding} x2={yAxisLabelWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      <line x1={yAxisLabelWidth} y1={padding + plotHeight} x2={chartWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Account Balance</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -7104,18 +5685,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -7146,7 +5727,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesAData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -7187,7 +5768,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesBData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -7228,7 +5809,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesCData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -7268,8 +5849,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Metric</th>
                     <th style={{ 
@@ -7282,8 +5861,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario A</th>
                     <th style={{ 
@@ -7296,8 +5873,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario B</th>
                     <th style={{ 
@@ -7310,8 +5885,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario C</th>
                   </tr>
@@ -7326,7 +5899,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '2px solid #d1d5db',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Future Value Retirement Balance</td>
+                    }}>Future Value Retirement Balance (future $)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7364,7 +5937,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Value in Today's Dollars</td>
+                    }}>Value in Today's Dollars (discounted at {(inflationRate * 100).toFixed(1)}% inflation)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -7441,7 +6014,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Note: Withdrawal Balance calculated from previous Traditional IRA Balance (left)
+              Balance carries from the left.
               </div>
 
             {/* RMD Input */}
@@ -7464,9 +6037,14 @@ export default function Week6Retirement() {
                 width: '120px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RMD</div>
+                justifyContent: 'center',
+ cursor: 'help'
+}}
+ onMouseEnter={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseMove={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseLeave={() => termTipRef.current?.hide()}
+>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>{renderTermHint('RMD', RMD_DEFINITION)}</div>
                 <input
                   type="number"
                   value="75"
@@ -7479,40 +6057,28 @@ export default function Week6Retirement() {
                     backgroundColor: '#e5e7eb',
                     fontSize: '15px',
                     textAlign: 'center',
-                    cursor: 'not-allowed',
+                    cursor: 'help',
                     fontWeight: '700',
                     color: '#111827',
                     boxSizing: 'border-box'
                   }}
                 />
           </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#4b5563',
-                flex: 1,
-                fontWeight: '500',
-                lineHeight: '1.6',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '4px'
-              }}>
-                RMD: Required Minimum Distribution (last start age for withdrawals) - Fixed at 75
-        </div>
       </div>
 
             {/* Scenarios */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -7590,10 +6156,10 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditionalIRAAgeA || 60}
+                  value={retirementPlanningInputs.traditionalIRAAgeA || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeA', e.target.value)}
-                  min="31"
-                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
+                  min={retirementPlanningInputs.retirementAge || 65}
+                  max={rmdStartAge}
                   style={{
                     ...styles.input,
                     width: '100%',
@@ -7638,11 +6204,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('A'))}</div>
+                {renderWithdrawalSummary('traditionalIRA', 'A')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -7720,10 +6286,10 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditionalIRAAgeB || 60}
+                  value={retirementPlanningInputs.traditionalIRAAgeB || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeB', e.target.value)}
-                  min="31"
-                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
+                  min={retirementPlanningInputs.retirementAge || 65}
+                  max={rmdStartAge}
                   style={{
                     ...styles.input,
                     width: '100%',
@@ -7768,11 +6334,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('B'))}</div>
+                {renderWithdrawalSummary('traditionalIRA', 'B')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -7850,10 +6416,10 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.traditionalIRAAgeC || 60}
+                  value={retirementPlanningInputs.traditionalIRAAgeC || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('traditionalIRAAgeC', e.target.value)}
-                  min="31"
-                  max={retirementPlanningInputs.rmdAge || assumptions.scalars.rmd_start_age}
+                  min={retirementPlanningInputs.retirementAge || 65}
+                  max={rmdStartAge}
                   style={{
                     ...styles.input,
                     width: '100%',
@@ -7898,7 +6464,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.traditionalIRAAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateTraditionalIRAPV('C'))}</div>
+                {renderWithdrawalSummary('traditionalIRA', 'C')}
               </div>
       </div>
 
@@ -7913,70 +6479,39 @@ export default function Week6Retirement() {
               minHeight: '620px'
             }}>
               <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
-                Traditional IRA Withdrawals vs. Age Chart
+                Traditional IRA Annual Withdrawals (Pre-Tax) vs. Age Chart
               </div>
               {(() => {
                 const chartData = generateTraditionalIRAWithdrawalsChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // For withdrawal charts, extend Y-axis to double the max value for better visual spacing
-                const extendedMaxValue = maxValue * 2;
+                const extendedMaxValue = maxValue;
                 
                 // Dynamic Y-axis values based on extended max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals - aim for 5-6 steps
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.4;
-                  else if (normalized <= 5) step = 1;
-                  else if (normalized <= 10) step = 2;
-                  else step = 5;
-                  
-                  step *= magnitude;
-                  
-                  // Ensure we have 5-6 steps
-                  const numSteps = Math.ceil(max / step);
-                  if (numSteps < 4) {
-                    step = max / 5;
-                  } else if (numSteps > 8) {
-                    step = max / 6;
-                  }
-                  
-                  const values = [];
-                  for (let i = 0; i <= Math.ceil(max / step); i++) {
-                    const value = i * step;
-                    if (value <= max) {
-                      values.push(value);
-                    }
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -7986,13 +6521,17 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Annual Withdrawal (Pre-Tax)</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
-                          x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          x={yAxisLabelWidth + (plotWidth / chartData.length) * (chartData.findIndex(item => item.age === d.age) + 0.5)}
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -8052,18 +6591,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#666' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#666' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#dc3545' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#dc3545' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -8078,7 +6617,7 @@ export default function Week6Retirement() {
               border: '1px solid #e9ecef',
               textAlign: 'center'
             }}>
-              Note: If the Annual Rate of Return is larger than Withdrawal Rate, your portfolio will increase forever!
+              Return above withdrawal rate: balance keeps growing.
             </div>
 
 
@@ -8093,7 +6632,7 @@ export default function Week6Retirement() {
         {/* 8. Roth IRA Balance and Withdrawals */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
+          gridTemplateColumns: '1fr',
           gap: '32px',
           marginBottom: '40px',
           width: '100%',
@@ -8143,13 +6682,13 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Post-tax. Individual account. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit under 50 yo & under $150,000 income. Tax-free growth and withdrawals. No employer match.
+              Post-tax. {formatCurrency(assumptions.scalars.limit_ira, { decimals: 0 })} limit. Tax-free withdrawals. No match.
               </div>
 
             {/* Key Parameters */}
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(4, 1fr)',
               gap: '16px',
               marginBottom: '24px'
             }}>
@@ -8159,7 +6698,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Contribution Start Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Contribution Start Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.contributionStartAge || ''}
@@ -8216,12 +6755,12 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Retirement Age</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Retirement Age</div>
                 <input
                   type="number"
                   value={retirementPlanningInputs.retirementAge || ''}
                   onChange={(e) => handleRetirementPlanningInputChange('retirementAge', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.readOnly,
@@ -8247,7 +6786,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Annual Rate of Return (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Annual Rate of Return (%)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.annualReturnRate ? `${retirementPlanningInputs.annualReturnRate}%` : ''}
@@ -8305,7 +6844,7 @@ export default function Week6Retirement() {
                 borderRadius: '10px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
               }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Employer Match (%)</div>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>Employer Match (% of your contribution)</div>
                 <input
                   type="text"
                   value={retirementPlanningInputs.employerMatchIRA ? `${retirementPlanningInputs.employerMatchIRA}%` : ''}
@@ -8363,15 +6902,15 @@ export default function Week6Retirement() {
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -8393,7 +6932,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario A</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_ira_a !== '' && monthlyPayments.roth_ira_a != null ? `${formatCurrency(monthlyPayments.roth_ira_a)}` : ''}
@@ -8445,7 +6984,7 @@ export default function Week6Retirement() {
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -8467,7 +7006,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario B</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_ira_b !== '' && monthlyPayments.roth_ira_b != null ? `${formatCurrency(monthlyPayments.roth_ira_b)}` : ''}
@@ -8519,7 +7058,7 @@ export default function Week6Retirement() {
             </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -8541,7 +7080,7 @@ export default function Week6Retirement() {
                 e.currentTarget.style.borderColor = 'rgba(229, 231, 235, 0.8)';
               }}>
                 <div style={{ fontSize: '13px', fontWeight: '700', marginBottom: '12px', color: '#0d1a4b', letterSpacing: '-0.01em' }}>Scenario C</div>
-                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Monthly Payment</div>
+                <div style={{ fontSize: '11px', color: '#6b7280', marginBottom: '10px', fontWeight: '600' }}>Monthly Payment</div>
                 <input
                   type="text"
                   value={monthlyPayments.roth_ira_c !== '' && monthlyPayments.roth_ira_c != null ? `${formatCurrency(monthlyPayments.roth_ira_c)}` : ''}
@@ -8607,52 +7146,32 @@ export default function Week6Retirement() {
               </div>
               {(() => {
                 const chartData = generateRothIRAChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // Dynamic Y-axis values based on max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.5;
-                  else if (normalized <= 5) step = 1;
-                  else step = 2;
-                  
-                  step *= magnitude;
-                  const steps = Math.ceil(max / step);
-                  
-                  const values = [];
-                  for (let i = 0; i <= steps; i++) {
-                    values.push(i * step);
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(maxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / maxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -8662,13 +7181,20 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis lines (line charts only, per house spec) */}
+                      <line x1={yAxisLabelWidth} y1={padding} x2={yAxisLabelWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      <line x1={yAxisLabelWidth} y1={padding + plotHeight} x2={chartWidth} y2={padding + plotHeight} stroke="#000000" strokeWidth="1" />
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Account Balance</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
                           x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -8711,18 +7237,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#94a3b8' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#94a3b8' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#1e293b' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#1e293b' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -8754,7 +7280,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesAData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesAData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -8795,7 +7321,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesBData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesBData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -8836,7 +7362,7 @@ export default function Week6Retirement() {
                           </tr>
                         </thead>
                         <tbody>
-                          {seriesCData.accumulationData.slice(0, 20).map((row, index) => (
+                          {seriesCData.accumulationData.map((row, index) => (
                             <tr key={index} style={{ backgroundColor: index % 2 === 0 ? '#fff' : '#f8f9fa' }}>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.age}</td>
                               <td style={{ borderBottom: '1px solid #e5e7eb', padding: '8px', textAlign: 'center' }}>{row.year}</td>
@@ -8877,8 +7403,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Metric</th>
                     <th style={{ 
@@ -8891,8 +7415,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario A</th>
                     <th style={{ 
@@ -8905,8 +7427,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario B</th>
                     <th style={{ 
@@ -8919,8 +7439,6 @@ export default function Week6Retirement() {
                       fontWeight: '700',
                       color: '#374151',
                       fontSize: '12px',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
                       whiteSpace: 'nowrap'
                     }}>Scenario C</th>
                   </tr>
@@ -8935,7 +7453,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '2px solid #d1d5db',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Future Value Retirement Balance</td>
+                    }}>Future Value Retirement Balance (future $)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -8973,7 +7491,7 @@ export default function Week6Retirement() {
                       borderRight: '2px solid #d1d5db',
                       borderBottom: '1px solid rgba(229, 231, 235, 0.8)',
                       backgroundColor: 'rgba(255, 255, 255, 0.5)'
-                    }}>Value in Today's Dollars</td>
+                    }}>Value in Today's Dollars (discounted at {(inflationRate * 100).toFixed(1)}% inflation)</td>
                     <td style={{ 
                       padding: '14px 16px', 
                       textAlign: 'right', 
@@ -9050,7 +7568,7 @@ export default function Week6Retirement() {
               borderRadius: '10px',
               border: '1px solid rgba(229, 231, 235, 0.6)',
             }}>
-              Note: Withdrawal Balance calculated from previous Roth IRA Balance (left)
+              Balance carries from the left.
               </div>
 
             {/* RMD Input */}
@@ -9073,9 +7591,14 @@ export default function Week6Retirement() {
                 width: '120px',
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: 'center'
-              }}>
-                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>RMD</div>
+                justifyContent: 'center',
+ cursor: 'help'
+}}
+ onMouseEnter={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseMove={(e) => termTipRef.current?.show(RMD_DEFINITION, e)}
+ onMouseLeave={() => termTipRef.current?.hide()}
+>
+                <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px', fontWeight: '600' }}>{renderTermHint('RMD', RMD_DEFINITION)}</div>
                 <input
                   type="text"
                   value="None"
@@ -9088,40 +7611,28 @@ export default function Week6Retirement() {
                     backgroundColor: '#e5e7eb',
                     fontSize: '15px',
                     textAlign: 'center',
-                    cursor: 'not-allowed',
+                    cursor: 'help',
                     fontWeight: '700',
                     color: '#111827',
                     boxSizing: 'border-box'
                   }}
                 />
           </div>
-              <div style={{
-                fontSize: '13px',
-                color: '#4b5563',
-                flex: 1,
-                fontWeight: '500',
-                lineHeight: '1.6',
-                display: 'flex',
-                alignItems: 'center',
-                paddingLeft: '4px'
-              }}>
-                RMD: Required Minimum Distribution (last start age for withdrawals) - Fixed at 75
-        </div>
       </div>
 
             {/* Scenarios */}
             <div style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: '16px',
-              marginBottom: '24px',
+              gap: '28px',
+              marginBottom: '56px',
               width: '100%',
               maxWidth: '100%',
               boxSizing: 'border-box',
             }}>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -9199,9 +7710,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.rothIRAAgeA || 60}
+                  value={retirementPlanningInputs.rothIRAAgeA || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('rothIRAAgeA', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -9247,11 +7758,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeA}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('A'))}</div>
+                {renderWithdrawalSummary('rothIRA', 'A')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -9329,9 +7840,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.rothIRAAgeB || 60}
+                  value={retirementPlanningInputs.rothIRAAgeB || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('rothIRAAgeB', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -9377,11 +7888,11 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeB}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('B'))}</div>
+                {renderWithdrawalSummary('rothIRA', 'B')}
               </div>
               <div style={{
                 backgroundColor: 'rgba(249, 250, 251, 0.8)',
-                padding: '18px',
+                padding: '28px 26px',
                 borderRadius: '12px',
                 border: '1px solid rgba(229, 231, 235, 0.8)',
                 textAlign: 'center',
@@ -9459,9 +7970,9 @@ export default function Week6Retirement() {
                 <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '10px', marginTop: '12px', fontWeight: '500' }}>Starting Distribution Age</div>
                 <input
                   type="number"
-                  value={retirementPlanningInputs.rothIRAAgeC || 60}
+                  value={retirementPlanningInputs.rothIRAAgeC || 65}
                   onChange={(e) => handleRetirementPlanningInputChange('rothIRAAgeC', e.target.value)}
-                  min="31"
+                  min={retirementPlanningInputs.retirementAge || 65}
                   max="100"
                   style={{
                     ...styles.input,
@@ -9507,7 +8018,7 @@ export default function Week6Retirement() {
                     {retirementPlanningErrors.rothIRAAgeC}
                   </div>
                 )}
-                <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '12px', fontWeight: '500' }}>PV of First Payment: {formatCurrency(calculateRothIRAPV('C'))}</div>
+                {renderWithdrawalSummary('rothIRA', 'C')}
               </div>
       </div>
 
@@ -9522,70 +8033,39 @@ export default function Week6Retirement() {
               minHeight: '620px'
             }}>
               <div style={{ fontSize: '20px', fontWeight: '600', marginBottom: '12px', textAlign: 'center', color: '#333' }}>
-                Roth IRA Withdrawals vs. Age Chart
+                Roth IRA Annual Withdrawals (Pre-Tax) vs. Age Chart
               </div>
               {(() => {
                 const chartData = generateRothIRAWithdrawalsChartData();
-                const maxValue = Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC)));
+                const maxValue = niceAxisMax(Math.max(...chartData.map(d => Math.max(d.seriesA, d.seriesB, d.seriesC))));
                 
                 // For withdrawal charts, extend Y-axis to double the max value for better visual spacing
-                const extendedMaxValue = maxValue * 2;
+                const extendedMaxValue = maxValue;
                 
                 // Dynamic Y-axis values based on extended max value
-                const getYAxisValues = (max) => {
-                  if (max === 0) return [0];
-                  
-                  // Calculate nice intervals - aim for 5-6 steps
-                  const magnitude = Math.pow(10, Math.floor(Math.log10(max)));
-                  const normalized = max / magnitude;
-                  
-                  let step;
-                  if (normalized <= 1) step = 0.2;
-                  else if (normalized <= 2) step = 0.4;
-                  else if (normalized <= 5) step = 1;
-                  else if (normalized <= 10) step = 2;
-                  else step = 5;
-                  
-                  step *= magnitude;
-                  
-                  // Ensure we have 5-6 steps
-                  const numSteps = Math.ceil(max / step);
-                  if (numSteps < 4) {
-                    step = max / 5;
-                  } else if (numSteps > 8) {
-                    step = max / 6;
-                  }
-                  
-                  const values = [];
-                  for (let i = 0; i <= Math.ceil(max / step); i++) {
-                    const value = i * step;
-                    if (value <= max) {
-                      values.push(value);
-                    }
-                  }
-                  return values;
-                };
+                const getYAxisValues = (max) => niceAxisTicks(max);
                 
                 const yAxisValues = getYAxisValues(extendedMaxValue);
-                const chartWidth = 760;
+                const chartWidth = 1100;
                 const chartHeight = 520;
                 const padding = 24;
-                const yAxisLabelWidth = 130; // Space for Y-axis labels (wide enough for uncut whole-dollar figures at the larger tick font)
+                const bottomPad = 72; // room under the plot for tick labels + the "Age" axis title
+                const yAxisLabelWidth = 150; // gutter for the rotated y-axis title + whole-dollar tick labels
                 const plotWidth = chartWidth - padding - yAxisLabelWidth;
-                const plotHeight = chartHeight - 2 * padding;
+                const plotHeight = chartHeight - padding - bottomPad;
                 
                 return (
                   <div style={{ display: 'flex', justifyContent: 'center' }}>
-                    <svg width={chartWidth} height={chartHeight} style={{ overflow: 'visible' }}>
+                    <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} style={{ width: '100%', maxWidth: chartWidth, height: 'auto', overflow: 'visible' }}>
                       {/* Y-axis value labels (horizontal grid lines removed) */}
                       {yAxisValues.map((value, i) => {
                         const ratio = value / extendedMaxValue;
                         return (
                           <g key={i}>
                             <text
-                              x={yAxisLabelWidth - 5}
-                              y={padding + plotHeight * (1 - ratio) + 4}
-                              fontSize="19"
+                              x={yAxisLabelWidth - 12}
+                              y={padding + plotHeight * (1 - ratio) + 6}
+                              fontSize="16" fontWeight="500"
                               fill="#000000"
                               textAnchor="end"
                             >
@@ -9595,13 +8075,17 @@ export default function Week6Retirement() {
                         );
                       })}
                       
+                      {/* Axis titles */}
+                      <text x={yAxisLabelWidth + plotWidth / 2} y={chartHeight - 10} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Age</text>
+                      <text transform={`translate(20 ${padding + plotHeight / 2}) rotate(-90)`} fontSize="17" fontWeight="700" fill="#000000" textAnchor="middle">Annual Withdrawal (Pre-Tax)</text>
+
                       {/* Age labels */}
                       {chartData.filter((_, i) => i % 5 === 0).map((d, i) => (
                         <text
                           key={i}
-                          x={yAxisLabelWidth + (plotWidth / (chartData.length - 1)) * (chartData.findIndex(item => item.age === d.age))}
-                          y={chartHeight - padding + 15}
-                          fontSize="19"
+                          x={yAxisLabelWidth + (plotWidth / chartData.length) * (chartData.findIndex(item => item.age === d.age) + 0.5)}
+                          y={chartHeight - bottomPad + 28}
+                          fontSize="16" fontWeight="500"
                           fill="#000000"
                           textAnchor="middle"
                         >
@@ -9661,18 +8145,18 @@ export default function Week6Retirement() {
               })()}
               
               {/* Legend */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', marginTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '28px', marginTop: '20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#d8dee9' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series A</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#d8dee9' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series A</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#666' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series B</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#666' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series B</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <div style={{ width: '12px', height: '2px', backgroundColor: '#dc3545' }}></div>
-                  <span style={{ fontSize: '18px', color: '#000000', fontWeight: '600' }}>Series C</span>
+                  <div style={{ width: '14px', height: '14px', borderRadius: '4px', backgroundColor: '#dc3545' }}></div>
+                  <span style={{ fontSize: '15px', color: '#000000', fontWeight: '600' }}>Series C</span>
                 </div>
               </div>
             </div>
@@ -9687,7 +8171,7 @@ export default function Week6Retirement() {
               border: '1px solid #e9ecef',
               textAlign: 'center'
             }}>
-              Note: If the Annual Rate of Return is larger than Withdrawal Rate, your portfolio will increase forever!
+              Return above withdrawal rate: balance keeps growing.
             </div>
 
 

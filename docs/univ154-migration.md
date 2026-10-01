@@ -7,6 +7,8 @@ personal accounts.
 
 ## 🔴 ACTIVE — pick up here next session
 
+**2026-09-30 — Week 6 (Retirement Planning) rework is DONE LOCALLY, NOT PUSHED — awaiting user's localhost review.** Preview: `http://localhost:5173/dashboard/excel/week-6` (dev server was started in the background; restart with `npm run dev` if gone). Changes live in `src/components/Week6Retirement.jsx` + new `src/utils/retirementProjection.js` (uncommitted). Next step: user reviews, then commit + push to `main` (standing rule: localhost check first). Full rationale in the two 2026-09-30 working-log entries at the bottom. Key decisions: Excel workbook is NOT the source of truth; contributions stop the year before retirement age; discount at Assumptions CPI (3.0%); tax = auto from withdrawal (today's-dollar brackets) with override box; Roth 401(k) match is pre-tax; stale `localStorage['week6_data']` was the cause of the "RMD age 73" display. Playwright MCP was failing to connect this session, so nothing was visually verified by Claude.
+
 **2026-08-26 — Module 1: added "Portfolio Value Needed At Retirement" (4%-rule) to Results, verified gross-income labeling and tax math, not yet pushed.** User relayed boss-style questions again ("have you checked this math?", "is it spitting out the portfolio value they'll need? what are the assumptions — current age, retirement age, age of death?"), plus an ambiguous ask to "make sure the course introduction includes all of this important information below" with nothing actually pasted below it — asked the user to clarify what content that referred to; no reply yet, so nothing was added for that half of the request.
 
 - **Verified, no code change needed**: gross income was already labeled explicitly in 4 places on Results (`"gross annual · ..."` under the headline, `"Gross / Month"` line item, the tax-note's `"% of your gross income"`, effective-rate notes on every tax row). Re-traced the gross-up math (`calcResults`'s 20-round fixed-point loop) — still correct, converges because every marginal rate is <100%. The two previously-flagged modeling simplifications (charity not tax-deductible, no MFJ standard-deduction widening) are still there, still deliberate, still unchanged.
@@ -354,6 +356,11 @@ src/
                                  gating rules below) -- replaced adminEmails.js
     assumptionsApi.js           Supabase calls for the assumptions_* tables (see
                                  Database schema below)
+    retirementProjection.js     Week 6 projection engine (added 2026-09-30):
+                                 simulateRetirementAccount() for all 4 account types
+                                 x 3 scenarios -- accumulation, bridge years, RMDs,
+                                 Roth-401k match split, auto/override tax, CPI
+                                 discount. Pure; see 2026-09-30 working-log entries.
     taxEngine.js                Single shared tax/FICA/RMD/LTCG calculation engine --
                                  pure functions taking an `assumptions` object, no
                                  hardcoded constants. Replaces taxCalculator.js
@@ -477,6 +484,17 @@ superseded by `taxEngine.js` + the Assumptions table -- see working log).
   and the syllabus numbering are intentionally independent, same as every other week).
 
 ## § Working log (append-only)
+
+### 2026-09-30 — Week 6 RMD hover: verified working headless, moved tooltip state out of the page component
+User reported the RMD hover still showed nothing. Reproduced with a temporary `/__qa/dash/w6` route (real `<Dashboard/>` shell, no auth) driven by playwright-core + the locally installed Chromium (Playwright MCP is down; `npm i playwright-core` in the scratchpad works instead): the tooltip DID appear on the label, the grey 75 box and the box padding, in all 4 account tabs. So the logic was not broken; likeliest real-world causes are a stale cached bundle or lag -- every mousemove called `setTermTip` on the 9,700-line Week6 component, which re-runs the projection engine on the withdrawal tabs (~150ms here, worse on a throttled laptop). Fix: `TermTipHost` (forwardRef + `useImperativeHandle`) owns the tooltip state, so hover re-renders only that small component. QA routes removed (`git diff src/App.jsx` clean).
+
+### 2026-09-30 — Week 6: charts re-laid-out to the house spec, RMD tooltip portaled, withdrawal cards restructured
+User screenshots showed (1) the per-scenario withdrawal text as a cramped wall of 12px lines, (2) the RMD hover definition not appearing correctly, (3) the hand-rolled SVG charts with the `$0` y-label colliding with the first age label, and ugly/odd y ticks (`$235,158`) on the withdrawal bar charts. Not yet visually verified by Claude (no browser this session); build is clean.
+- **Charts (all 8 SVG blocks)**: bottom gutter added (`bottomPad`) so age labels sit clear below the plot; y labels pulled left and widened gutter (`yAxisLabelWidth` 150) for a rotated y-axis title; added "Age" + "Account Balance"/"Annual Withdrawal (Pre-Tax)" axis titles at 17px bold, ticks 16px (the live Chart.js spec, not the stale 19px in the 08-15 entry); axis lines on the line charts only (same rule as Week9's Line chart); bar-chart age labels now centered under their bar groups (they used the line-chart spacing formula and drifted); legend swatches are 14px rounded squares like Chart.js.
+- **Y scale**: new module-level `niceAxisMax`/`niceAxisTicks` (<=5 intervals, steps 1/2/2.5/5). Old code scaled ratios by the raw max but labelled ticks beyond it (top label floated above the plot) and withdrawal charts doubled the max to "add spacing" - both removed.
+- **RMD tooltip**: now `createPortal`ed to `document.body`, clamped to the viewport, anchored above the cursor; `position: fixed` inside the blurred/transformed page shell was misplacing it. Text expanded beyond "Required Minimum Distribution."
+- **Withdrawal summary card**: label / note / big value / per-month stacked rows, PV rows grouped in a tinted sub-box.
+- Other modules' Chart.js charts (Week3/5/9/12) already follow the 15/17/16px spec; not changed this round.
 
 ### 2026-09-02 — Admin tab: removed dead Week # column, made Topic editable
 Commit `40536dc`, pushed to `main`. User: "delete the week # column in the
@@ -2554,3 +2572,34 @@ Previously state and NYC tax ran on the FEDERAL taxable income (a documented sim
 - **Code-owned, not in Supabase:** `stateDeductions` lives in `assumptionsDefaults.js` and is merged in by `fetchAssumptions` (the DB result has no such table). Not admin-editable yet — adding a table + admin UI is the follow-up if annual updates should not need a deploy. No migration needed.
 - **Cross-check:** Week 0's independently authored table uses the same model; the shared engine now matches it exactly (459 state x income comparisons, 0 mismatches). Week 0 was missing four personal exemptions (AL 1,500, HI 1,144, ME 5,300, WI 700) — added.
 - **Still simplified:** credit-type exemptions are ignored (CA, AR, DE, IA, NE, OR, UT); income-based phase-outs of state deductions (AL, ME, WI, etc.) are not modeled; SC's 8,350 is Tax Foundation's figure but SC decoupled from the federal deduction (SCIAD) for 2026 — unverified. The Excel Week 12 model used the federal base for state tax; Week 12 now deliberately deviates (TX/no-tax states, incl. the default case, are unchanged: $110,058 / $10,606,156).
+
+### 2026-09-30 — Retirement Planning tab (Week 6): unified projection engine, RMDs, after-tax withdrawals
+Reviewer complaint: PV of first withdrawal fell when withdrawal age went 60 → 70; RMDs not shown; withdrawals unlabeled (annual vs the monthly contributions); no tax on Traditional; default withdrawal age 60; "math doesn't tie". Not yet pushed — awaiting localhost review (`/dashboard/excel/week-6`).
+- **Root cause of the PV bug**: accumulation ran only to retirement age (65) and the withdrawal start balance was looked up *by age* in that table; ages > 65 weren't found, so it fell back to the age-65 balance (never grown) and was then discounted further. Fixed with "bridge years": after retirement age the balance compounds at the return rate with no contributions until the withdrawal start age. Withdrawal start age is clamped to ≥ retirement age (validation + default 65 everywhere).
+- **New `src/utils/retirementProjection.js`** (`simulateRetirementAccount`) replaces 12 copy-pasted calculators in `Week6Retirement.jsx`; those are now one-line wrappers (`simulateAccount`). Withdrawals run to age 100 (was 109 in tables/100 in charts).
+- **RMDs**: Traditional 401(k)/IRA withdraw `max(rate × balance, balance ÷ IRS divisor)` from `rmd_start_age` (75). Roth IRA never; Roth 401(k) exempt (SECURE 2.0, 2024+). Uses `assumptions.rmdDivisors`; ages past the table reuse the last divisor. RMD-forced table rows are shaded.
+- **Tax (Traditional only)**: decision — auto-computed effective federal+state(+NYC) rate from the withdrawal itself, evaluated in *today's dollars* (withdrawal deflated by CPI, today's brackets), with an optional flat override box. So a large future-dollar withdrawal can show a modest rate; that's intended. Other retirement income (Social Security) is not modeled. No FICA.
+- **Discount rate**: "Value in Today's Dollars" and PV now use Assumptions `cpi_inflation` (3.0%) instead of the hardcoded 3.5% (user's call; slightly differs from the Excel workbook). The tie-out is printed on each scenario card (`first withdrawal ÷ (1+cpi)^years`). The reviewer's $28,775.19 did tie (4% × $3,157,863 ÷ 1.035^43); it just never showed the undiscounted figure.
+- Also fixed latent key mismatch `startingDistributionAgeA` vs `traditionalIRAAgeA`.
+- Only the Traditional 401(k) tab has per-year withdrawal tables; the other accounts show charts + scenario summaries only (unchanged structure).
+
+### 2026-09-30 (round 2) — Week 6: timing corrected, Roth 401(k) match split, stale-save fix, layout/labels
+User said the Excel workbook is **not** the source of truth (they edited formulas along the way) — do what is financially correct. Still unpushed, awaiting localhost review.
+- **Stale localStorage was the "From age 73" bug**: `week6_data` persisted `retirementPlanningInputs` (incl. `rmdAge` 73 and withdrawal ages 60) and merged it over the new defaults, so the UI/validation read 73 while the engine read the Assumptions value (75). `rmdAge` is no longer stored at all (`rmdStartAge` always from Assumptions); saves are versioned (`version: 2`); on load and whenever Retirement Age changes, withdrawal ages are aligned to ≥ retirement age (Traditional capped at the RMD age).
+- **Timing convention changed (balances drop ~1 year of contributions, e.g. Scenario C $4.21M → $3.92M)**: contributions now happen every year from start age up to *but not including* retirement age, deposited at year-end, so the balance on the retirement birthday is an annuity of (retirement − start) payments — the same number of years it is discounted for "today's dollars". Previously 44 payments were discounted 43 years and age 65 both contributed and withdrew.
+- **Roth 401(k) employer match modeled as pre-tax**: engine tracks a tax-free sub-balance (own contributions, no RMD) and a pre-tax sub-balance (match, taxed + RMD'd). Roth 401(k) cards get a tax-rate override box for the match portion. Because the match is small and the tax is computed in today's dollars against the standard deduction, its tax is often $0 at the start.
+- Employer match relabeled "% of your contribution" (that is what the math does). IRA "under $150k income" text replaced (Traditional IRA has no contribution income limit; only the deduction/Roth eligibility phase out).
+- UI: RMD paragraph replaced by a dotted-underline hover term (generic `termTip`, same look as the Deferral tooltip); all-caps label styling removed; Balance/Withdrawals cards stacked full-width (was 2-up), key-parameter grid 4-across, charts scale via viewBox.
+- Removed dead code: `simulate401k`, `simA/B/C`, `finalBalanceA-C`, `maxContribution`, unused Series A/B/C state, debug `console.log`s.
+
+### 2026-09-30 (round 3) — Week 6: full math audit, independent tie-out
+Audited `retirementProjection.js` + wiring end to end and verified with an independent script (esbuild-bundled engine run under node, scratchpad only, not committed): final balance vs closed-form annuity for all 3 account types x 3 payment levels x {0%, 7%}; PV(first withdrawal) rises with withdrawal age 66/70/75 (pre- and after-tax); year-over-year balance roll-forward; withdrawal >= RMD from 75; Roth no-RMD/no-tax; tax override. All pass. Trad 401(k) Scenario C ties: $3,916,960 -> $1,098,875 today's $; first 4% = $156,678 -> $43,955 PV.
+- **Real bug fixed**: `annualReturnRate || 7` turned a valid 0% (or cleared field) into 7%.
+- Accumulation tables now show every row (were cut at 20 with "N more rows", hiding the row that equals the final balance).
+- Cards now show PV of first *after-tax* withdrawal (Trad + Roth 401k) — the Roth-vs-Traditional comparison number. Deliberately no equal-take-home scaling of contributions and no explanatory note (user: minimal text).
+- Discount years are measured from contribution start age ("today" = start age); labeled "years from start age".
+- Decisions kept: withdrawal = rate x current balance (RMD overrides), no balance-by-age chart. Not done: raising retirement-age floor to 59 (age field clamps per keystroke, so a higher floor would break typing "65"); 10% early-withdrawal penalty not modeled.
+- Cleanup: removed unused `yearOffset`, empty `useEffect`; `rmdDivisorFor` now reuses `taxEngine.getRMDDivisor`.
+
+### 2026-09-30 (round 4) — "How it works" boxes removed everywhere; notes tightened
+User: kill every "How it works" section and make all note text as concise as possible. Deleted the box (and the now-unused `InfoIcon` components) from SavingsForm, Week3CreditCard, Week4, Week6Retirement, Week7, Week9, Week12; Week0CourseIntro's household note keeps only the scaling facts (label dropped). Week 4's state-tax simplification disclaimer went with its box. Week 6 account blurbs, withdrawal-table notes and tax-rate helper text cut to one short line each. Formula-reference labels (Week1Summary) and the Assumptions footnote were left alone.
